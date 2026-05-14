@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaoViet Actuarial Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bv-blue: #0056A3;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Essential for Glassmorphism: Background shapes to blur */
+        .bg-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.9;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -50px) scale(1.1); }
+        }
+
+        .shape-1 {
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 86, 163, 0.25); /* Pastel BaoViet Blue */
+            top: 10%;
+            left: 30%;
+        }
+
+        .shape-2 {
+            width: 600px;
+            height: 600px;
+            background: rgba(179, 143, 53, 0.3); /* Pastel BaoViet Gold */
+            bottom: 10%;
+            right: 25%;
+            animation-delay: -5s;
+        }
+
+        /* Glassmorphism Card */
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 48px 40px;
+            border-radius: 24px;
+            position: relative;
+            z-index: 10;
+            
+            /* Glass effect */
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(40px) saturate(150%);
+            -webkit-backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.08), 
+                inset 0 1px 1px rgba(255, 255, 255, 1);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo-container img {
+            height: 50px;
+            object-fit: contain;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            color: var(--text-primary);
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            outline: none;
+            font-weight: 600;
+        }
+
+        .form-control:focus {
+            border-color: var(--bv-blue);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 86, 163, 0.15);
+        }
+
+        .btn-login {
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            background: linear-gradient(135deg, var(--bv-blue), #004582);
+            color: white;
+            box-shadow: 0 8px 20px rgba(0, 86, 163, 0.25);
+            margin-top: 12px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(0, 86, 163, 0.35);
+            background: linear-gradient(135deg, #0060b5, #004582);
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 16px;
+            font-weight: 500;
+            display: none;
+            padding: 10px;
+            background: rgba(220, 38, 38, 0.1);
+            border-radius: 8px;
+        }
+        
+        .footer-text {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+        <div class="logo-container" style="margin-bottom: 40px;">
+            <!-- Ensure logo.webp exists in the same directory -->
+            <img src="logo.webp" alt="BaoViet Logo">
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Email / User ID</label>
+                <input type="email" id="userId" class="form-control" placeholder="name@baoviet.com.vn" required autocomplete="email">
+            </div>
+            
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="form-label" style="margin-bottom: 0;">Password</label>
+                    <a href="#" style="font-size: 12px; color: var(--bv-blue); text-decoration: none; font-weight: 500;">Forgot password?</a>
+                </div>
+                <input type="password" id="password" class="form-control" placeholder="••••••••" required autocomplete="current-password" style="margin-top: 8px;">
+            </div>
+
+            <button type="submit" class="btn-login">
+                Sign In
+            </button>
+            
+            <div id="errorMessage" class="error-message">
+                Incorrect Email or Password. Please try again.
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('userId').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('errorMessage');
+            
+            if (userId === 'nguyen.tuan.minh@baoviet.com.vn' && password === '68686868') {
+                errorDiv.style.display = 'none';
+                
+                // Add a small delay to simulate network/loading
+                const btn = document.querySelector('.btn-login');
+                btn.innerHTML = 'Signing in...';
+                btn.style.opacity = '0.8';
+                
+                setTimeout(() => {
+                    window.location.href = 'index_upr_calculation.html';
+                }, 600);
+            } else {
+                errorDiv.style.display = 'block';
+                // Shake effect for error
+                const card = document.querySelector('.login-card');
+                card.style.transform = 'translateX(5px)';
+                setTimeout(() => card.style.transform = 'translateX(-5px)', 100);
+                setTimeout(() => card.style.transform = 'translateX(5px)', 200);
+                setTimeout(() => card.style.transform = 'translateX(0)', 300);
+            }
+        });
+    </script>
+</body>
+</html>

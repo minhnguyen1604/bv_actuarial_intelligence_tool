@@ -1,0 +1,10 @@
+.Rproj.user/
+.Rhistory
+.RData
+*.csv
+*.xlsx
+__pycache__/
+venv/
+.env
+.gemini/
+r_code/

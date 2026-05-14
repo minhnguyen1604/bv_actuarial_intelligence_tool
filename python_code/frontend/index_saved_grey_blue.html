@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BaoViet Actuary Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Sleek Grey-White Palette */
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --bv-blue: #0056A3;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            /* A more distinct grey/white gradient to show contrast against the glass */
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 50%, #f1f5f9 100%);
+            color: var(--text-primary);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            position: relative;
+        }
+
+        /* Essential for Glassmorphism: Background shapes to blur */
+        .bg-shapes {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.8;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(30px, -50px) scale(1.1); }
+        }
+        .shape-1 {
+            width: 450px; height: 450px;
+            background: #ffffff; /* Pure white orb */
+            top: -100px; left: 10%;
+        }
+        .shape-2 {
+            width: 600px; height: 600px;
+            background: #94a3b8; /* Slate grey orb */
+            bottom: -200px; right: -50px;
+            animation-delay: -5s;
+        }
+        .shape-3 {
+            width: 300px; height: 300px;
+            background: rgba(0, 86, 163, 0.1); /* Very subtle blue hint */
+            top: 40%; left: 40%;
+            animation-delay: -10s;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+        /* Modern Glassmorphism Core */
+        .glass-panel {
+            /* Translucent white background */
+            background: rgba(255, 255, 255, 0.4) !important;
+            /* Strong blur and saturation to create the frosted glass effect */
+            backdrop-filter: blur(24px) saturate(150%) !important;
+            -webkit-backdrop-filter: blur(24px) saturate(150%) !important;
+            /* Bright thin border to catch the light */
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            /* Soft shadow */
+            box-shadow: 0 10px 30px 0 rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255,255,255,1) !important;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px; 
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px 12px 16px; /* Reduced bottom padding */
+            z-index: 10;
+            border-right: 1px solid rgba(255,255,255,0.8);
+            background: rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            box-shadow: 2px 0 20px rgba(0,0,0,0.02);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            height: 60px; /* Fixed height container */
+            margin-bottom: 40px;
+            padding: 0 10px;
+            width: 100%;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensures the logo scales without being cut off */
+            object-position: left center;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            margin: 20px 0 8px 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255,255,255,0.6);
+        }
+
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--bv-blue);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255,255,255,1);
+            font-weight: 600;
+        }
+
+        .nav-icon { margin-right: 12px; font-size: 18px; opacity: 0.8; }
+        .nav-item.active .nav-icon { opacity: 1; }
+
+        /* Main Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .user-profile { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            margin-top: auto;
+            padding: 12px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .user-profile:hover {
+            background-color: rgba(255,255,255,0.6);
+        }
+
+        .avatar {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            background: #111827;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 600; color: white; font-size: 14px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1; overflow-y: auto; padding: 32px;
+            display: flex; flex-direction: column;
+        }
+
+        .dashboard-grid {
+            display: grid; grid-template-columns: 7fr 5fr; gap: 24px;
+            flex: 1; /* Stretch to fill remaining height */
+            min-height: 0;
+        }
+        
+        .dashboard-grid > .column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            border-radius: 20px;
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;
+        }
+
+        .panel-title {
+            font-size: 18px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+        }
+
+        /* Controls */
+        .form-label {
+            display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            background-color: rgba(255,255,255,0.6);
+            border: 1px solid rgba(0,0,0,0.08);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s;
+            outline: none;
+            font-weight: 500;
+        }
+
+        .form-control:focus {
+            border-color: #111827;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.1);
+        }
+
+        .flex-row { display: flex; gap: 16px; }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed rgba(0, 0, 0, 0.15);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            background-color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 24px;
+        }
+
+        .upload-zone:hover {
+            border-color: #111827;
+            background-color: rgba(255,255,255,0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.03);
+        }
+
+        .upload-icon {
+            font-size: 40px; color: #4b5563; margin-bottom: 12px; transition: all 0.3s;
+        }
+
+        .upload-zone:hover .upload-icon { color: #111827; transform: translateY(-4px); }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; border: 1px solid transparent; gap: 8px;
+        }
+
+        .btn-primary {
+            background: #111827;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            background: #000000;
+        }
+
+        .btn-accent {
+            background: var(--bv-blue);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 86, 163, 0.2);
+        }
+
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 86, 163, 0.3);
+            background: #004582;
+        }
+
+        .btn-outline {
+            background-color: rgba(255,255,255,0.7);
+            border: 1px solid rgba(0,0,0,0.1);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            background-color: #ffffff;
+            border-color: rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transform: translateY(-1px);
+        }
+
+        /* Tables */
+        .table-container {
+            border: 1px solid rgba(255,255,255,0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.4);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02);
+        }
+
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+
+        th, td { padding: 16px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+
+        th {
+            font-weight: 700; color: var(--text-secondary); font-size: 12px;
+            background-color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: rgba(255, 255, 255, 0.6); }
+
+        /* Status Pills */
+        .status {
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block;
+        }
+        .status.success { background: rgba(16, 185, 129, 0.15); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status.warning { background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        /* Setup Grid */
+        .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+    </style>
+</head>
+<body>
+    
+    <!-- Background Shapes for Glassmorphism Effect -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="logo-container">
+            <img src="logo.webp" alt="BaoViet Logo">
+        </div>
+
+        <div class="nav-label">Modules</div>
+        <div class="nav-item active">
+            <span class="nav-icon">◱</span>
+            UPR Calculation
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">◨</span>
+            Premium Comparison
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">◐</span>
+            OSC Calculation
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">◈</span>
+            AM.Best Rating
+        </div>
+
+        <div class="nav-label" style="margin-top: 30px;">Management</div>
+        <div class="nav-item">
+            <span class="nav-icon">▤</span>
+            Data Repository
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">◧</span>
+            Exchange Rates
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">⚙</span>
+            Settings
+        </div>
+        <div class="user-profile">
+            <div class="avatar">BV</div>
+            <span style="color: var(--text-primary); font-size: 13px; font-weight: 600;">Actuarial Dept.</span>
+        </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+        <div class="content">
+            
+            <!-- Setup & Configuration Section -->
+            <div class="panel glass-panel" style="margin-bottom: 32px;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <span style="color: #111827;">■</span> Parameters Setup
+                    </div>
+                    <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">Save Config</button>
+                </div>
+                
+                <div class="setup-grid">
+                    <div>
+                        <label class="form-label">Calculation Date</label>
+                        <div class="flex-row">
+                            <input type="number" class="form-control" placeholder="Day (DD)" value="30">
+                            <input type="number" class="form-control" placeholder="Month (MM)" value="06">
+                            <input type="number" class="form-control" placeholder="Year (YYYY)" value="2025">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Current Exchange Rates</label>
+                        <div class="flex-row">
+                            <input type="text" class="form-control" placeholder="Quarter" value="Q2_2025" disabled style="background: rgba(0,0,0,0.03); color: #6b7280;">
+                            <input type="text" class="form-control" placeholder="USD" value="25,450">
+                            <input type="text" class="form-control" placeholder="EUR" value="27,120">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                
+                <!-- Left Column: Input Data -->
+                <div class="column">
+                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="panel-header">
+                            <div class="panel-title">Data Ingestion</div>
+                            <button class="btn btn-outline" style="padding: 8px 16px; font-size: 13px;">Check Forms</button>
+                        </div>
+                        
+                        <div class="upload-zone" id="uploadZone">
+                            <div class="upload-icon">⇪</div>
+                            <h4 style="margin-bottom: 8px; font-size: 16px; font-weight: 700; color: #111827;">Upload Excel Files</h4>
+                            <p style="color: var(--text-secondary); font-size: 13px;">Drag and drop .xlsx files here or click to browse</p>
+                            <input type="file" id="fileInput" style="display: none;" accept=".xlsx, .xlsm">
+                        </div>
+
+                        <div class="flex-row" style="margin-bottom: 16px; align-items: center;">
+                            <h4 style="font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; font-weight: 700;">CURRENT FILES IN QUEUE</h4>
+                            <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1); margin-left: 12px;"></div>
+                        </div>
+
+                        <div class="table-container" style="max-height: 280px; overflow-y: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="font-weight: 600; color: #111827;">XCG_LT_Q2.xlsx</td>
+                                        <td>Long Term</td>
+                                        <td><span class="status success">Validated</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="font-weight: 600; color: #111827;">Marine_ST_Q2.xlsx</td>
+                                        <td>Short Term</td>
+                                        <td><span class="status warning">Pending</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Calculation & Output -->
+                <div class="column">
+                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="panel-header">
+                            <div class="panel-title">Calculation & Output</div>
+                        </div>
+                        
+                        <!-- Big Action Buttons -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
+                            <button class="btn btn-accent" style="height: 60px; font-size: 15px;">
+                                ▶ Calculate UPR
+                            </button>
+                            <button class="btn btn-primary" style="height: 60px; font-size: 15px;">
+                                ▤ Summarize Results
+                            </button>
+                        </div>
+
+                        <div class="flex-row" style="margin-bottom: 16px; justify-content: space-between; align-items: center;">
+                            <h4 style="font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; font-weight: 700;">PROCESSED REPORTS</h4>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">Download All</button>
+                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Clear All</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container" style="flex: 1;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Report File</th>
+                                        <th style="width: 100px; text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 12px;">
+                                                <div style="padding: 8px; background: rgba(255,255,255,0.8); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">📄</div>
+                                                <span style="font-weight: 600; color: #111827;">XCG_LT_Calculated.xlsx</span>
+                                            </div>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">↓</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = '#111827';
+            uploadZone.style.backgroundColor = 'rgba(255,255,255,0.8)';
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.style.borderColor = 'rgba(0,0,0,0.15)';
+            uploadZone.style.backgroundColor = 'rgba(255,255,255,0.3)';
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.style.borderColor = 'rgba(0,0,0,0.15)';
+            uploadZone.style.backgroundColor = 'rgba(255,255,255,0.3)';
+            if (e.dataTransfer.files.length) {
+                alert('File received: ' + e.dataTransfer.files[0].name);
+            }
+        });
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+                alert('File selected: ' + fileInput.files[0].name);
+            }
+        });
+    </script>
+</body>
+</html>
