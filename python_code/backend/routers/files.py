@@ -84,13 +84,14 @@ def check_file(file_id: int, db: Session = Depends(get_db)):
     file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found in queue.")
-        
+
     res = validate_form(file_record.file_path, file_record.sheet_name, file_record.group_code)
-    
-    if res["ok"]:
+
+    if res["ok"] and not res.get("errors"):
+        # Only mark Validated when no fatal errors; warnings are allowed
         file_record.status = "Validated"
         db.commit()
-        
+
     return res
 
 @router.delete("/clear")
