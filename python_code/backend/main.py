@@ -2,7 +2,16 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 
+import models
+from database import engine
+from routers import parameters, files
+
+models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="BaoViet Actuarial Platform")
+
+app.include_router(parameters.router)
+app.include_router(files.router)
 
 # Mount the frontend directory to serve static files
 # We will use /api/ for our endpoints and serve frontend at the root

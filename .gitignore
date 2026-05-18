@@ -8,3 +8,5 @@ venv/
 .env
 .gemini/
 r_code/
+*.db  
+ 

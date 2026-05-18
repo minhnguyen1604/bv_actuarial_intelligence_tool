@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for local Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             /* Sleek Grey-White Palette */
@@ -279,7 +281,7 @@
         /* Content Area */
         .content {
             flex: 1;
-            overflow-y: auto;
+            overflow: hidden;
             padding: 32px;
             display: flex;
             flex-direction: column;
@@ -290,13 +292,13 @@
             grid-template-columns: 7fr 5fr;
             gap: 24px;
             flex: 1;
-            /* Stretch to fill remaining height */
             min-height: 0;
         }
 
         .dashboard-grid>.column {
             display: flex;
             flex-direction: column;
+            min-height: 0;
         }
 
         .panel {
@@ -307,6 +309,7 @@
             border: 1px solid rgba(255, 255, 255, 0.6);
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2), 0 8px 32px rgba(0, 0, 0, 0.04);
             background: rgba(255, 255, 255, 0.45);
+            flex-shrink: 0;
         }
 
         .panel-header {
@@ -332,10 +335,21 @@
         /* Controls */
         .form-label {
             display: block;
-            font-size: 13px;
+            font-size: 11px;
+            text-transform: uppercase;
             color: var(--text-secondary);
             margin-bottom: 8px;
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin: 0;
         }
 
         .form-control {
@@ -345,10 +359,10 @@
             color: var(--text-primary);
             padding: 12px 16px;
             border-radius: 10px;
-            font-size: 15px;
+            font-size: 14px;
             transition: all 0.3s;
             outline: none;
-            font-weight: 600;
+            font-weight: 500;
         }
 
         .form-control:focus {
@@ -458,13 +472,62 @@
             transform: translateY(-1px);
         }
 
-        /* Tables */
+        .btn-outline-danger {
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #fef2f2;
+            border-color: #ef4444;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-icon {
+            padding: 8px !important;
+            width: 36px !important;
+            height: 36px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon-sm {
+            padding: 6px !important;
+            width: 32px !important;
+            height: 32px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .table-container {
             border: 1px solid rgba(255, 255, 255, 0.8);
             border-radius: 12px;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             background: rgba(255, 255, 255, 0.4);
             box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s;
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .table-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .table-container::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 10px;
+        }
+
+        .table-container:hover::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
         }
 
         table {
@@ -488,6 +551,63 @@
             text-transform: uppercase;
             letter-spacing: 0.08em;
             padding: 14px 16px;
+            vertical-align: top;
+        }
+
+        .filter-icon {
+            display: inline-block;
+            margin-left: 4px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .filter-icon:hover {
+            opacity: 1;
+        }
+        .filter-dropdown {
+            position: absolute;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 8px;
+            z-index: 50;
+            display: none;
+            min-width: 150px;
+            font-weight: normal;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+        .filter-dropdown.active {
+            display: block;
+        }
+        .filter-dropdown label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #374151;
+        }
+        .filter-dropdown label:hover {
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+        .filter-dropdown .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .filter-dropdown button {
+            background: none;
+            border: none;
+            font-size: 11px;
+            color: var(--primary);
+            cursor: pointer;
+            font-weight: 500;
         }
 
         tr:last-child td {
@@ -517,6 +637,76 @@
             background: rgba(245, 158, 11, 0.15);
             color: #b45309;
             border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 24px;
+            border-radius: 16px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .modal-content h3 {
+            margin-bottom: 16px;
+            font-size: 18px;
+        }
+        .modal-large {
+            width: 700px;
+        }
+        
+        .hover-scroll {
+            overflow-y: auto;
+        }
+        .hover-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .hover-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .hover-scroll::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 10px;
+        }
+        .hover-scroll:hover::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .file-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-list-item:hover {
+            border-color: var(--primary);
+            background: rgba(26, 86, 219, 0.02);
+        }
+        .file-list-item.selected {
+            border-color: var(--primary);
+            background: rgba(26, 86, 219, 0.05);
         }
 
         /* Setup Grid */
@@ -597,26 +787,31 @@
 
     <!-- Main Workspace -->
     <main class="workspace">
-        <div class="content">
+        <div class="content" style="display: flex; flex-direction: column; height: 100%;">
 
             <!-- Setup & Configuration Section -->
-            <div class="panel glass-panel" style="margin-bottom: 24px;">
-                <div class="panel-header">
+            <div class="panel glass-panel" style="margin-bottom: 24px; flex-shrink: 0;">
+                <div class="panel-header" style="margin-bottom: 16px;">
                     <div class="panel-title">
                         Parameters Setup
                     </div>
-                    <button class="btn btn-outline" style="padding: 12px 20px; font-size: 14px;">Save Config</button>
+                    <button class="btn btn-outline btn-icon" title="Save Config">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    </button>
                 </div>
 
                 <div class="setup-grid" style="display: grid; grid-template-columns: 7fr 5fr; gap: 24px; margin: 0 -28px; width: calc(100% + 56px); align-items: end;">
                     <!-- Col 1: Date -->
-                    <div style="padding-left: 28px; display: flex; justify-content: flex-end;">
-                        <div>
-                            <label class="form-label">Calculation Date</label>
-                            <div class="flex-row">
-                                <input type="number" class="form-control" placeholder="DD" value="30">
-                                <input type="number" class="form-control" placeholder="MM" value="06">
-                                <input type="number" class="form-control" placeholder="YYYY" value="2025">
+                    <div style="padding-left: 28px; display: flex; justify-content: flex-start;">
+                        <div style="width: 100%;">
+                            <label class="form-label" style="display: flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--bv-blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                Calculation Date
+                            </label>
+                            <div class="flex-row" style="gap: 12px;">
+                                <input type="number" id="calcDay" class="form-control" placeholder="DD" value="30" style="text-align: center;">
+                                <input type="number" id="calcMonth" class="form-control" placeholder="MM" value="06" style="text-align: center;">
+                                <input type="number" id="calcYear" class="form-control" placeholder="YYYY" value="2025" style="text-align: center;">
                             </div>
                         </div>
                     </div>
@@ -625,7 +820,7 @@
                     <div style="padding-right: 24px;">
                         <label class="form-label">Current FX Rate</label>
                         <div style="background: white; border: 1px solid rgba(0, 0, 0, 0.08); padding: 5px 16px 5px 5px; border-radius: 10px; display: flex; align-items: center; gap: 16px; height: 47px; width: 100%;">
-                            <button title="Click to sync Exchange Rates from DB" style="background: rgba(0, 86, 163, 0.06); padding: 8px; border-radius: 8px; color: var(--bv-blue); box-shadow: 0 2px 4px rgba(0,86,163,0.05); border: 1px solid rgba(0,86,163,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='rgba(0, 86, 163, 0.1)'; this.style.boxShadow='0 4px 8px rgba(0,86,163,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(0, 86, 163, 0.06)'; this.style.boxShadow='0 2px 4px rgba(0,86,163,0.05)'">
+                            <button title="Click to sync Exchange Rates from DB" style="background: rgba(0, 86, 163, 0.06); width: 36px; height: 36px; padding: 8px; border-radius: 8px; color: var(--bv-blue); box-shadow: 0 2px 4px rgba(0,86,163,0.05); border: 1px solid rgba(0,86,163,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='rgba(0, 86, 163, 0.1)'; this.style.boxShadow='0 4px 8px rgba(0,86,163,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(0, 86, 163, 0.06)'; this.style.boxShadow='0 2px 4px rgba(0,86,163,0.05)'">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
                             </button>
                             <div style="display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0;">
@@ -650,17 +845,24 @@
 
                 <!-- Left Column: Input Data -->
                 <div class="column">
-                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                         <div class="panel-header">
                             <div class="panel-title">Data Ingestion</div>
-                            <button class="btn btn-outline" style="padding: 12px 20px; font-size: 14px;">Check Forms</button>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline btn-icon" id="globalCheckFormsBtn" title="Check Forms">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M9 15l2 2 4-4"></path></svg>
+                                </button>
+                                <button class="btn btn-outline-danger btn-icon" id="globalClearAllBtn" title="Clear All Files">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="upload-zone" id="uploadZone">
                             <div class="upload-icon">
                                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                             </div>
-                            <h4 style="margin-bottom: 8px; font-size: 18px; font-weight: 700; color: #111827;">Upload
+                            <h4 style="margin-bottom: 8px; font-size: 16px; font-weight: 600; color: #111827;">Upload
                                 Excel Files</h4>
                             <p style="color: var(--text-secondary); font-size: 13px;">Drag and drop .xlsx files here or
                                 click to browse</p>
@@ -668,32 +870,39 @@
                         </div>
 
                         <div class="flex-row" style="margin-bottom: 16px; align-items: center;">
-                            <h4
-                                style="font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; font-weight: 700;">
+                            <h4 class="section-label">
                                 CURRENT FILES IN QUEUE</h4>
                             <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1); margin-left: 12px;"></div>
                         </div>
 
-                        <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto;">
+                        <div class="table-container hover-scroll" style="flex: 1; min-height: 0; overflow-y: auto;">
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>File Name</th>
-                                        <th>Type</th>
-                                        <th>Status</th>
+                                        <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
+                                            File Name
+                                            <span class="filter-icon" onclick="toggleFilter(0)">▼</span>
+                                            <div class="filter-dropdown" id="filter-dropdown-0"></div>
+                                        </th>
+                                        <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
+                                            Type
+                                            <span class="filter-icon" onclick="toggleFilter(1)">▼</span>
+                                            <div class="filter-dropdown" id="filter-dropdown-1"></div>
+                                        </th>
+                                        <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
+                                            LOB
+                                            <span class="filter-icon" onclick="toggleFilter(2)">▼</span>
+                                            <div class="filter-dropdown" id="filter-dropdown-2"></div>
+                                        </th>
+                                        <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
+                                            Status
+                                            <span class="filter-icon" onclick="toggleFilter(3)">▼</span>
+                                            <div class="filter-dropdown" id="filter-dropdown-3"></div>
+                                        </th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td style="font-weight: 600; color: #111827;">XCG_LT_Q2.xlsx</td>
-                                        <td>Long Term</td>
-                                        <td><span class="status success">Validated</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td style="font-weight: 600; color: #111827;">Marine_ST_Q2.xlsx</td>
-                                        <td>Short Term</td>
-                                        <td><span class="status warning">Pending</span></td>
-                                    </tr>
+                                <tbody id="queueTableBody">
+                                    <!-- Files will be dynamically inserted here -->
                                 </tbody>
                             </table>
                         </div>
@@ -702,7 +911,7 @@
 
                 <!-- Right Column: Calculation & Output -->
                 <div class="column">
-                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
                         <div class="panel-header">
                             <div class="panel-title">Calculation & Output</div>
                         </div>
@@ -719,14 +928,15 @@
 
                         <div class="flex-row"
                             style="margin-bottom: 16px; justify-content: space-between; align-items: center;">
-                            <h4
-                                style="font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; font-weight: 700;">
+                            <h4 class="section-label">
                                 PROCESSED REPORTS</h4>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;">Download
-                                    All</button>
-                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;">Clear
-                                    All</button>
+                                <button class="btn btn-outline btn-icon-sm" title="Download All Reports">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                </button>
+                                <button class="btn btn-outline-danger btn-icon-sm" title="Clear All Reports">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                </button>
                             </div>
                         </div>
 
@@ -735,7 +945,7 @@
                                 <thead>
                                     <tr>
                                         <th>Report File</th>
-                                        <th style="width: 100px; text-align: right;">Action</th>
+                                        <th style="width: 100px; text-align: center;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -749,9 +959,15 @@
                                                     style="font-weight: 600; color: #111827;">XCG_LT_Calculated.xlsx</span>
                                             </div>
                                         </td>
-                                        <td style="text-align: right;">
-                                            <button class="btn btn-outline"
-                                                style="padding: 6px 12px; font-size: 12px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: -2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                                        <td style="text-align: center; vertical-align: middle;">
+                                            <div style="display: flex; gap: 8px; justify-content: center;">
+                                                <button class="btn btn-outline btn-icon-sm" title="Download Report">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                                </button>
+                                                <button class="btn btn-outline-danger btn-icon-sm" title="Delete Report">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -764,9 +980,67 @@
         </div>
     </main>
 
+    <!-- Sheet Selection Modal -->
+    <div class="modal-overlay" id="sheetSelectionModal">
+        <div class="modal-content">
+            <h3>Select sheet</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;" id="sheetModalFileName"></p>
+            <div style="margin-bottom: 24px;">
+                <select id="sheetDropdown" class="form-control"></select>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" onclick="closeSheetModal()">Cancel</button>
+                <button class="btn btn-accent" id="confirmSheetBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Select File to Check Modal -->
+    <div class="modal-overlay" id="selectFileModal">
+        <div class="modal-content modal-large">
+            <h3>Select file</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Select a file to validate its contents.</p>
+            <div id="pendingFilesList" class="hover-scroll" style="margin-bottom: 24px; max-height: 400px; padding-right: 8px;">
+                <!-- Files will be injected here -->
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" onclick="closeSelectFileModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validation Result Modal -->
+    <div class="modal-overlay" id="validationModal">
+        <div class="modal-content modal-large">
+            <h3 id="valModalTitle">Result statistics</h3>
+            <div id="valModalBody" style="margin-bottom: 24px; max-height: 400px; overflow-y: auto; font-size: 13px;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" id="downloadReportBtn" style="display: none; width: 110px;">Download</button>
+                <button class="btn btn-outline" id="valModalOkBtn" style="width: 110px;">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Progress Toast -->
+    <div id="downloadToast" style="position: fixed; bottom: -100px; right: 24px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 320px; padding: 16px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bv-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span style="font-weight: 600; font-size: 13px; color: #111827;">Downloading...</span>
+            </div>
+            <span id="downloadPercentage" style="font-size: 13px; font-weight: 700; color: var(--bv-blue);">0%</span>
+        </div>
+        <div style="width: 100%; background: #e5e7eb; border-radius: 99px; height: 6px; overflow: hidden;">
+            <div id="downloadProgressBar" style="height: 100%; width: 0%; background: var(--bv-blue); border-radius: 99px; transition: width 0.2s linear;"></div>
+        </div>
+    </div>
+
     <script>
         const uploadZone = document.getElementById('uploadZone');
         const fileInput = document.getElementById('fileInput');
+        let currentUploadFile = null;
+        let currentCheckRowId = null;
 
         uploadZone.addEventListener('click', () => fileInput.click());
 
@@ -786,26 +1060,426 @@
             uploadZone.style.borderColor = 'rgba(0,0,0,0.15)';
             uploadZone.style.backgroundColor = 'rgba(255,255,255,0.3)';
             if (e.dataTransfer.files.length) {
-                alert('File received: ' + e.dataTransfer.files[0].name);
+                handleFileSelect(e.dataTransfer.files[0]);
             }
         });
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
-                alert('File selected: ' + fileInput.files[0].name);
+                handleFileSelect(fileInput.files[0]);
+            }
+        });
+        
+        function handleFileSelect(file) {
+            if (!file.name.match(/\.(xlsx|xls|xlsb|xlsm)$/i)) {
+                alert("Only Excel files are allowed.");
+                return;
+            }
+            currentUploadFile = file;
+            document.getElementById('sheetModalFileName').innerText = `File: ${file.name}`;
+            
+            // Read sheets using SheetJS
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array', bookSheets: true});
+                const sheets = workbook.SheetNames;
+                
+                const dropdown = document.getElementById('sheetDropdown');
+                dropdown.innerHTML = "";
+                sheets.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.innerText = s;
+                    dropdown.appendChild(opt);
+                });
+                
+                document.getElementById('sheetSelectionModal').classList.add('active');
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function closeSheetModal() {
+            document.getElementById('sheetSelectionModal').classList.remove('active');
+            currentUploadFile = null;
+            fileInput.value = "";
+        }
+
+        document.getElementById('confirmSheetBtn').addEventListener('click', async () => {
+            const sheetName = document.getElementById('sheetDropdown').value;
+            document.getElementById('sheetSelectionModal').classList.remove('active');
+            
+            if (!currentUploadFile) return;
+            
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const quarter = Math.ceil(month / 3);
+            const quarter_id = `Q${quarter}_${year}`;
+            
+            const formData = new FormData();
+            formData.append("quarter_id", quarter_id);
+            formData.append("sheet_name", sheetName);
+            formData.append("file", currentUploadFile);
+            
+            const tbody = document.getElementById('queueTableBody');
+            const rowId = 'row-' + Date.now();
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr id="${rowId}">
+                    <td style="font-weight: 600; color: #111827;">${currentUploadFile.name}</td>
+                    <td>-</td>
+                    <td>-</td>
+                    <td><span class="status warning">Uploading...</span></td>
+                </tr>
+            `);
+            
+            try {
+                const response = await fetch("/api/files/upload", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    await loadQueueFiles();
+                } else {
+                    const row = document.getElementById(rowId);
+                    row.innerHTML = `
+                        <td style="font-weight: 600; color: #111827;">${currentUploadFile.name}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td><span class="status" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;">Failed: ${data.detail || 'Unknown Error'}</span></td>
+                    `;
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Error uploading file.");
+            }
+            
+            currentUploadFile = null;
+            fileInput.value = "";
+        });
+
+        // Excel-like Filter Logic
+        let activeFilters = {};
+        
+        function toggleFilter(colIdx) {
+            const dropdown = document.getElementById('filter-dropdown-' + colIdx);
+            const isVisible = dropdown.classList.contains('active');
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.filter-dropdown').forEach(el => el.classList.remove('active'));
+            
+            if (!isVisible) {
+                populateDropdown(colIdx);
+                dropdown.classList.add('active');
+            }
+        }
+        
+        function populateDropdown(colIdx) {
+            const dropdown = document.getElementById('filter-dropdown-' + colIdx);
+            const rows = document.getElementById('queueTableBody').getElementsByTagName('tr');
+            let uniqueValues = new Set();
+            
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                if (cells.length > colIdx) {
+                    let cellText = cells[colIdx].textContent || cells[colIdx].innerText;
+                    cellText = cellText.split('Sheet:')[0].trim(); // clean up file name column
+                    uniqueValues.add(cellText);
+                }
+            }
+            
+            let html = '';
+            uniqueValues.forEach(val => {
+                const isChecked = !activeFilters[colIdx] || activeFilters[colIdx].has(val) ? 'checked' : '';
+                html += `<label><input type="checkbox" value="${val}" class="filter-cb-${colIdx}" ${isChecked}> ${val}</label>`;
+            });
+            html += `
+                <div class="filter-actions">
+                    <button onclick="applyFilter(${colIdx})">Apply</button>
+                    <button onclick="clearFilter(${colIdx})">Clear</button>
+                </div>
+            `;
+            dropdown.innerHTML = html;
+        }
+
+        function applyFilter(colIdx) {
+            const checkboxes = document.querySelectorAll('.filter-cb-' + colIdx);
+            let selected = new Set();
+            checkboxes.forEach(cb => {
+                if (cb.checked) selected.add(cb.value);
+            });
+            activeFilters[colIdx] = selected;
+            document.getElementById('filter-dropdown-' + colIdx).classList.remove('active');
+            updateTableVisibility();
+        }
+
+        function clearFilter(colIdx) {
+            delete activeFilters[colIdx];
+            document.getElementById('filter-dropdown-' + colIdx).classList.remove('active');
+            updateTableVisibility();
+        }
+
+        function updateTableVisibility() {
+            const rows = document.getElementById('queueTableBody').getElementsByTagName('tr');
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let rowVisible = true;
+                for (let colIdx in activeFilters) {
+                    if (cells.length > colIdx) {
+                        let cellText = cells[colIdx].textContent || cells[colIdx].innerText;
+                        cellText = cellText.split('Sheet:')[0].trim();
+                        if (!activeFilters[colIdx].has(cellText)) {
+                            rowVisible = false;
+                            break;
+                        }
+                    }
+                }
+                rows[i].style.display = rowVisible ? "" : "none";
+            }
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.filter-icon') && !e.target.closest('.filter-dropdown')) {
+                document.querySelectorAll('.filter-dropdown').forEach(el => el.classList.remove('active'));
+            }
+        });
+
+        // Check Forms Flow
+        document.getElementById('globalCheckFormsBtn').addEventListener('click', async () => {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const quarter = Math.ceil(month / 3);
+            const quarter_id = `Q${quarter}_${year}`;
+            
+            // Fetch all files for this quarter
+            try {
+                const response = await fetch(`/api/files/?quarter_id=${quarter_id}`);
+                const files = await response.json();
+                
+                const listDiv = document.getElementById('pendingFilesList');
+                listDiv.innerHTML = "";
+                
+                if (files.length === 0) {
+                    listDiv.innerHTML = "<p>No files in queue.</p>";
+                } else {
+                    files.forEach(f => {
+                        const isPending = (f.status === 'Pending' || f.status === 'Pending Check');
+                        
+                        listDiv.insertAdjacentHTML('beforeend', `
+                            <div class="file-list-item" ${isPending ? `onclick="checkFile(${f.id})"` : ''} style="${!isPending ? 'opacity: 0.8; cursor: default;' : ''}">
+                                <div style="flex: 1; min-width: 0; padding-right: 16px;">
+                                    <strong style="color: #111827; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${f.file_name}</strong>
+                                    <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Sheet: ${f.sheet_name} | ${f.term} | ${f.group_code}</div>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: flex-end; width: 100px;">
+                                    ${isPending 
+                                        ? `<button class="btn btn-outline" style="width: 86px; height: 26px; padding: 0; font-size: 12px; font-weight: 600; border-radius: 6px; justify-content: center; box-sizing: border-box;">Check</button>` 
+                                        : `<span style="width: 86px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 6px; background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600; box-sizing: border-box;">Validated</span>`}
+                                </div>
+                            </div>
+                        `);
+                    });
+                }
+                
+                document.getElementById('selectFileModal').classList.add('active');
+                
+            } catch (err) {
+                console.error(err);
+                alert("Could not load pending files.");
+            }
+        });
+
+        function closeSelectFileModal() {
+            document.getElementById('selectFileModal').classList.remove('active');
+        }
+
+        async function checkFile(id) {
+            currentCheckRowId = id;
+            document.getElementById('selectFileModal').classList.remove('active');
+            
+            document.getElementById('valModalTitle').innerText = "Result statistics";
+            document.getElementById('valModalBody').innerHTML = `<p style="color: var(--text-secondary);">Checking form data...</p>`;
+            document.getElementById('downloadReportBtn').style.display = "none";
+            document.getElementById('validationModal').classList.add('active');
+            
+            try {
+                const response = await fetch(`/api/files/${id}/check`, { method: "POST" });
+                const resData = await response.json();
+                
+                if (response.ok) {
+                    // Always show the download button for reports now
+                    document.getElementById('downloadReportBtn').style.display = "inline-flex";
+                    
+                    if (resData.ok) {
+                        document.getElementById('valModalBody').innerHTML = `
+                            <div style="color: #374151; font-size: 14px; line-height: 1.6; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <p style="color: var(--text-secondary); font-style: italic;">Validation statistics will be displayed here...</p>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('valModalBody').innerHTML = `
+                            <div style="color: #b45309; font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                Validation Errors Found:
+                            </div>
+                            <ul style="padding-left: 20px; line-height: 1.6; color: #b45309; margin-bottom: 16px;">
+                                ${resData.errors.map(err => `<li>${err}</li>`).join('')}
+                            </ul>
+                            <div style="color: #374151; font-size: 14px; line-height: 1.6; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <p style="color: var(--text-secondary); font-style: italic;">Validation statistics will be displayed here...</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Error connecting to validation service: ${resData.detail}</p>`;
+                }
+            } catch (err) {
+                document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Failed to execute check: ${err}</p>`;
+            }
+        }
+
+        document.getElementById('valModalOkBtn').addEventListener('click', () => {
+            document.getElementById('validationModal').classList.remove('active');
+            
+            // Update status in the main table if it was valid (For now we assume if no errors list it's valid)
+            const valBody = document.getElementById('valModalBody').innerHTML;
+            const isSuccess = !valBody.includes("Validation Errors Found");
+            if (isSuccess && currentCheckRowId) {
+                const statusSpan = document.getElementById(`status-${currentCheckRowId}`);
+                if (statusSpan) {
+                    statusSpan.className = "status success";
+                    statusSpan.innerText = "Validated";
+                    statusSpan.style.background = "rgba(16, 185, 129, 0.1)";
+                    statusSpan.style.color = "#047857";
+                    statusSpan.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+                }
+            }
+        });
+
+        // Download Report Simulation
+        document.getElementById('downloadReportBtn').addEventListener('click', () => {
+            const toast = document.getElementById('downloadToast');
+            const percentText = document.getElementById('downloadPercentage');
+            const progressBar = document.getElementById('downloadProgressBar');
+            
+            // Show toast
+            toast.style.bottom = '24px';
+            progressBar.style.width = '0%';
+            percentText.innerText = '0%';
+            percentText.style.color = 'var(--bv-blue)';
+            progressBar.style.background = 'var(--bv-blue)';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    setTimeout(() => {
+                        percentText.innerText = 'Completed';
+                        percentText.style.color = '#047857';
+                        progressBar.style.background = '#047857';
+                        
+                        setTimeout(() => {
+                            toast.style.bottom = '-100px';
+                        }, 2000);
+                    }, 500);
+                }
+                
+                progressBar.style.width = `${progress}%`;
+                if(progress < 100) percentText.innerText = `${progress}%`;
+                
+            }, 300);
+        });
+
+        document.getElementById('globalClearAllBtn').addEventListener('click', async () => {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+            
+            if (!confirm(`Are you sure you want to clear ALL files in the queue for ${quarterId}?`)) return;
+            
+            try {
+                const res = await fetch(`/api/files/clear?quarter_id=${quarterId}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadQueueFiles();
+                } else {
+                    alert('Failed to clear files.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error clearing files.');
             }
         });
 
         function toggleSubmenu(id, element) {
             const submenu = document.getElementById(id);
-            if (submenu.classList.contains('expanded')) {
-                submenu.classList.remove('expanded');
-                element.classList.remove('expanded');
-            } else {
-                submenu.classList.add('expanded');
-                element.classList.add('expanded');
+            submenu.classList.toggle('expanded');
+            element.classList.toggle('expanded');
+        }
+
+        async function loadQueueFiles() {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+            
+            try {
+                const response = await fetch(`/api/files/?quarter_id=${quarterId}`);
+                if (!response.ok) return;
+                const files = await response.json();
+                
+                const tbody = document.getElementById('queueTableBody');
+                tbody.innerHTML = '';
+                
+                if (files.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <div style="font-size: 14px; font-weight: 500;">No files in queue</div>
+                                <div style="font-size: 12px; margin-top: 4px;">Upload files to get started</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                files.forEach(f => {
+                    const statusClass = (f.status === 'Pending') ? 'warning' : 'success';
+                    const statusBg = (f.status === 'Pending') ? '' : 'background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3);';
+                    
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr id="row-${f.id}">
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="padding: 8px; background: rgba(255,255,255,0.8); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; color: var(--bv-blue); flex-shrink: 0;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    </div>
+                                    <div style="min-width: 0; flex: 1;">
+                                        <div style="font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;" title="${f.file_name}">${f.file_name}</div>
+                                        <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Sheet: ${f.sheet_name}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="vertical-align: middle;">${f.term}</td>
+                            <td style="font-weight: 500; vertical-align: middle;">${f.group_code.split('_')[0]}</td>
+                            <td style="vertical-align: middle;"><span class="status ${statusClass}" id="status-${f.id}" style="${statusBg}">${f.status}</span></td>
+                        </tr>
+                    `);
+                });
+            } catch (err) {
+                console.error("Failed to load queue files:", err);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', loadQueueFiles);
+        document.getElementById('calcMonth').addEventListener('change', loadQueueFiles);
+        document.getElementById('calcYear').addEventListener('change', loadQueueFiles);
     </script>
 </body>
 
