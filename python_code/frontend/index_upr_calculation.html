@@ -579,6 +579,10 @@
             text-transform: none;
             letter-spacing: normal;
         }
+        .filter-dropdown-right {
+            right: 0;
+            left: auto;
+        }
         .filter-dropdown.active {
             display: block;
         }
@@ -906,7 +910,7 @@
                                             <span class="filter-icon" onclick="toggleFilter(3)">
                                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-bottom: 2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                             </span>
-                                            <div class="filter-dropdown" id="filter-dropdown-3"></div>
+                                            <div class="filter-dropdown filter-dropdown-right" id="filter-dropdown-3"></div>
                                         </th>
                                     </tr>
                                 </thead>
@@ -1175,12 +1179,17 @@
             const dropdown = document.getElementById('filter-dropdown-' + colIdx);
             const isVisible = dropdown.classList.contains('active');
             
-            // Close all other dropdowns
-            document.querySelectorAll('.filter-dropdown').forEach(el => el.classList.remove('active'));
+            // Close all other dropdowns and reset z-index
+            document.querySelectorAll('.filter-dropdown').forEach(el => {
+                el.classList.remove('active');
+                if(el.closest('th')) el.closest('th').style.zIndex = '10';
+            });
             
             if (!isVisible) {
                 populateDropdown(colIdx);
                 dropdown.classList.add('active');
+                // Elevate z-index so it overlaps adjacent headers
+                if(dropdown.closest('th')) dropdown.closest('th').style.zIndex = '20';
             }
         }
         
@@ -1251,7 +1260,10 @@
         // Close dropdowns when clicking outside
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.filter-icon') && !e.target.closest('.filter-dropdown')) {
-                document.querySelectorAll('.filter-dropdown').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.filter-dropdown').forEach(el => {
+                    el.classList.remove('active');
+                    if(el.closest('th')) el.closest('th').style.zIndex = '10';
+                });
             }
         });
 
