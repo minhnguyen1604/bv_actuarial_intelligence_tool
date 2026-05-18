@@ -161,36 +161,32 @@
             white-space: nowrap;
         }
 
-        .logo-container img {
+        .logo-full {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            /* Ensures the logo scales without being cut off */
             object-position: left center;
             transition: opacity 0.3s;
         }
 
-        .sidebar.collapsed .logo-container img {
-            opacity: 0;
-        }
-
-        .logo-container::after {
-            content: "BV";
+        .logo-mini {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            font-weight: 800;
-            font-size: 24px;
-            color: var(--bv-blue);
-            letter-spacing: -1px;
+            width: 40px;
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
         }
 
-        .sidebar.collapsed .logo-container::after {
+        .sidebar.collapsed .logo-full {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sidebar.collapsed .logo-mini {
             opacity: 1;
-            transition-delay: 0.1s;
+            pointer-events: auto;
         }
 
         .nav-label {
@@ -227,6 +223,13 @@
             overflow: hidden;
         }
 
+        .sidebar.collapsed .nav-sub-item {
+            opacity: 0;
+            height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
         .sidebar.collapsed .nav-item {
             color: transparent;
             justify-content: center;
@@ -361,38 +364,65 @@
             margin-right: 0;
         }
 
-        /* Toggle Button */
-        .sidebar-toggle {
+        /* Sidebar Resizer */
+        .sidebar-resizer {
             position: absolute;
-            top: 32px;
-            right: -16px;
-            width: 32px;
-            height: 32px;
-            background: #fff;
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            top: 0;
+            right: -3px;
+            width: 6px;
+            height: 100%;
+            cursor: ew-resize;
             z-index: 100;
-            color: var(--text-secondary);
-            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: background 0.2s;
+        }
+        .sidebar-resizer:hover {
+            background: rgba(0, 86, 163, 0.2);
         }
 
-        .sidebar-toggle:hover {
-            color: var(--bv-blue);
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        /* Tooltips for collapsed sidebar */
+        .nav-item::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: calc(100% + 10px);
+            top: 50%;
+            transform: translateY(-50%) translateX(-10px);
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
         }
 
-        .sidebar.collapsed .sidebar-toggle {
-            transform: rotate(180deg);
+        .nav-item::before {
+            content: "";
+            position: absolute;
+            left: calc(100% + 6px);
+            top: 50%;
+            transform: translateY(-50%) translateX(-10px);
+            border-width: 5px 5px 5px 0;
+            border-style: solid;
+            border-color: transparent rgba(17, 24, 39, 0.95) transparent transparent;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 1000;
+            pointer-events: none;
         }
 
-        .sidebar.collapsed .sidebar-toggle:hover {
-            transform: rotate(180deg) scale(1.1);
+        .sidebar.collapsed .nav-item:hover::before,
+        .sidebar.collapsed .nav-item:hover::after {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-50%) translateX(0);
         }
 
         /* Main Workspace */
@@ -890,31 +920,18 @@
 
     <!-- Sidebar Navigation -->
     <nav class="sidebar">
-        <div class="sidebar-toggle" id="sidebarToggle" title="Collapse Sidebar">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </div>
+        <div class="sidebar-resizer" id="sidebarResizer"></div>
         
         <div class="logo-container">
-            <img src="logo.webp" alt="BaoViet Logo">
+            <img src="logo.webp" class="logo-full" alt="BaoViet Logo">
+            <img src="BVH.VN-4893b119.png" class="logo-mini" alt="BV Logo">
         </div>
 
         <div class="nav-label">Modules</div>
-        <div class="nav-item active">
-            <span class="nav-icon">◱</span>
-            UPR Calculation
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">◐</span>
-            OSC Calculation
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">◨</span>
-            Premium Comparison
-        </div>
-        <div class="nav-item" onclick="toggleSubmenu('reports-submenu', this)">
-            <span class="nav-icon">◫</span>
-            Reports
-        </div>
+        <div class="nav-item active" data-tooltip="UPR Calculation"><span class="nav-icon">◱</span><span class="nav-text">UPR Calculation</span></div>
+        <div class="nav-item" data-tooltip="OSC Calculation"><span class="nav-icon">◐</span><span class="nav-text">OSC Calculation</span></div>
+        <div class="nav-item" data-tooltip="Premium Comparison"><span class="nav-icon">◨</span><span class="nav-text">Premium Comparison</span></div>
+        <div class="nav-item" onclick="toggleSubmenu('reports-submenu', this)" data-tooltip="Reports"><span class="nav-icon">◫</span><span class="nav-text">Reports</span></div>
         <div id="reports-submenu" class="submenu-container">
             <div class="nav-sub-item">
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
@@ -925,24 +942,12 @@
                 7
             </div>
         </div>
-        <div class="nav-item">
-            <span class="nav-icon">★</span>
-            AM.Best Rating
-        </div>
+        <div class="nav-item" data-tooltip="AM.Best Rating"><span class="nav-icon">★</span><span class="nav-text">AM.Best Rating</span></div>
 
         <div class="nav-label" style="margin-top: 30px;">Management</div>
-        <div class="nav-item">
-            <span class="nav-icon">▤</span>
-            Data Repository
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">◧</span>
-            Exchange Rates
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">⚙</span>
-            Settings
-        </div>
+        <div class="nav-item" data-tooltip="Data Repository"><span class="nav-icon">▤</span><span class="nav-text">Data Repository</span></div>
+        <div class="nav-item" data-tooltip="Exchange Rates"><span class="nav-icon">◧</span><span class="nav-text">Exchange Rates</span></div>
+        <div class="nav-item" data-tooltip="Settings"><span class="nav-icon">⚙</span><span class="nav-text">Settings</span></div>
         <div class="user-profile">
             <div class="avatar">BV</div>
             <span class="user-profile-text">Actuarial Dept.</span>
@@ -1596,8 +1601,38 @@
             }
         });
 
-        document.getElementById('sidebarToggle').addEventListener('click', () => {
-            document.querySelector('.sidebar').classList.toggle('collapsed');
+        const sidebar = document.querySelector('.sidebar');
+        const resizer = document.getElementById('sidebarResizer');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'ew-resize';
+            sidebar.style.transition = 'none';
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            let newWidth = e.clientX;
+            
+            if (newWidth < 160) {
+                sidebar.classList.add('collapsed');
+                sidebar.style.width = '80px';
+            } else {
+                sidebar.classList.remove('collapsed');
+                if (newWidth > 400) newWidth = 400;
+                sidebar.style.width = newWidth + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                sidebar.style.transition = '';
+            }
         });
 
         function toggleSubmenu(id, element) {
