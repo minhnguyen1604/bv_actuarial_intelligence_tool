@@ -450,12 +450,13 @@
         .btn-accent {
             background: linear-gradient(135deg, var(--bv-blue), #004582);
             color: white;
-            box-shadow: 0 4px 15px rgba(0, 86, 163, 0.2);
+            box-shadow: 0 8px 24px rgba(0, 86, 163, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .btn-accent:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 86, 163, 0.3);
+            box-shadow: 0 12px 32px rgba(0, 86, 163, 0.45);
             background: linear-gradient(135deg, #0060b5, #004582);
         }
 
@@ -881,22 +882,30 @@
                                     <tr>
                                         <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
                                             File Name
-                                            <span class="filter-icon" onclick="toggleFilter(0)">▼</span>
+                                            <span class="filter-icon" onclick="toggleFilter(0)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-bottom: 2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </span>
                                             <div class="filter-dropdown" id="filter-dropdown-0"></div>
                                         </th>
                                         <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
                                             Type
-                                            <span class="filter-icon" onclick="toggleFilter(1)">▼</span>
+                                            <span class="filter-icon" onclick="toggleFilter(1)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-bottom: 2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </span>
                                             <div class="filter-dropdown" id="filter-dropdown-1"></div>
                                         </th>
                                         <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
                                             LOB
-                                            <span class="filter-icon" onclick="toggleFilter(2)">▼</span>
+                                            <span class="filter-icon" onclick="toggleFilter(2)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-bottom: 2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </span>
                                             <div class="filter-dropdown" id="filter-dropdown-2"></div>
                                         </th>
                                         <th style="position: sticky; top: 0; background: rgba(249, 250, 251, 0.95); backdrop-filter: blur(8px); z-index: 10; white-space: nowrap;">
                                             Status
-                                            <span class="filter-icon" onclick="toggleFilter(3)">▼</span>
+                                            <span class="filter-icon" onclick="toggleFilter(3)">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-bottom: 2px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </span>
                                             <div class="filter-dropdown" id="filter-dropdown-3"></div>
                                         </th>
                                     </tr>
@@ -1440,7 +1449,7 @@
                     tbody.innerHTML = `
                         <tr>
                             <td colspan="4" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 12px;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
                                 <div style="font-size: 14px; font-weight: 500;">No files in queue</div>
                                 <div style="font-size: 12px; margin-top: 4px;">Upload files to get started</div>
                             </td>
