@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import io
 import os
 import shutil
@@ -132,7 +133,7 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
 
     # Title
     ws.merge_cells("A1:C1")
-    ws["A1"] = f"Validation Report — {file_record.file_name}"
+    ws["A1"] = "Validation Report - " + file_record.file_name
     ws["A1"].font = Font(bold=True, size=13)
     ws["A1"].alignment = center
     ws.row_dimensions[1].height = 28
@@ -157,7 +158,7 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
 
     stats = res.get("stats", {})
     stat_rows = [
-        ("Total rows",     stats.get("total_rows", "—")),
+        ("Total rows",     stats.get("total_rows", "-")),
         ("Date errors",    stats.get("date_errors", 0)),
         ("Money errors",   stats.get("money_errors", 0)),
         ("Duplicate rows", stats.get("duplicate_rows", 0)),
@@ -198,13 +199,20 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
     wb.save(buf)
     buf.seek(0)
 
+    from urllib.parse import quote
+    import unicodedata
     safe_name = file_record.file_name.replace(".xlsx", "").replace(".xls", "")
-    filename = f"ValidationReport_{safe_name}.xlsx"
+    filename_xlsx = f"ValidationReport_{safe_name}.xlsx"
+    # ASCII fallback for plain filename field (latin-1 safe)
+    ascii_name = unicodedata.normalize("NFKD", filename_xlsx).encode("ascii", "ignore").decode("ascii")
+    ascii_name = ascii_name.replace(" ", "_") or f"ValidationReport_{file_record.id}.xlsx"
+    # RFC 5987 encoded name for full Unicode support
+    encoded_name = quote(filename_xlsx, safe="")
 
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}"},
     )
 
 @router.post("/{file_id}/merge")
