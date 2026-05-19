@@ -10,6 +10,7 @@ import schemas
 from database import get_db
 from services.excel_classifier import get_group_code
 from services.form_validator import validate_form
+from services.file_merger import merge_file
 
 router = APIRouter(
     prefix="/api/files",
@@ -90,6 +91,45 @@ def check_file(file_id: int, db: Session = Depends(get_db)):
     if res["ok"] and not res.get("errors"):
         # Only mark Validated when no fatal errors; warnings are allowed
         file_record.status = "Validated"
+        db.commit()
+
+    return res
+
+@router.post("/{file_id}/merge")
+def merge_file_endpoint(file_id: int, db: Session = Depends(get_db)):
+    """
+    Normalise a validated Excel file and save it as parquet in cur_data/.
+    Also merges with the previous quarter's data if available.
+    """
+    file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found in queue.")
+
+    if file_record.status not in ("Validated", "Pending"):
+        raise HTTPException(status_code=400, detail="File must be Validated before merging.")
+
+    # Get calculation date from parameters (for end-date filtering)
+    from datetime import date as _date
+    param = db.query(models.AppParameter).filter(
+        models.AppParameter.quarter_id == file_record.quarter_id
+    ).first()
+    dpnv_date = None
+    if param:
+        try:
+            dpnv_date = _date(param.year, param.month, param.day)
+        except Exception:
+            pass
+
+    res = merge_file(
+        file_path=file_record.file_path,
+        sheet_name=file_record.sheet_name,
+        group_code=file_record.group_code,
+        quarter_id=file_record.quarter_id,
+        dpnv_date=dpnv_date,
+    )
+
+    if res["ok"]:
+        file_record.status = "Merged"
         db.commit()
 
     return res
