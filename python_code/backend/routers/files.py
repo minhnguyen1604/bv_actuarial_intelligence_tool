@@ -1,7 +1,9 @@
+import io
 import os
 import shutil
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -94,6 +96,116 @@ def check_file(file_id: int, db: Session = Depends(get_db)):
         db.commit()
 
     return res
+
+@router.get("/{file_id}/check-report")
+def download_check_report(file_id: int, db: Session = Depends(get_db)):
+    """
+    Re-run validation and return results as a downloadable Excel file.
+    """
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+
+    file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    res = validate_form(file_record.file_path, file_record.sheet_name, file_record.group_code)
+
+    # Build Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Validation Report"
+
+    # Styles
+    header_fill = PatternFill("solid", fgColor="1E3A5F")
+    header_font = Font(color="FFFFFF", bold=True, size=11)
+    ok_font    = Font(color="059669", bold=True)
+    err_font   = Font(color="DC2626", bold=True)
+    warn_fill  = PatternFill("solid", fgColor="FEF9C3")
+    thin = Border(
+        left=Side(style="thin", color="E5E7EB"),
+        right=Side(style="thin", color="E5E7EB"),
+        top=Side(style="thin", color="E5E7EB"),
+        bottom=Side(style="thin", color="E5E7EB"),
+    )
+    center = Alignment(horizontal="center", vertical="center")
+
+    # Title
+    ws.merge_cells("A1:C1")
+    ws["A1"] = f"Validation Report — {file_record.file_name}"
+    ws["A1"].font = Font(bold=True, size=13)
+    ws["A1"].alignment = center
+    ws.row_dimensions[1].height = 28
+
+    # Meta rows
+    meta = [
+        ("File", file_record.file_name),
+        ("Sheet", file_record.sheet_name),
+        ("Group Code", file_record.group_code),
+        ("Status", "PASSED" if res["ok"] else "FAILED"),
+    ]
+    for i, (k, v) in enumerate(meta, start=2):
+        ws.cell(row=i, column=1, value=k).font = Font(bold=True)
+        ws.cell(row=i, column=2, value=v)
+
+    # Stats header
+    stat_start = len(meta) + 3
+    ws.cell(row=stat_start, column=1, value="Metric").fill = header_fill
+    ws.cell(row=stat_start, column=1).font = header_font
+    ws.cell(row=stat_start, column=2, value="Value").fill = header_fill
+    ws.cell(row=stat_start, column=2).font = header_font
+
+    stats = res.get("stats", {})
+    stat_rows = [
+        ("Total rows",     stats.get("total_rows", "—")),
+        ("Date errors",    stats.get("date_errors", 0)),
+        ("Money errors",   stats.get("money_errors", 0)),
+        ("Duplicate rows", stats.get("duplicate_rows", 0)),
+    ]
+    for j, (label, value) in enumerate(stat_rows, start=stat_start + 1):
+        c_label = ws.cell(row=j, column=1, value=label)
+        c_value = ws.cell(row=j, column=2, value=value)
+        c_label.border = thin
+        c_value.border = thin
+        is_err = isinstance(value, int) and value > 0 and label != "Total rows"
+        c_value.font = err_font if is_err else ok_font
+
+    # Warnings
+    warnings = res.get("warnings", [])
+    if warnings:
+        warn_start = stat_start + len(stat_rows) + 2
+        ws.cell(row=warn_start, column=1, value="Warnings").font = Font(bold=True)
+        for k, w in enumerate(warnings, start=warn_start + 1):
+            cell = ws.cell(row=k, column=1, value=w)
+            cell.fill = warn_fill
+            ws.merge_cells(start_row=k, start_column=1, end_row=k, end_column=3)
+
+    # Errors
+    errors = res.get("errors", [])
+    if errors:
+        err_start = stat_start + len(stat_rows) + len(warnings) + 3
+        ws.cell(row=err_start, column=1, value="Errors").font = Font(bold=True, color="DC2626")
+        for k, e in enumerate(errors, start=err_start + 1):
+            cell = ws.cell(row=k, column=1, value=e)
+            cell.font = Font(color="DC2626")
+            ws.merge_cells(start_row=k, start_column=1, end_row=k, end_column=3)
+
+    ws.column_dimensions["A"].width = 28
+    ws.column_dimensions["B"].width = 20
+    ws.column_dimensions["C"].width = 40
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    safe_name = file_record.file_name.replace(".xlsx", "").replace(".xls", "")
+    filename = f"ValidationReport_{safe_name}.xlsx"
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 @router.post("/{file_id}/merge")
 def merge_file_endpoint(file_id: int, db: Session = Depends(get_db)):

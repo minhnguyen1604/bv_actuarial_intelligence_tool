@@ -934,6 +934,10 @@
             gap: 24px;
             margin-bottom: 24px;
         }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
@@ -1540,45 +1544,79 @@
             document.getElementById('selectFileModal').classList.remove('active');
         }
 
+        function renderStats(resData) {
+            const stats = resData.stats || {};
+            const warnings = resData.warnings || [];
+            const total = stats.total_rows ?? '—';
+            const dateErr = stats.date_errors ?? 0;
+            const moneyErr = stats.money_errors ?? 0;
+            const dupRows = stats.duplicate_rows ?? 0;
+
+            const allOk = dateErr === 0 && moneyErr === 0 && dupRows === 0;
+            const statusColor = allOk ? '#059669' : '#d97706';
+            const statusBg   = allOk ? 'rgba(16,185,129,0.08)' : 'rgba(251,191,36,0.1)';
+            const statusText = allOk ? '✅ Passed — no issues found' : '⚠️ Issues detected — review before proceeding';
+
+            const statCard = (label, value, isOk) => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fff;border-radius:8px;border:1px solid #e5e7eb;margin-bottom:8px;">
+                    <span style="font-size:13px;color:#374151;font-weight:500;">${label}</span>
+                    <span style="font-size:14px;font-weight:700;color:${isOk ? '#059669' : '#dc2626'};">${value}</span>
+                </div>`;
+
+            const warnHtml = warnings.length > 0 ? `
+                <div style="margin-top:16px;">
+                    <div style="font-size:12px;font-weight:600;color:#6b7280;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">Warnings</div>
+                    ${warnings.map(w => `<div style="padding:8px 12px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:13px;color:#92400e;margin-bottom:6px;">${w}</div>`).join('')}
+                </div>` : '';
+
+            return `
+                <div style="padding:16px 0 0;">
+                    <div style="padding:12px 16px;background:${statusBg};border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
+                    <div style="font-size:12px;font-weight:600;color:#6b7280;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">Statistics</div>
+                    ${statCard('Total rows', total, true)}
+                    ${statCard('Date errors', dateErr, dateErr === 0)}
+                    ${statCard('Money errors', moneyErr, moneyErr === 0)}
+                    ${statCard('Duplicate rows', dupRows, dupRows === 0)}
+                    ${warnHtml}
+                </div>`;
+        }
+
         async function checkFile(id) {
             currentCheckRowId = id;
             document.getElementById('selectFileModal').classList.remove('active');
             
-            document.getElementById('valModalTitle').innerText = "Result statistics";
-            document.getElementById('valModalBody').innerHTML = `<p style="color: var(--text-secondary);">Checking form data...</p>`;
-            document.getElementById('downloadReportBtn').style.display = "none";
+            document.getElementById('valModalTitle').innerText = 'Result Statistics';
+            document.getElementById('valModalBody').innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px;padding:24px 0;color:var(--text-secondary);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    Checking form data, please wait…
+                </div>`;
+            document.getElementById('downloadReportBtn').style.display = 'none';
             document.getElementById('validationModal').classList.add('active');
             
             try {
-                const response = await fetch(`/api/files/${id}/check`, { method: "POST" });
+                const response = await fetch(`/api/files/${id}/check`, { method: 'POST' });
                 const resData = await response.json();
                 
                 if (response.ok) {
-                    // Always show the download button for reports now
-                    document.getElementById('downloadReportBtn').style.display = "inline-flex";
-                    
-                    if (resData.ok) {
+                    document.getElementById('downloadReportBtn').style.display = 'inline-flex';
+
+                    if (!resData.ok && (resData.errors || []).length > 0) {
+                        // Fatal structural errors
                         document.getElementById('valModalBody').innerHTML = `
-                            <div style="color: #374151; font-size: 14px; line-height: 1.6; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <p style="color: var(--text-secondary); font-style: italic;">Validation statistics will be displayed here...</p>
-                            </div>
-                        `;
-                    } else {
-                        document.getElementById('valModalBody').innerHTML = `
-                            <div style="color: #b45309; font-size: 15px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <div style="display:flex;align-items:center;gap:8px;color:#b45309;font-size:15px;font-weight:600;margin-bottom:12px;">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                Validation Errors Found:
+                                Structural Errors — file cannot be processed:
                             </div>
-                            <ul style="padding-left: 20px; line-height: 1.6; color: #b45309; margin-bottom: 16px;">
-                                ${resData.errors.map(err => `<li>${err}</li>`).join('')}
-                            </ul>
-                            <div style="color: #374151; font-size: 14px; line-height: 1.6; padding: 16px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-                                <p style="color: var(--text-secondary); font-style: italic;">Validation statistics will be displayed here...</p>
-                            </div>
-                        `;
+                            <ul style="padding-left:20px;line-height:1.7;color:#b45309;margin-bottom:16px;">
+                                ${(resData.errors || []).map(e => `<li>${e}</li>`).join('')}
+                            </ul>`;
+                    } else {
+                        // Show stats (works for both ok:true and ok:false with only warnings)
+                        document.getElementById('valModalBody').innerHTML = renderStats(resData);
                     }
                 } else {
-                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Error connecting to validation service: ${resData.detail}</p>`;
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Server error: ${resData.detail || 'Unknown'}</p>`;
                 }
             } catch (err) {
                 document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Failed to execute check: ${err}</p>`;
@@ -1603,41 +1641,10 @@
             }
         });
 
-        // Download Report Simulation
+        // Download Report — direct URL, browser handles download natively
         document.getElementById('downloadReportBtn').addEventListener('click', () => {
-            const toast = document.getElementById('downloadToast');
-            const percentText = document.getElementById('downloadPercentage');
-            const progressBar = document.getElementById('downloadProgressBar');
-            
-            // Show toast
-            toast.style.bottom = '24px';
-            progressBar.style.width = '0%';
-            percentText.innerText = '0%';
-            percentText.style.color = 'var(--bv-blue)';
-            progressBar.style.background = 'var(--bv-blue)';
-            
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 15) + 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    
-                    setTimeout(() => {
-                        percentText.innerText = 'Completed';
-                        percentText.style.color = '#047857';
-                        progressBar.style.background = '#047857';
-                        
-                        setTimeout(() => {
-                            toast.style.bottom = '-100px';
-                        }, 2000);
-                    }, 500);
-                }
-                
-                progressBar.style.width = `${progress}%`;
-                if(progress < 100) percentText.innerText = `${progress}%`;
-                
-            }, 300);
+            if (!currentCheckRowId) return;
+            window.open(`/api/files/${currentCheckRowId}/check-report`, '_blank');
         });
 
         document.getElementById('globalClearAllBtn').addEventListener('click', async () => {
