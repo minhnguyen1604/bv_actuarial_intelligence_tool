@@ -1852,7 +1852,6 @@
 
         function renderStats(resData) {
             const stats = resData.stats || {};
-            const warnings = resData.warnings || [];
             const total = stats.total_rows ?? '—';
             const dateErr = stats.date_errors ?? 0;
             const moneyErr = stats.money_errors ?? 0;
@@ -1869,12 +1868,6 @@
                     <span style="font-size:14px;font-weight:700;color:${isOk ? '#059669' : '#dc2626'};">${value}</span>
                 </div>`;
 
-            const warnHtml = warnings.length > 0 ? `
-                <div style="margin-top:16px;">
-                    <div style="font-size:12px;font-weight:600;color:#6b7280;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">Warnings</div>
-                    ${warnings.map(w => `<div style="padding:8px 12px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:6px;font-size:13px;color:#92400e;margin-bottom:6px;">${w}</div>`).join('')}
-                </div>` : '';
-
             return `
                 <div style="padding:16px 0 0;">
                     <div style="padding:12px 16px;background:${statusBg};border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:${statusColor};">${statusText}</div>
@@ -1883,7 +1876,6 @@
                     ${statCard('Date errors', dateErr, dateErr === 0)}
                     ${statCard('Money errors', moneyErr, moneyErr === 0)}
                     ${statCard('Duplicate rows', dupRows, dupRows === 0)}
-                    ${warnHtml}
                 </div>`;
         }
 
@@ -1950,7 +1942,7 @@
         // Download Report — direct URL, browser handles download natively
         document.getElementById('downloadReportBtn').addEventListener('click', () => {
             if (!currentCheckRowId) return;
-            window.open(`/api/files/${currentCheckRowId}/check-report`, '_blank');
+            window.open(`/api/files/${currentCheckRowId}/download-checked`, '_blank');
         });
 
         document.getElementById('globalClearAllBtn').addEventListener('click', async () => {

@@ -131,17 +131,17 @@ def kiem_tra_so_tien(x) -> str:
 # Header-row finder for general forms
 # ===========================================================================
 
-def _find_header_row(df: pd.DataFrame) -> Optional[int]:
+def _find_header_row(df: pd.DataFrame) -> tuple[Optional[int], pd.DataFrame]:
     """
     Mirrors the while-loop in 1.check_input.R (lines 537-555).
-    Returns the row index of the header row (where col 12 starts with 'Ngày').
+    Returns (row index of the header row, modified dataframe).
     """
     work = df.copy()
 
     # Step 1: if col 10 (index 9) starts with Ngày → insert 2 blank cols after col 5
     if work.shape[1] >= 10:
         col10 = work.iloc[:, 9].astype(str)
-        if col10.str.match(r"^Ng[aà]y", case=False).any():
+        if col10.str.match(r"^Ng[aà]y", case=False, na=False).any():
             left  = work.iloc[:, :5]
             blank2 = pd.DataFrame(
                 [[None, None]] * len(work),
@@ -158,13 +158,13 @@ def _find_header_row(df: pd.DataFrame) -> Optional[int]:
         if work.shape[1] < 12:
             break
         col12 = work.iloc[:, 11].astype(str)
-        hits = col12.str.match(r"^Ng[aà]y", case=False)
+        hits = col12.str.match(r"^Ng[aà]y", case=False, na=False)
         if hits.any():
-            return int(hits.idxmax())
+            return int(hits.idxmax()), work
         work = work.iloc[:, 1:]
         work.columns = range(work.shape[1])
 
-    return None
+    return None, work
 
 
 # ===========================================================================
@@ -443,7 +443,7 @@ def _validate_general(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
         expected_cols = expected_cols[:36]
 
     # ── Find header row ───────────────────────────────────────────────────────
-    header_idx = _find_header_row(work)
+    header_idx, work = _find_header_row(work)
     if header_idx is None:
         return _err("Không tìm thấy dòng header hợp lệ (tìm 'Ngày' ở cột 12). Form không đúng định dạng.")
 
