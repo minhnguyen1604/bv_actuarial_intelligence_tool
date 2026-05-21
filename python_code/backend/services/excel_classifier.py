@@ -47,14 +47,14 @@ def get_group_code(file_name: str, sheet_name: str) -> Optional[str]:
     
     # 1. Find group in sheet_name first
     for g, keywords in GROUP_MAPPING.items():
-        if any(re.search(kw, sheet_name) for kw in keywords):
+        if any(re.search(kw, sheet_name, re.IGNORECASE) for kw in keywords):
             group = g
             break
             
     # 2. If not found, find group in file_name
     if not group:
         for g, keywords in GROUP_MAPPING.items():
-            if any(re.search(kw, file_name) for kw in keywords):
+            if any(re.search(kw, file_name, re.IGNORECASE) for kw in keywords):
                 group = g
                 break
                 
@@ -64,14 +64,14 @@ def get_group_code(file_name: str, sheet_name: str) -> Optional[str]:
         
     # 4. Find term in sheet_name first
     for t, keywords in TERM_MAPPING.items():
-        if any(re.search(kw, sheet_name) for kw in keywords):
+        if any(re.search(kw, sheet_name, re.IGNORECASE) for kw in keywords):
             term = t
             break
             
     # 5. If not found, find term in file_name
     if not term:
         for t, keywords in TERM_MAPPING.items():
-            if any(re.search(kw, file_name) for kw in keywords):
+            if any(re.search(kw, file_name, re.IGNORECASE) for kw in keywords):
                 term = t
                 break
                 

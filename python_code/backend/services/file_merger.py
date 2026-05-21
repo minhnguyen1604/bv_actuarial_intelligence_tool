@@ -79,19 +79,75 @@ def _generate_fee_cols(ky: int) -> List[str]:
 
 
 def _to_numeric(series: pd.Series) -> pd.Series:
-    """Convert a series of mixed strings to numeric, handling Vietnamese number formats."""
+    """
+    Convert a series of mixed strings to numeric.
+    Mirrors R's convert_to_numeric() in 0.start.R (lines 66-153).
+
+    Key logic:
+    - "(1000)" → -1000 (accounting negative)
+    - "1.234.567" → 1234567 (VND format, multiple dots = thousand sep)
+    - "1,234,567" → 1234567 (US format, comma thousand sep)
+    - "1.234" → ambiguous: if 3 digits after dot → 1234 (thousand sep), else 1.234 (decimal)
+    - "1,5" → 1.5 (European decimal with comma)
+    """
     def _parse(v):
-        if pd.isna(v) or str(v).strip() in ("", "None", "nan"):
+        if pd.isna(v) or str(v).strip() in ("", "None", "nan", "NaN"):
             return None
         s = str(v).strip()
-        # Remove parentheses → negative
+
+        # Remove parentheses → negative (accounting notation)
         neg = s.startswith("(") and s.endswith(")")
         s = s.strip("()")
-        # Remove thousand separators
-        s = re.sub(r"[,\s]", "", s)
-        # Handle comma as decimal (European style)
-        if "," in s and "." not in s:
-            s = s.replace(",", ".")
+
+        # Count dots and commas
+        n_dot = s.count(".")
+        n_com = s.count(",")
+
+        if n_dot == 0 and n_com == 0:
+            # Plain integer string
+            try:
+                return -float(s) if neg else float(s)
+            except ValueError:
+                return None
+
+        elif n_dot > 1:
+            # Multiple dots → all are thousand separators (VND: "1.234.567")
+            s = s.replace(".", "")
+            s = s.replace(",", ".")  # comma may be decimal
+
+        elif n_com > 1:
+            # Multiple commas → all are thousand separators ("1,234,567")
+            s = s.replace(",", "")
+
+        elif n_dot == 1 and n_com == 1:
+            # Both present: determine which is thousand vs decimal
+            dot_pos = s.index(".")
+            com_pos = s.index(",")
+            if dot_pos < com_pos:
+                # "1.234,56" → dot=thousand, comma=decimal
+                s = s.replace(".", "").replace(",", ".")
+            else:
+                # "1,234.56" → comma=thousand, dot=decimal
+                s = s.replace(",", "")
+
+        elif n_dot == 1 and n_com == 0:
+            # Single dot: check digits after it
+            after_dot = s.split(".")[1]
+            if len(after_dot) == 3 and after_dot.isdigit():
+                # "1.234" → thousand separator → 1234
+                s = s.replace(".", "")
+            # else: "1.5" → decimal → leave as-is
+
+        elif n_com == 1 and n_dot == 0:
+            # Single comma: check digits after it
+            after_com = s.split(",")[1]
+            if len(after_com) == 3 and after_com.isdigit():
+                # "1,234" → thousand separator → 1234
+                s = s.replace(",", "")
+            else:
+                # "1,5" → European decimal
+                s = s.replace(",", ".")
+
         try:
             val = float(s)
             return -val if neg else val
@@ -366,18 +422,44 @@ def _process_xcg(raw: pd.DataFrame, group_code: str) -> Optional[pd.DataFrame]:
         blank[f"Ky_phi_{i}_Tu_Thang"] = df.get(f"{ky}_DUE_DATE_MONTH", pd.Series([None]*len(df))).values
         blank[f"Ky_phi_{i}_Tu_Nam"] = df.get(f"{ky}_DUE_DATE_YEAR", pd.Series([None]*len(df))).values
 
-        # Den_Ngay/Thang/Nam: use next KY's date if it has value, else use contract end date
-        next_phi = df.get(f"{ky_next}_PHI_THUC_THU", pd.Series([0]*len(df)))
-        tu_day = df.get(f"{ky}_DUE_DATE_DAY", pd.Series([None]*len(df)))
+        # Den_Ngay/Den_Thang/Den_Nam:
+        # R logic (2.ghep_file.R L160-182):
+        #   if KYi has a date (not NA and != 0):
+        #     if KY(i+1) phi != 0 → use KY(i+1) date
+        #     else                 → use contract end date (NGAY/THANG/NAM_HIEU_LUC_DEN)
+        #   else → NA
+        tu_day   = df.get(f"{ky}_DUE_DATE_DAY",   pd.Series([None]*len(df)))
+        next_phi = pd.to_numeric(
+            df.get(f"{ky_next}_PHI_THUC_THU", pd.Series([0]*len(df))).astype(str).str.replace(",", "", regex=False),
+            errors="coerce"
+        ).fillna(0)
 
-        blank[f"Ky_phi_{i}_Den_Ngay"] = tu_day.where(
-            tu_day.isna() | (tu_day.astype(str).str.strip() == "0"),
-            other=next_phi.where(next_phi != "0",
-                                  df.get("NGAY_HIEU_LUC_DEN", pd.Series([None]*len(df)))).where(
-                next_phi == "0",
-                df.get(f"{ky_next}_DUE_DATE_DAY", pd.Series([None]*len(df)))
-            )
-        ).values
+        # Mask: True where KYi has a valid date (not NA, not "0")
+        has_date = tu_day.notna() & (tu_day.astype(str).str.strip() != "0") & (tu_day.astype(str).str.strip() != "")
+
+        # Den_Ngay
+        next_day   = df.get(f"{ky_next}_DUE_DATE_DAY",   pd.Series([None]*len(df)))
+        den_ngay_hd = df.get("NGAY_HIEU_LUC_DEN", pd.Series([None]*len(df)))
+        den_ngay = pd.Series([None]*len(df), dtype=object)
+        den_ngay[has_date & (next_phi != 0)] = next_day[has_date & (next_phi != 0)].values
+        den_ngay[has_date & (next_phi == 0)] = den_ngay_hd[has_date & (next_phi == 0)].values
+        blank[f"Ky_phi_{i}_Den_Ngay"] = den_ngay.values
+
+        # Den_Thang
+        next_thang   = df.get(f"{ky_next}_DUE_DATE_MONTH", pd.Series([None]*len(df)))
+        den_thang_hd = df.get("THANG_HIEU_LUC_DEN", pd.Series([None]*len(df)))
+        den_thang = pd.Series([None]*len(df), dtype=object)
+        den_thang[has_date & (next_phi != 0)] = next_thang[has_date & (next_phi != 0)].values
+        den_thang[has_date & (next_phi == 0)] = den_thang_hd[has_date & (next_phi == 0)].values
+        blank[f"Ky_phi_{i}_Den_Thang"] = den_thang.values
+
+        # Den_Nam
+        next_nam   = df.get(f"{ky_next}_DUE_DATE_YEAR", pd.Series([None]*len(df)))
+        den_nam_hd = df.get("NAM_HIEU_LUC_DEN", pd.Series([None]*len(df)))
+        den_nam = pd.Series([None]*len(df), dtype=object)
+        den_nam[has_date & (next_phi != 0)] = next_nam[has_date & (next_phi != 0)].values
+        den_nam[has_date & (next_phi == 0)] = den_nam_hd[has_date & (next_phi == 0)].values
+        blank[f"Ky_phi_{i}_Den_Nam"] = den_nam.values
 
         blank[f"Ky_phi_{i}_Ghi_Ngay"] = df.get(f"{ky}_DUE_DATE_REAL_DAY", pd.Series([None]*len(df))).values
         blank[f"Ky_phi_{i}_Ghi_Thang"] = df.get(f"{ky}_DUE_DATE_REAL_MONTH", pd.Series([None]*len(df))).values
@@ -436,8 +518,14 @@ def _process_vietjet(raw: pd.DataFrame) -> Optional[pd.DataFrame]:
                           var_name="Chi_tieu", value_name="Gia_tri")
 
     # Extract entity (Don_vi_lien_ket) and metric (Dau_muc) from column name
-    long["Dau_muc"] = long["Chi_tieu"].str.extract(r"_(Phi|Ty|Muc|Hach.*)$", expand=False)
-    long["Don_vi_lien_ket"] = long["Chi_tieu"].str.replace(r"_(Phi|Ty|Muc|Hach).*$", "", regex=True)
+    # R: str_extract(Chi_tieu, "_(Phi|Ty|Muc|Hach).*") %>% str_remove("^_")
+    # Capture everything from the first _(Phi|Ty|Muc|Hach) onwards, then strip leading _
+    long["Dau_muc"] = long["Chi_tieu"].str.extract(
+        r"_((?:Phi|Ty|Muc|Hach).*)$", expand=False
+    )
+    long["Don_vi_lien_ket"] = long["Chi_tieu"].str.replace(
+        r"_(?:Phi|Ty|Muc|Hach).*$", "", regex=True
+    )
 
     wide = long.pivot_table(
         index=available_id + ["Don_vi_lien_ket"],

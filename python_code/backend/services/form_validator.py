@@ -309,7 +309,7 @@ def _validate_xcg(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
 
     # ── Money validation ─────────────────────────────────────────────────────
     # R lines 383-405: grep("_So_tien|PHI_PS"), per-col _check, then Check_So_Tien
-    tien_cols = [c for c in df.columns if re.search(r"_SO_TIEN|PHI_PS|PHI_THUC_THU",
+    tien_cols = [c for c in df.columns if re.search(r"_SO_TIEN|PHI_PS",
                                                       str(c), re.IGNORECASE)]
     check_money_results: Dict[str, pd.Series] = {}
     for col in tien_cols:
