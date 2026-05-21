@@ -938,6 +938,273 @@
             from { transform: rotate(0deg); }
             to   { transform: rotate(360deg); }
         }
+
+        /* Custom Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 86, 163, 0.2);
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .toast-success {
+            border-color: rgba(16, 185, 129, 0.3);
+            color: #065f46;
+        }
+        .toast-error {
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #991b1b;
+        }
+
+        /* Currency grid and card */
+        .currency-card {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+        }
+        .currency-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 86, 163, 0.08);
+            border-color: rgba(0, 86, 163, 0.15);
+        }
+        .fx-rate-input {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .fx-rate-input.save-success {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+        }
+        .fx-rate-input.save-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+        }
+
+        /* Nav hover submenu cursor fix */
+        .nav-sub-item {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-sub-item:hover {
+            color: var(--bv-blue);
+            background: rgba(0, 86, 163, 0.05);
+        }
+        .nav-sub-item.active {
+            color: var(--bv-blue);
+            font-weight: 600;
+        }
+
+        /* Pivoted Table Styling */
+        .fx-table-wrapper {
+            overflow: auto;
+            flex: 1;
+            min-height: 0;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.01), 0 8px 32px rgba(0,0,0,0.03);
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .fx-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        .fx-table th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(180deg, #0056a3 0%, #004582 100%) !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            padding: 12px 14px;
+            border-bottom: 2px solid #003768;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: right;
+        }
+        
+        .fx-table th.col-stt,
+        .fx-table th.col-time {
+            text-align: center;
+        }
+
+        .fx-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(0, 86, 163, 0.06);
+            border-right: 1px solid rgba(0, 86, 163, 0.06);
+            background: rgba(255, 255, 255, 0.45);
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .fx-table td[data-currency] {
+            min-width: 95px;
+            text-align: right;
+        }
+        
+        .fx-table th[data-currency] {
+            min-width: 95px;
+            text-align: right;
+        }
+
+        /* Sticky Columns */
+        .fx-table .col-stt {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background: rgba(248, 250, 252, 0.96) !important;
+            width: 50px;
+            min-width: 50px;
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-right: 1px solid rgba(0, 86, 163, 0.1);
+        }
+        .fx-table th.col-stt {
+            z-index: 15;
+            background: linear-gradient(180deg, #0056a3 0%, #004582 100%) !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .fx-table .col-time {
+            position: sticky;
+            left: 50px;
+            z-index: 5;
+            background: rgba(248, 250, 252, 0.96) !important;
+            width: 90px;
+            min-width: 90px;
+            text-align: center;
+            font-weight: 700;
+            color: var(--bv-blue);
+            border-right: 2px solid rgba(0, 86, 163, 0.2) !important;
+        }
+        .fx-table th.col-time {
+            z-index: 15;
+            background: linear-gradient(180deg, #0056a3 0%, #004582 100%) !important;
+            border-right: 2px solid rgba(0, 86, 163, 0.2) !important;
+        }
+
+        /* Hover effects */
+        .fx-table tr:hover td {
+            background: rgba(0, 86, 163, 0.04) !important;
+        }
+        .fx-table tr:hover td.col-stt,
+        .fx-table tr:hover td.col-time {
+            background: rgba(235, 243, 251, 0.98) !important;
+        }
+
+        /* Active calculation quarter row styling */
+        .fx-table tr.active-quarter-row td {
+            background: rgba(16, 185, 129, 0.05) !important;
+        }
+        .fx-table tr.active-quarter-row td.col-stt,
+        .fx-table tr.active-quarter-row td.col-time {
+            background: rgba(209, 250, 229, 0.96) !important;
+            color: #047857 !important;
+        }
+        .fx-table tr.active-quarter-row td.col-time {
+            border-right: 3px solid #10b981 !important;
+        }
+
+        /* Muted background for locked historical rows */
+        .fx-table tr.past-quarter-row td {
+            background: rgba(243, 244, 246, 0.45) !important;
+        }
+        .fx-table tr.past-quarter-row td.col-stt,
+        .fx-table tr.past-quarter-row td.col-time {
+            background: rgba(229, 231, 235, 0.85) !important;
+            color: #6b7280 !important;
+        }
+
+        /* inputs inside the table */
+        .fx-rate-table-input {
+            width: 100%;
+            height: 32px;
+            border: 1px solid transparent;
+            background: transparent;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: right;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            color: #1f2937;
+        }
+
+        .fx-rate-table-input::-webkit-outer-spin-button,
+        .fx-rate-table-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .fx-rate-table-input {
+            -moz-appearance: textfield;
+        }
+
+        .fx-rate-table-input:hover:not(:disabled) {
+            border-color: rgba(0, 86, 163, 0.2);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .fx-rate-table-input:focus:not(:disabled) {
+            border-color: var(--bv-blue);
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(0, 86, 163, 0.12);
+            outline: none;
+        }
+
+        /* Highlight effects for table inputs on save */
+        .fx-rate-table-input.save-success {
+            border-color: #10b981 !important;
+            background: rgba(16, 185, 129, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+        }
+        .fx-rate-table-input.save-error {
+            border-color: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+        }
+
+        /* Disabled / historical locked input cells */
+        .fx-rate-table-input:disabled {
+            color: #6b7280;
+            font-weight: 500;
+            cursor: not-allowed;
+            background: transparent;
+            border-color: transparent;
+        }
     </style>
 </head>
 
@@ -966,7 +1233,7 @@
             
         </div>
         <div id="upr-submenu" class="submenu-container">
-            <div class="nav-sub-item">
+            <div class="nav-sub-item active" id="uprCalcSubItem">
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
                 Calculation
             </div>
@@ -1004,7 +1271,7 @@
             <span class="nav-icon">▤</span>
             <span class="nav-text">Data Repository</span>
         </div>
-        <div class="nav-item" data-tooltip="Exchange Rates">
+        <div class="nav-item" data-tooltip="Exchange Rates" id="exchangeRatesNavItem">
             <span class="nav-icon">◧</span>
             <span class="nav-text">Exchange Rates</span>
         </div>
@@ -1020,7 +1287,7 @@
 
     <!-- Main Workspace -->
     <main class="workspace">
-        <div class="content" style="display: flex; flex-direction: column; height: 100%;">
+        <div id="upr-calculation-view" class="content" style="display: flex; flex-direction: column; height: 100%;">
 
             <!-- Setup & Configuration Section -->
             <div class="panel glass-panel" style="margin-bottom: 24px; flex-shrink: 0;">
@@ -1050,22 +1317,20 @@
                     </div>
 
                     <!-- Col 2: DB Status Widget -->
-                    <div style="padding-right: 24px;">
+                    <div style="padding-right: 24px; min-width: 0;">
                         <label class="form-label">Current FX Rate</label>
                         <div style="background: white; border: 1px solid rgba(0, 0, 0, 0.08); padding: 5px 16px 5px 5px; border-radius: 10px; display: flex; align-items: center; gap: 16px; height: 47px; width: 100%;">
-                            <button title="Click to sync Exchange Rates from DB" style="background: rgba(0, 86, 163, 0.06); width: 36px; height: 36px; padding: 8px; border-radius: 8px; color: var(--bv-blue); box-shadow: 0 2px 4px rgba(0,86,163,0.05); border: 1px solid rgba(0,86,163,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='rgba(0, 86, 163, 0.1)'; this.style.boxShadow='0 4px 8px rgba(0,86,163,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(0, 86, 163, 0.06)'; this.style.boxShadow='0 2px 4px rgba(0,86,163,0.05)'">
+                            <button id="syncFxRateBtn" title="Click to sync Exchange Rates from DB" style="background: rgba(0, 86, 163, 0.06); width: 36px; height: 36px; padding: 8px; border-radius: 8px; color: var(--bv-blue); box-shadow: 0 2px 4px rgba(0,86,163,0.05); border: 1px solid rgba(0,86,163,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.backgroundColor='rgba(0, 86, 163, 0.1)'; this.style.boxShadow='0 4px 8px rgba(0,86,163,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.backgroundColor='rgba(0, 86, 163, 0.06)'; this.style.boxShadow='0 2px 4px rgba(0,86,163,0.05)'">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
                             </button>
                             <div style="display: flex; flex-direction: column; justify-content: center; flex: 1; min-width: 0;">
-                                <div style="font-size: 14px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <div id="fxRateTicker" style="font-size: 14px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                     <span style="font-weight: 700; color: var(--bv-blue);">USD</span> 25,450 &bull; 
                                     <span style="font-weight: 700; color: var(--bv-blue);">EUR</span> 27,120 &bull; 
                                     <span style="font-weight: 700; color: var(--bv-blue);">AUD</span> 16,800 &bull; 
                                     <span style="font-weight: 700; color: var(--bv-blue);">CHF</span> 28,300 &bull; 
                                     <span style="font-weight: 700; color: var(--bv-blue);">JPY</span> 162 &bull; 
-                                    <span style="font-weight: 700; color: var(--bv-blue);">GBP</span> 32,400 &bull; 
-                                    <span style="font-weight: 700; color: var(--bv-blue);">SGD</span> 18,950 &bull; 
-                                    <span style="font-weight: 700; color: var(--bv-blue);">THB</span> 690
+                                    <span style="font-weight: 700; color: var(--bv-blue);">GBP</span> 32,400
                                 </div>
                             </div>
                         </div>
@@ -1159,10 +1424,10 @@
 
                         <!-- Big Action Buttons -->
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;">
-                            <button class="btn btn-accent" style="height: 60px; font-size: 15px;">
+                            <button id="btnCalculateUPR" class="btn btn-accent" style="height: 60px; font-size: 15px;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Calculate UPR
                             </button>
-                            <button class="btn btn-accent" style="height: 60px; font-size: 15px;">
+                            <button id="btnSummarizeResults" class="btn btn-accent" style="height: 60px; font-size: 15px;">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Summarize Results
                             </button>
                         </div>
@@ -1172,10 +1437,10 @@
                             <h4 class="section-label">
                                 PROCESSED REPORTS</h4>
                             <div style="display: flex; gap: 8px;">
-                                <button class="btn btn-outline btn-icon-sm" title="Download All Reports">
+                                <button id="btnDownloadAllReports" class="btn btn-outline btn-icon-sm" title="Download All Reports" style="display: none;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                                 </button>
-                                <button class="btn btn-outline-danger btn-icon-sm" title="Clear All Reports">
+                                <button id="btnClearAllReports" class="btn btn-outline-danger btn-icon-sm" title="Clear All Reports" style="display: none;">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                 </button>
                             </div>
@@ -1189,34 +1454,75 @@
                                         <th style="width: 100px; text-align: center;">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <div style="display: flex; align-items: center; gap: 12px;">
-                                                <div
-                                                    style="padding: 8px; background: rgba(255,255,255,0.8); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; color: var(--bv-blue);">
-                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></div>
-                                                <span
-                                                    style="font-weight: 600; color: #111827;">XCG_LT_Calculated.xlsx</span>
-                                            </div>
-                                        </td>
-                                        <td style="text-align: center; vertical-align: middle;">
-                                            <div style="display: flex; gap: 8px; justify-content: center;">
-                                                <button class="btn btn-outline btn-icon-sm" title="Download Report">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                                                </button>
-                                                <button class="btn btn-outline-danger btn-icon-sm" title="Delete Report">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <tbody id="reportsTableBody">
+                                    <!-- Dynamic list of reports will go here -->
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <div id="exchange-rates-view" class="content" style="display: none; flex-direction: column; height: 100%;">
+            <!-- Parameters Setup Card -->
+            <div class="panel glass-panel" style="margin-bottom: 24px; flex-shrink: 0;">
+                <div class="panel-header" style="margin-bottom: 16px;">
+                    <div class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--bv-blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        Exchange Rates Parameters Setup
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 24px; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 150px;">
+                        <label class="form-label">Year</label>
+                        <select id="fxYear" class="form-control" style="width: 100%; height: 42px;">
+                            <option value="2022">2022</option>
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 150px;">
+                        <label class="form-label">Quarter</label>
+                        <select id="fxQuarter" class="form-control" style="width: 100%; height: 42px;">
+                            <option value="Q1">Q1</option>
+                            <option value="Q2" selected>Q2</option>
+                            <option value="Q3">Q3</option>
+                            <option value="Q4">Q4</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 12px; margin-left: auto;">
+                        <button class="btn" id="btnSaveFxRates" style="height: 42px; display: flex; align-items: center; gap: 8px; background: var(--bv-blue); color: white; border: none; cursor: pointer; border-radius: 10px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                            <span>Save Rates to DB</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Currencies Input Card -->
+            <div class="panel glass-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                <div class="panel-header">
+                    <div class="panel-title" style="display: flex; align-items: center; gap: 12px;">
+                        <span>Exchange Rates Input Grid</span>
+                    </div>
+                    <div style="position: relative; width: 250px;">
+                        <input type="text" id="fxSearchInput" class="form-control" placeholder="Search currency..." style="width: 100%; padding-left: 36px; height: 38px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 12px; top: 12px; color: var(--text-secondary);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-right: 4px;">
+                    <div id="fxRatesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; align-content: start; overflow-y: auto; flex: 1; padding: 4px;">
+                        <!-- Dynamically generated inputs -->
+                    </div>
+                </div>
             </div>
         </div>
     </main>
@@ -1353,7 +1659,7 @@
             if (!currentUploadFile) return;
             
             const month = parseInt(document.getElementById('calcMonth').value) || 1;
-            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
             const quarter = Math.ceil(month / 3);
             const quarter_id = `Q${quarter}_${year}`;
             
@@ -1498,7 +1804,7 @@
         // Check Forms Flow
         document.getElementById('globalCheckFormsBtn').addEventListener('click', async () => {
             const month = parseInt(document.getElementById('calcMonth').value) || 1;
-            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
             const quarter = Math.ceil(month / 3);
             const quarter_id = `Q${quarter}_${year}`;
             
@@ -1649,7 +1955,7 @@
 
         document.getElementById('globalClearAllBtn').addEventListener('click', async () => {
             const month = parseInt(document.getElementById('calcMonth').value) || 1;
-            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
             const quarter = Math.ceil(month / 3);
             const quarterId = `Q${quarter}_${year}`;
             
@@ -1722,7 +2028,7 @@
 
         async function loadQueueFiles() {
             const month = parseInt(document.getElementById('calcMonth').value) || 1;
-            const year = parseInt(document.getElementById('calcYear').value) || 2025;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
             const quarter = Math.ceil(month / 3);
             const quarterId = `Q${quarter}_${year}`;
             
@@ -1770,14 +2076,559 @@
                         </tr>
                     `);
                 });
+                // Also load the calculated reports
+                loadReports();
             } catch (err) {
                 console.error("Failed to load queue files:", err);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadQueueFiles);
-        document.getElementById('calcMonth').addEventListener('change', loadQueueFiles);
-        document.getElementById('calcYear').addEventListener('change', loadQueueFiles);
+        async function loadReports() {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+
+            try {
+                const response = await fetch(`/api/upr/reports/${quarterId}`);
+                if (!response.ok) return;
+                const reports = await response.json();
+
+                const tbody = document.getElementById('reportsTableBody');
+                tbody.innerHTML = '';
+
+                if (reports.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="2" style="text-align: center; padding: 40px 20px; color: var(--text-secondary);">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3; margin-bottom: 12px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                                <div style="font-size: 14px; font-weight: 500;">No calculated reports</div>
+                                <div style="font-size: 12px; margin-top: 4px;">Click "Calculate UPR" to generate files</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                reports.forEach(r => {
+                    const isSummary = r.file_name.startsWith('Tong_Hop_');
+                    const iconColor = isSummary ? 'var(--bv-accent)' : 'var(--bv-blue)';
+                    const bgClass = isSummary ? 'style="background: rgba(245, 158, 11, 0.05);"' : '';
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr ${bgClass}>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="padding: 8px; background: rgba(255,255,255,0.8); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; color: ${iconColor}; flex-shrink: 0;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                    </div>
+                                    <div style="min-width: 0; flex: 1;">
+                                        <div style="font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;" title="${r.file_name}">${r.file_name}</div>
+                                        <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Size: ${(r.size_bytes / 1024).toFixed(1)} KB | Modified: ${new Date(r.modified_at * 1000).toLocaleTimeString()}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td style="text-align: center; vertical-align: middle;">
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    <button class="btn btn-outline btn-icon-sm" title="Download Report" onclick="downloadReportFile('${r.file_name}')">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                });
+            } catch (err) {
+                console.error("Failed to load reports:", err);
+            }
+        }
+
+        function downloadReportFile(fileName) {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+            window.open(`/api/upr/download/${quarterId}/${fileName}`, '_blank');
+        }
+
+        async function runUPRCalculation() {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+
+            document.getElementById('valModalTitle').innerText = 'UPR Calculation';
+            document.getElementById('valModalBody').innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px;padding:24px 0;color:var(--text-secondary);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    Executing UPR calculations. This may take up to 2 minutes due to Excel engine recalculation...
+                </div>`;
+            document.getElementById('downloadReportBtn').style.display = 'none';
+            document.getElementById('validationModal').classList.add('active');
+
+            try {
+                const response = await fetch('/api/upr/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quarter_id: quarterId })
+                });
+                const resData = await response.json();
+                
+                if (response.ok) {
+                    const count = (resData.calculated || []).length;
+                    document.getElementById('valModalBody').innerHTML = `
+                        <div style="padding:16px 0 0;">
+                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
+                                ✅ UPR Calculations Completed Successfully
+                            </div>
+                            <p style="font-size:14px;color:#374151;">Processed <strong>${count}</strong> file(s) for quarter <strong>${quarterId}</strong>.</p>
+                        </div>`;
+                    loadQueueFiles();
+                } else {
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Calculation Failed: ${resData.detail || 'Unknown error'}</p>`;
+                }
+            } catch (err) {
+                document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to trigger calculation: ${err}</p>`;
+            }
+        }
+
+        async function runUPRSummarization() {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+
+            document.getElementById('valModalTitle').innerText = 'Summarize UPR Reports';
+            document.getElementById('valModalBody').innerHTML = `
+                <div style="display:flex;align-items:center;gap:12px;padding:24px 0;color:var(--text-secondary);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                    Consolidating calculated reports, formatting results, and building consolidated sheet...
+                </div>`;
+            document.getElementById('downloadReportBtn').style.display = 'none';
+            document.getElementById('validationModal').classList.add('active');
+
+            try {
+                const response = await fetch('/api/upr/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quarter_id: quarterId })
+                });
+                const resData = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('valModalBody').innerHTML = `
+                        <div style="padding:16px 0 0;">
+                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
+                                ✅ Summarization Completed
+                            </div>
+                            <p style="font-size:14px;color:#374151;">Generated consolidated workbook: <strong style="color:var(--bv-accent);">${resData.file_name}</strong>.</p>
+                        </div>`;
+                    loadReports();
+                } else {
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Summarization Failed: ${resData.detail || 'Unknown error'}</p>`;
+                }
+            } catch (err) {
+                document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to trigger summarization: ${err}</p>`;
+            }
+        }
+
+        // Custom Toast Notification
+        function showToast(message, type = 'success') {
+            let toast = document.getElementById('appToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'appToast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.className = `toast toast-${type} show`;
+            toast.innerHTML = `
+                <span style="font-size: 16px;">${type === 'success' ? '✅' : '❌'}</span>
+                <span style="font-size: 13px; font-weight: 600;">${message}</span>
+            `;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        const CURRENCIES = [
+            { code: 'USD', name: 'US Dollar' },
+            { code: 'EUR', name: 'Euro' },
+            { code: 'AUD', name: 'Australian Dollar' },
+            { code: 'CHF', name: 'Swiss Franc' },
+            { code: 'CAD', name: 'Canadian Dollar' },
+            { code: 'CNY', name: 'Chinese Yuan' },
+            { code: 'DKK', name: 'Danish Krone' },
+            { code: 'GBP', name: 'British Pound' },
+            { code: 'HKD', name: 'Hong Kong Dollar' },
+            { code: 'INR', name: 'Indian Rupee' },
+            { code: 'JPY', name: 'Japanese Yen' },
+            { code: 'KRW', name: 'South Korean Won' },
+            { code: 'KWD', name: 'Kuwaiti Dinar' },
+            { code: 'MYR', name: 'Malaysian Ringgit' },
+            { code: 'NOK', name: 'Norwegian Krone' },
+            { code: 'RUB', name: 'Russian Ruble' },
+            { code: 'SAR', name: 'Saudi Riyal' },
+            { code: 'SEK', name: 'Swedish Krona' },
+            { code: 'SGD', name: 'Singapore Dollar' },
+            { code: 'THB', name: 'Thai Baht' }
+        ];
+
+        function generateFxGrid() {
+            const grid = document.getElementById('fxRatesGrid');
+            grid.innerHTML = '';
+            
+            CURRENCIES.forEach(c => {
+                // Create Grid Card
+                const card = document.createElement('div');
+                card.className = 'currency-card';
+                card.setAttribute('data-currency', c.code);
+                card.innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-weight: 700; color: var(--bv-blue); font-size: 15px; background: rgba(0,86,163,0.06); padding: 4px 8px; border-radius: 6px;">${c.code}</span>
+                            <span style="font-size: 13px; font-weight: 500; color: var(--text-secondary);">${c.name}</span>
+                        </div>
+                    </div>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="number" step="any" class="form-control fx-rate-input" data-currency="${c.code}" placeholder="Enter rate..." style="width: 100%; padding-right: 48px; font-weight: 600; text-align: right; height: 38px;">
+                        <span style="position: absolute; right: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);">VND</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+
+                // Auto-save on input change
+                const gridInput = card.querySelector('.fx-rate-input');
+                gridInput.addEventListener('change', async function() {
+                    const value = this.value.trim();
+                    const year = document.getElementById('fxYear').value;
+                    const quarter = document.getElementById('fxQuarter').value;
+                    const quarterId = `${quarter}_${year}`;
+                    
+                    try {
+                        if (value === '') {
+                            // Delete rate from DB when cleared
+                            const response = await fetch(`/api/parameters/fx-rates/single/${quarterId}/${c.code}`, {
+                                method: 'DELETE'
+                            });
+                            if (response.ok) {
+                                highlightInput(this, 'success');
+                                syncUprTickerIfSameQuarter(quarterId);
+                            } else {
+                                highlightInput(this, 'error');
+                            }
+                        } else {
+                            const rateVal = parseFloat(value);
+                            if (isNaN(rateVal) || rateVal <= 0) {
+                                highlightInput(this, 'error');
+                                showToast(`Invalid rate value for ${c.code}`, 'error');
+                                return;
+                            }
+                            
+                            // Save single rate to DB
+                            const response = await fetch('/api/parameters/fx-rates/single', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    quarter_id: quarterId,
+                                    currency: c.code,
+                                    rate: rateVal
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                highlightInput(this, 'success');
+                                syncUprTickerIfSameQuarter(quarterId);
+                            } else {
+                                highlightInput(this, 'error');
+                                const err = await response.json();
+                                showToast(`Failed to auto-save: ${err.detail || 'Error'}`, 'error');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Auto-save error:', err);
+                        highlightInput(this, 'error');
+                    }
+                });
+            });
+        }
+
+        function highlightInput(input, status) {
+            input.classList.remove('save-success', 'save-error');
+            void input.offsetWidth; // Trigger reflow
+            if (status === 'success') {
+                input.classList.add('save-success');
+            } else if (status === 'error') {
+                input.classList.add('save-error');
+            }
+            setTimeout(() => {
+                input.classList.remove('save-success', 'save-error');
+            }, 1500);
+        }
+
+        // Search Filter (Grid cards)
+        document.getElementById('fxSearchInput').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            // Filter grid cards
+            document.querySelectorAll('#fxRatesGrid .currency-card').forEach(card => {
+                const currency = card.getAttribute('data-currency').toLowerCase();
+                const name = card.querySelector('span:nth-child(2)').innerText.toLowerCase();
+                if (currency.includes(query) || name.includes(query)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        async function saveFxRates() {
+            const year = document.getElementById('fxYear').value;
+            const quarter = document.getElementById('fxQuarter').value;
+            const quarterId = `${quarter}_${year}`;
+            
+            const rates = [];
+            document.querySelectorAll('#fxRatesGrid .fx-rate-input').forEach(input => {
+                const currency = input.getAttribute('data-currency');
+                const rate = parseFloat(input.value);
+                if (!isNaN(rate) && rate > 0) {
+                    rates.push({
+                        quarter_id: quarterId,
+                        currency: currency,
+                        rate: rate
+                    });
+                }
+            });
+            
+            if (rates.length === 0) {
+                showToast('Please enter at least one valid rate.', 'error');
+                return;
+            }
+            
+            const saveBtn = document.getElementById('btnSaveFxRates');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = 'Saving...';
+            
+            try {
+                const response = await fetch('/api/parameters/fx-rates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quarter_id: quarterId,
+                        rates: rates
+                    })
+                });
+                
+                if (response.ok) {
+                    showToast('Exchange rates saved successfully!');
+                    syncUprTickerIfSameQuarter(quarterId);
+                    loadFxRates(); // Refresh Table View
+                } else {
+                    const err = await response.json();
+                    showToast(`Failed to save rates: ${err.detail || 'Error'}`, 'error');
+                }
+            } catch (err) {
+                showToast(`Error saving rates: ${err}`, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        }
+
+        async function loadFxRates() {
+            const year = document.getElementById('fxYear').value;
+            const quarter = document.getElementById('fxQuarter').value;
+            const quarterId = `${quarter}_${year}`;
+            
+            // Clear grid inputs first
+            document.querySelectorAll('#fxRatesGrid .fx-rate-input').forEach(input => {
+                input.value = '';
+            });
+            
+            try {
+                // Fetch rates for current selected grid quarter
+                const response = await fetch(`/api/parameters/fx-rates/${quarterId}`);
+                if (response.ok) {
+                    const rates = await response.json();
+                    if (rates && rates.length > 0) {
+                        rates.forEach(r => {
+                            const gridInput = document.querySelector(`#fxRatesGrid .fx-rate-input[data-currency="${r.currency}"]`);
+                            if (gridInput) {
+                                gridInput.value = r.rate;
+                            }
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading FX rates:', err);
+            }
+        }
+
+        async function syncUprTicker() {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const quarterId = `Q${quarter}_${year}`;
+            
+            const ticker = document.getElementById('fxRateTicker');
+            const syncBtn = document.getElementById('syncFxRateBtn');
+            
+            if (syncBtn) {
+                syncBtn.style.animation = 'spin 1s linear infinite';
+                syncBtn.disabled = true;
+            }
+            
+            try {
+                let response = await fetch(`/api/parameters/fx-rates/${quarterId}`);
+                let rates = [];
+                if (response.ok) {
+                    rates = await response.json();
+                }
+                
+                if (!rates || rates.length === 0) {
+                    const syncResponse = await fetch(`/api/parameters/fx-rates/sync/${quarterId}`, {
+                        method: 'POST'
+                    });
+                    if (syncResponse.ok) {
+                        rates = await syncResponse.json();
+                    }
+                }
+                
+                if (rates && rates.length > 0) {
+                    const order = ['USD', 'EUR', 'AUD', 'CHF', 'JPY', 'GBP'];
+                    const sortedRates = rates
+                        .filter(r => order.includes(r.currency))
+                        .sort((a, b) => order.indexOf(a.currency) - order.indexOf(b.currency));
+                    
+                    const tickerHtml = sortedRates.map(r => {
+                        const formattedVal = Number(r.rate).toLocaleString('en-US');
+                        return `<span style="font-weight: 700; color: var(--bv-blue);">${r.currency}</span> ${formattedVal}`;
+                    }).join(' &bull; ');
+                    
+                    ticker.innerHTML = tickerHtml;
+                } else {
+                    ticker.innerHTML = `<span style="color: red; font-weight: 600;">No rates available for ${quarterId}</span>`;
+                }
+            } catch (err) {
+                console.error('Error syncing UPR ticker:', err);
+                ticker.innerHTML = `<span style="color: red; font-weight: 600;">Sync failed: ${err}</span>`;
+            } finally {
+                if (syncBtn) {
+                    syncBtn.style.animation = '';
+                    syncBtn.disabled = false;
+                }
+            }
+        }
+        
+        function syncUprTickerIfSameQuarter(quarterId) {
+            const month = parseInt(document.getElementById('calcMonth').value) || 1;
+            const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
+            const quarter = Math.ceil(month / 3);
+            const currentUprQuarterId = `Q${quarter}_${year}`;
+            if (quarterId === currentUprQuarterId) {
+                syncUprTicker();
+            }
+        }
+
+        function switchView(viewId) {
+            document.getElementById('upr-calculation-view').style.display = 'none';
+            document.getElementById('exchange-rates-view').style.display = 'none';
+            
+            const view = document.getElementById(viewId);
+            if (view) {
+                view.style.display = 'flex';
+            }
+            
+            document.querySelectorAll('.nav-sub-item').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        }
+
+        // Setup Sidebar Clicks
+        document.getElementById('exchangeRatesNavItem').addEventListener('click', function() {
+            switchView('exchange-rates-view');
+            this.classList.add('active');
+            loadFxRates();
+        });
+
+        document.getElementById('uprCalcSubItem').addEventListener('click', function() {
+            switchView('upr-calculation-view');
+            this.classList.add('active');
+            const parent = document.querySelector('[data-tooltip="UPR Calculation"]');
+            if (parent) parent.classList.add('active');
+        });
+
+        // Setup generic nav item click override to reset other views
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const tooltip = this.getAttribute('data-tooltip');
+                if (tooltip === 'Exchange Rates') return;
+                if (tooltip === 'Reports' || tooltip === 'UPR Calculation') return;
+                
+                switchView('upr-calculation-view');
+                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            // Calculate current date dynamically
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1; // 1-12
+            const quarter = Math.ceil(month / 3);
+            
+            // Set calculation date inputs dynamically
+            document.getElementById('calcYear').value = year;
+            document.getElementById('calcMonth').value = String(month).padStart(2, '0');
+            document.getElementById('calcDay').value = String(now.getDate()).padStart(2, '0');
+            
+            // Set Fx Rates select dropdowns dynamically
+            const fxYearSelect = document.getElementById('fxYear');
+            const fxQuarterSelect = document.getElementById('fxQuarter');
+            
+            // Ensure option for current year exists in #fxYear dropdown
+            let hasYearOption = false;
+            for (let i = 0; i < fxYearSelect.options.length; i++) {
+                if (parseInt(fxYearSelect.options[i].value) === year) {
+                    hasYearOption = true;
+                    break;
+                }
+            }
+            if (!hasYearOption) {
+                const opt = document.createElement('option');
+                opt.value = year;
+                opt.textContent = year;
+                fxYearSelect.appendChild(opt);
+            }
+            
+            fxYearSelect.value = year;
+            fxQuarterSelect.value = `Q${quarter}`;
+
+            loadQueueFiles();
+            generateFxGrid();
+            syncUprTicker();
+            loadFxRates();
+        });
+
+        document.getElementById('calcMonth').addEventListener('change', () => {
+            loadQueueFiles();
+            syncUprTicker();
+            loadFxRates();
+        });
+        document.getElementById('calcYear').addEventListener('change', () => {
+            loadQueueFiles();
+            syncUprTicker();
+            loadFxRates();
+        });
+        document.getElementById('btnCalculateUPR').addEventListener('click', runUPRCalculation);
+        document.getElementById('btnSummarizeResults').addEventListener('click', runUPRSummarization);
+        document.getElementById('syncFxRateBtn').addEventListener('click', syncUprTicker);
+
+        document.getElementById('fxYear').addEventListener('change', loadFxRates);
+        document.getElementById('fxQuarter').addEventListener('change', loadFxRates);
+        document.getElementById('btnSaveFxRates').addEventListener('click', saveFxRates);
+
+
     </script>
 </body>
 

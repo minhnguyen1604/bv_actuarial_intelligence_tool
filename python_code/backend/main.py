@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 import models
 from database import engine
-from routers import parameters, files
+from routers import parameters, files, upr
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -12,6 +12,7 @@ app = FastAPI(title="BaoViet Actuarial Platform")
 
 app.include_router(parameters.router)
 app.include_router(files.router)
+app.include_router(upr.router)
 
 # Serve the frontend directory at the root path
 app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")

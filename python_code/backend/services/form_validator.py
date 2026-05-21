@@ -369,11 +369,20 @@ def _validate_xcg(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
         dup_rows_idx.update(dups.index.tolist())
         remaining = remaining.drop(index=dups.index, errors="ignore")
 
-    duplicate_rows = len(dup_rows_idx)
+    # Mirror R's semi_join logic: any row in the original df that shares the exact check_cols
+    # with any flagged duplicate row should be marked as "Trùng".
+    if dup_rows_idx and check_cols:
+        dup_keys = df.loc[list(dup_rows_idx), check_cols].drop_duplicates()
+        merged_keys = df.reset_index().merge(dup_keys, on=check_cols, how="inner")
+        semi_join_indices = set(merged_keys["index"])
+    else:
+        semi_join_indices = set()
+
+    duplicate_rows = len(semi_join_indices)
 
     # Mirror R: check_trung = "Trùng" or 0 (integer)
     df["check_trung"] = [
-        "Trùng" if i in dup_rows_idx else 0
+        "Trùng" if i in semi_join_indices else 0
         for i in df.index
     ]
 

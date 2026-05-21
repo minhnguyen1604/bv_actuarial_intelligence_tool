@@ -81,76 +81,76 @@ def _generate_fee_cols(ky: int) -> List[str]:
 def _to_numeric(series: pd.Series) -> pd.Series:
     """
     Convert a series of mixed strings to numeric.
-    Mirrors R's convert_to_numeric() in 0.start.R (lines 66-153).
-
-    Key logic:
-    - "(1000)" → -1000 (accounting negative)
-    - "1.234.567" → 1234567 (VND format, multiple dots = thousand sep)
-    - "1,234,567" → 1234567 (US format, comma thousand sep)
-    - "1.234" → ambiguous: if 3 digits after dot → 1234 (thousand sep), else 1.234 (decimal)
-    - "1,5" → 1.5 (European decimal with comma)
+    Mirrors R's convert_to_numeric() in 0.start.R (lines 66-153) exactly.
     """
     def _parse(v):
-        if pd.isna(v) or str(v).strip() in ("", "None", "nan", "NaN"):
+        if pd.isna(v):
             return None
         s = str(v).strip()
+        if s == "" or s.lower() in ("none", "nan", "na"):
+            return None
 
-        # Remove parentheses → negative (accounting notation)
-        neg = s.startswith("(") and s.endswith(")")
-        s = s.strip("()")
+        # Remove all whitespace (mimicking gsub("[[:space:]]", "", s))
+        s0 = re.sub(r"\s+", "", s)
+        if not s0:
+            return None
 
-        # Count dots and commas
-        n_dot = s.count(".")
-        n_com = s.count(",")
+        sign = 1
+        # Parenthesized negative notation, e.g. (123) -> -123
+        if s0.startswith("(") and s0.endswith(")"):
+            sign = -1
+            s0 = s0[1:-1]
 
-        if n_dot == 0 and n_com == 0:
-            # Plain integer string
+        # Leading minus
+        if s0.startswith("-"):
+            sign = -1
+            s0 = s0[1:]
+
+        # If no separator present
+        if "." not in s0 and "," not in s0:
             try:
-                return -float(s) if neg else float(s)
+                return sign * float(s0)
             except ValueError:
                 return None
 
-        elif n_dot > 1:
-            # Multiple dots → all are thousand separators (VND: "1.234.567")
-            s = s.replace(".", "")
-            s = s.replace(",", ".")  # comma may be decimal
+        has_dot = "." in s0
+        has_comma = "," in s0
 
-        elif n_com > 1:
-            # Multiple commas → all are thousand separators ("1,234,567")
-            s = s.replace(",", "")
+        if has_dot and has_comma:
+            # Both separators: find the last pos, treat it as decimal dot, remove all other seps
+            seps = [i for i, c in enumerate(s0) if c in (".", ",")]
+            last_pos = seps[-1]
+            out = []
+            for j, c in enumerate(s0):
+                if c in (".", ","):
+                    if j == last_pos:
+                        out.append(".")
+                    else:
+                        continue
+                else:
+                    out.append(c)
+            clean = "".join(out)
+        else:
+            # Only one type of separator
+            sep_char = "." if has_dot else ","
+            last_pos = s0.rfind(sep_char)
+            after = s0[last_pos + 1:]
 
-        elif n_dot == 1 and n_com == 1:
-            # Both present: determine which is thousand vs decimal
-            dot_pos = s.index(".")
-            com_pos = s.index(",")
-            if dot_pos < com_pos:
-                # "1.234,56" → dot=thousand, comma=decimal
-                s = s.replace(".", "").replace(",", ".")
+            if re.match(r"^\d{3}$", after):
+                # Thousand separator: if comma, remove it, else leave dot as-is
+                if sep_char == ",":
+                    clean = s0.replace(",", "")
+                else:
+                    clean = s0
             else:
-                # "1,234.56" → comma=thousand, dot=decimal
-                s = s.replace(",", "")
-
-        elif n_dot == 1 and n_com == 0:
-            # Single dot: check digits after it
-            after_dot = s.split(".")[1]
-            if len(after_dot) == 3 and after_dot.isdigit():
-                # "1.234" → thousand separator → 1234
-                s = s.replace(".", "")
-            # else: "1.5" → decimal → leave as-is
-
-        elif n_com == 1 and n_dot == 0:
-            # Single comma: check digits after it
-            after_com = s.split(",")[1]
-            if len(after_com) == 3 and after_com.isdigit():
-                # "1,234" → thousand separator → 1234
-                s = s.replace(",", "")
-            else:
-                # "1,5" → European decimal
-                s = s.replace(",", ".")
+                # Decimal separator: if comma, replace with dot
+                if sep_char == ",":
+                    clean = s0.replace(",", ".")
+                else:
+                    clean = s0
 
         try:
-            val = float(s)
-            return -val if neg else val
+            return sign * float(clean)
         except ValueError:
             return None
 
@@ -258,7 +258,7 @@ def merge_file(
         return {"ok": False, "errors": ["Không trích xuất được dữ liệu từ file."], "rows": 0}
 
     # 3. Merge with previous quarter data
-    changes = {"new": 0, "changed": 0, "duplicate": 0, "removed": 0}
+    changes = {"new": 0, "changed": 0, "duplicate": 0, "removed": 0, "ketqua": None}
     output_path = _cur_data_path(quarter_id, group_code)
     prev_qid = _prev_quarter_id(quarter_id)
 
@@ -268,13 +268,24 @@ def merge_file(
             prev_df = pd.read_parquet(prev_path)
             df, changes = _merge_with_prev(df, prev_df, dpnv_date)
 
-    # 4. Save
+    # 4. Save merged data
     df.to_parquet(output_path, index=False)
+
+    # 5. Save ketqua audit DataFrame (mirrors R's checked_df1(ketqua))
+    ketqua_path = None
+    ketqua_df = changes.pop("ketqua", None)  # extract before returning changes dict
+    if ketqua_df is not None and not ketqua_df.empty:
+        ketqua_path = output_path.replace(".parquet", "_ketqua.parquet")
+        # Ensure all object columns are str-safe for parquet
+        for col in ketqua_df.select_dtypes(include=["object"]).columns:
+            ketqua_df[col] = ketqua_df[col].astype(str)
+        ketqua_df.to_parquet(ketqua_path, index=False)
 
     return {
         "ok": True,
         "rows": len(df),
         "output_path": output_path,
+        "ketqua_path": ketqua_path,
         "changes": changes,
         "errors": [],
     }
@@ -557,60 +568,178 @@ def _merge_with_prev(
     cur_df: pd.DataFrame,
     prev_df: pd.DataFrame,
     dpnv_date: Optional[date],
-) -> tuple[pd.DataFrame, Dict[str, int]]:
+) -> tuple[pd.DataFrame, Dict[str, Any]]:
     """
     Merge current quarter data with previous quarter data.
-    Returns (merged_df, change_summary).
+    Mirrors R logic in 2.ghep_file.R (lines 460-700).
+    Returns (merged_df, result_dict) where result_dict contains:
+      - 'new', 'changed', 'duplicate', 'removed': count ints
+      - 'ketqua': DataFrame with Loai_dong and Cac_cot_thay_doi columns (audit trail)
     """
     common_cols = [c for c in cur_df.columns if c in prev_df.columns]
     keys = [k for k in MERGE_KEYS if k in common_cols]
 
     if not keys or dpnv_date is None:
-        # No merge key or no dpnv date → just return current data
-        return cur_df, {"new": len(cur_df), "changed": 0, "duplicate": 0, "removed": 0}
+        # No merge key or no dpnv date → just concatenate
+        merged = pd.concat([prev_df[common_cols], cur_df[common_cols]], ignore_index=True)
+        return merged, {"new": len(cur_df), "changed": 0, "duplicate": 0, "removed": 0, "ketqua": None}
 
-    cur = cur_df[common_cols].copy()
+    # Align column types between prev_df and cur_df
     prev = prev_df[common_cols].copy()
+    cur = cur_df[common_cols].copy()
 
-    # Filter: only keep records whose end date > dpnv_date
-    def _end_date_filter(df):
+    for col in common_cols:
+        if cur[col].dtype != prev[col].dtype:
+            try:
+                prev[col] = prev[col].astype(cur[col].dtype)
+            except Exception:
+                pass
+
+    # ── _end_date_filter: mirrors R's filter(ngay_ket_thuc > ngay_input()) ─
+    # R uses make_date() which converts invalid dates to NA (and NA > date = FALSE, so they're dropped)
+    # We replicate this safely, logging any unexpected errors explicitly.
+    def _end_date_filter(df: pd.DataFrame, label: str = "") -> pd.DataFrame:
         try:
-            end = pd.to_datetime({
-                "year": pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Nam", pd.Series()), errors="coerce"),
-                "month": pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Thang", pd.Series()), errors="coerce"),
-                "day": pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Ngay", pd.Series()), errors="coerce"),
-            }, errors="coerce")
-            return df[end > pd.Timestamp(dpnv_date)]
-        except Exception:
+            d_den = pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Ngay", pd.Series(dtype=float)), errors="coerce").fillna(1).astype(int)
+            m_den = pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Thang", pd.Series(dtype=float)), errors="coerce").fillna(1).astype(int)
+            y_den = pd.to_numeric(df.get("Thoi_han_bao_hiem_Den_Nam", pd.Series(dtype=float)), errors="coerce").fillna(1900).astype(int)
+
+            # Re-index to align with df's index
+            d_den = d_den.reindex(df.index).clip(1, 31).fillna(1).astype(int)
+            m_den = m_den.reindex(df.index).clip(1, 12).fillna(1).astype(int)
+            y_den = y_den.reindex(df.index).clip(1800, 2200).fillna(1900).astype(int)
+
+            import datetime, calendar
+            dates = []
+            for y_val, m_val, d_val in zip(y_den, m_den, d_den):
+                try:
+                    dates.append(datetime.date(int(y_val), int(m_val), int(d_val)))
+                except ValueError:
+                    # Invalid day (e.g. 31 Feb) → clamp to last valid day, mirrors R's NA behaviour
+                    d_max = calendar.monthrange(int(y_val), int(m_val))[1]
+                    dates.append(datetime.date(int(y_val), int(m_val), d_max))
+
+            end_ts = pd.to_datetime(dates)
+            return df[end_ts > pd.Timestamp(dpnv_date)]
+        except Exception as exc:
+            # Log explicitly — never silently return unfiltered data
+            print(f"[_end_date_filter] ERROR filtering '{label}': {exc}. Skipping filter — all rows kept.")
             return df
 
-    cur_f = _end_date_filter(cur)
-    prev_f = _end_date_filter(prev)
+    cur_f  = _end_date_filter(cur,  label="cur")
+    prev_f = _end_date_filter(prev, label="prev")
 
-    # New rows (in cur but not in prev)
-    new_rows = cur_f.merge(prev_f[keys].drop_duplicates(), on=keys, how="left", indicator=True)
-    new_rows = new_rows[new_rows["_merge"] == "left_only"].drop(columns=["_merge"])
-    n_new = len(new_rows)
+    # Cast comparison columns to string (mirrors R's across(all_of(cols_cmp), as.character))
+    cols_cmp = [c for c in common_cols[11:] if not c.startswith("Check_") and c != "check_trung"]
 
-    # Duplicate rows (identical in both)
-    dup = cur_f.merge(prev_f, on=common_cols, how="inner")
-    n_dup = len(dup)
+    cur_f_str  = cur_f.copy()
+    prev_f_str = prev_f.copy()
+    for col in cols_cmp:
+        cur_f_str[col]  = cur_f_str[col].astype(str).str.strip().str.lower()
+        prev_f_str[col] = prev_f_str[col].astype(str).str.strip().str.lower()
 
-    # Removed rows (in prev but not in cur)
-    removed = prev_f.merge(cur_f[keys].drop_duplicates(), on=keys, how="left", indicator=True)
-    removed = removed[removed["_merge"] == "left_only"].drop(columns=["_merge"])
-    n_removed = len(removed)
+    cur_f_str["source"]  = "cur"
+    prev_f_str["source"] = "prev"
 
-    # Changed rows
-    n_changed = len(cur_f) - n_new - n_dup
+    # ── dong_moi: rows in cur that have NO matching key in prev ─────────────
+    # Mirrors R: anti_join(cur2, pre2, by = keys) %>% mutate(Loai_dong = "Mới hoàn toàn")
+    prev_keys = prev_f_str[keys].drop_duplicates()
+    _new_merged = cur_f_str.merge(prev_keys, on=keys, how="left", indicator=True)
+    dong_moi = _new_merged[_new_merged["_merge"] == "left_only"].drop(columns=["_merge"])
+    dong_moi = dong_moi.drop(columns=["source"], errors="ignore")
+    dong_moi["Loai_dong"] = "Mới hoàn toàn"
+    dong_moi["Cac_cot_thay_doi"] = None
+    n_new = len(dong_moi)
 
-    # Final merged dataset: prev + cur (deduped by keys, prefer cur)
-    merged = pd.concat([prev[common_cols], cur[common_cols]], ignore_index=True)
-    merged = merged.drop_duplicates(subset=keys, keep="last")
+    # ── dong_trung: rows where ALL cols_cmp are identical in both quarters ──
+    # Mirrors R: group_by(keys + cols_cmp) %>% filter(n_distinct(source) >= 2)
+    all_check_cols = keys + cols_cmp
+    _dup_merged = cur_f_str.merge(
+        prev_f_str[all_check_cols].drop_duplicates(),
+        on=all_check_cols, how="inner"
+    )
+    _dup_merged = _dup_merged.drop(columns=["source"], errors="ignore")
+    _dup_merged["Loai_dong"] = "Trùng"
+    _dup_merged["Cac_cot_thay_doi"] = None
+    dong_trung = _dup_merged
+    n_dup = len(dong_trung)
+
+    # ── dong_thay_doi: rows with matching key but differing in ≥1 cols_cmp ─
+    # Mirrors R: group_by(keys) %>% filter(n_distinct(source)>=2) %>%
+    #             mutate(Cac_cot_thay_doi = paste(names where n_distinct>1))
+    _all_data = pd.concat([cur_f_str, prev_f_str], ignore_index=True)
+    # Find keys that appear in BOTH sources
+    _both_keys = (
+        _all_data.groupby(keys)["source"]
+        .nunique()
+        .reset_index()
+    )
+    _both_keys = _both_keys[_both_keys["source"] >= 2][keys]
+    _changed_candidates = _all_data.merge(_both_keys, on=keys, how="inner")
+
+    # For each unique key combo, detect which cols_cmp differ between sources
+    changed_rows = []
+    _none_strs = {"none", "nan", "na", "nat", "<na>"}
+    for key_vals, grp in _changed_candidates.groupby(keys, dropna=False):
+        changed_cols = [
+            col for col in cols_cmp
+            if grp[col].nunique(dropna=False) > 1
+        ]
+        if not changed_cols:
+            continue  # identical — classified as Trùng already
+        cac_cot_str = ", ".join(changed_cols)
+        # Keep the cur row (source == 'cur') as the representative row
+        cur_rows = grp[grp["source"] == "cur"].copy()
+        if cur_rows.empty:
+            continue
+        cur_rows = cur_rows.drop(columns=["source"], errors="ignore")
+
+        # co_dong_rong: mirrors R's any(is.na(as.matrix(pick(all_of(cols_cmp)))))
+        # If any cell in the group's cols_cmp is NA/None → "Thêm thông tin"
+        grp_vals = grp[cols_cmp].values.flatten().astype(str)
+        co_dong_rong = any(v.lower() in _none_strs for v in grp_vals)
+
+        cur_rows["Loai_dong"] = "Thêm thông tin" if co_dong_rong else "Thay đổi"
+        cur_rows["Cac_cot_thay_doi"] = cac_cot_str
+        changed_rows.append(cur_rows)
+
+    dong_thay_doi = pd.concat(changed_rows, ignore_index=True) if changed_rows else pd.DataFrame()
+    n_changed = len(dong_thay_doi)
+
+    # ── dong_bi_bo: rows in prev that have NO matching key in cur ───────────
+    # Mirrors R (full-pre-merge branch): anti_join(pre2, cur2, by = keys)
+    cur_keys_only = cur_f_str[keys].drop_duplicates()
+    _removed_merged = prev_f_str.merge(cur_keys_only, on=keys, how="left", indicator=True)
+    _removed_rows = _removed_merged[_removed_merged["_merge"] == "left_only"].drop(columns=["_merge"])
+    _removed_rows = _removed_rows.drop(columns=["source"], errors="ignore")
+    _removed_rows["Loai_dong"] = "Bị bỏ"
+    _removed_rows["Cac_cot_thay_doi"] = None
+    dong_bi_bo = _removed_rows
+    n_removed = len(dong_bi_bo)
+
+    # ── ketqua: combine all four groups (mirrors R's rbind) ─────────────────
+    _ketqua_parts = [
+        df for df in [dong_moi, dong_thay_doi, dong_trung, dong_bi_bo]
+        if df is not None and not df.empty
+    ]
+    ketqua = pd.concat(_ketqua_parts, ignore_index=True) if _ketqua_parts else pd.DataFrame()
+
+    # Drop helper columns not present in original schema
+    ketqua = ketqua.drop(columns=["source", "ngay_ket_thuc"], errors="ignore")
+
+    # ── Concat raw unfiltered data for the final merged parquet ─────────────
+    # Mirrors R: bind_rows(rds[, common_cols], df[, common_cols])
+    merged = pd.concat([prev, cur], ignore_index=True)
+
+    # Ensure money columns are numeric
+    money_cols = [c for c in merged.columns if c.endswith("_So_tien_VND") or c.endswith("_So_tien_USD")]
+    for col in money_cols:
+        merged[col] = _to_numeric(merged[col])
 
     return merged, {
-        "new": n_new,
-        "changed": max(0, n_changed),
+        "new":       n_new,
+        "changed":   n_changed,
         "duplicate": n_dup,
-        "removed": n_removed,
+        "removed":   n_removed,
+        "ketqua":    ketqua,
     }

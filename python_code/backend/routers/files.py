@@ -362,7 +362,105 @@ def merge_file_endpoint(file_id: int, db: Session = Depends(get_db)):
         file_record.status = "Merged"
         db.commit()
 
-    return res
+    # Make response JSON-safe (strip non-serialisable values)
+    safe_res = {k: v for k, v in res.items() if isinstance(v, (bool, int, str, list, dict, type(None)))}
+    return safe_res
+
+
+@router.get("/{file_id}/download-ketqua")
+def download_ketqua(file_id: int, db: Session = Depends(get_db)):
+    """
+    Mirrors R's output$download_che downloadHandler (2.ghep_file.R line 736-748):
+    Exports the audit/comparison report (Loai_dong + Cac_cot_thay_doi) as a styled Excel file.
+    Colors: green=Mới hoàn toàn, yellow=Thay đổi, orange=Trùng, red=Bị bỏ.
+    """
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font
+    from datetime import date as _date_cls
+    from services.file_merger import CUR_DATA_ROOT
+
+    file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    # Build expected ketqua parquet path
+    ketqua_path = os.path.join(
+        CUR_DATA_ROOT,
+        file_record.quarter_id,
+        f"{file_record.group_code}_ketqua.parquet",
+    )
+    if not os.path.exists(ketqua_path):
+        raise HTTPException(
+            status_code=404,
+            detail="Audit report not found. Please run the Merge step first."
+        )
+
+    df_kq = pd.read_parquet(ketqua_path)
+    if df_kq.empty:
+        raise HTTPException(status_code=422, detail="Audit report is empty — no changes detected between quarters.")
+
+    # ── Build Excel workbook ──────────────────────────────────────────
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Kiem_tra_thay_doi"
+
+    # Header row
+    headers = list(df_kq.columns)
+    header_fill = PatternFill("solid", fgColor="1E3A5F")
+    header_font = Font(color="FFFFFF", bold=True)
+    for ci, col_name in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=ci, value=col_name)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Color map matching R's colour semantics (adapted to audit categories)
+    fill_map = {
+        "Mới hoàn toàn": PatternFill("solid", fgColor="C6EFCE"),   # green
+        "Thay đổi":       PatternFill("solid", fgColor="FFFF00"),   # yellow
+        "Thêm thông tin":   PatternFill("solid", fgColor="FFEB9C"),   # light orange
+        "Trùng":           PatternFill("solid", fgColor="FFC7CE"),   # light red/pink
+        "Bị bỏ":          PatternFill("solid", fgColor="FF0000"),   # red
+    }
+
+    # Loai_dong column index (1-based)
+    loai_dong_col = headers.index("Loai_dong") if "Loai_dong" in headers else None
+
+    # Write data rows
+    for ri, (_, row) in enumerate(df_kq.iterrows(), start=2):
+        loai = str(row.get("Loai_dong", "")) if loai_dong_col is not None else ""
+        fill = fill_map.get(loai)
+
+        for ci, col_name in enumerate(headers, start=1):
+            val = row[col_name]
+            if pd.isna(val) if not isinstance(val, str) else (val in ("None", "nan", "<NA>")):
+                val = None
+            cell = ws.cell(row=ri, column=ci, value=val)
+            if fill:
+                cell.fill = fill
+
+    # Auto-size key columns
+    for col_cells in ws.columns:
+        max_len = max((len(str(c.value or "")) for c in col_cells), default=10)
+        ws.column_dimensions[col_cells[0].column_letter].width = min(max_len + 4, 60)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    from urllib.parse import quote
+    import unicodedata as _ud
+    today_str = _date_cls.today().isoformat()
+    gc = file_record.group_code or "unknown"
+    filename_xlsx = f"{gc}_check_{today_str}.xlsx"
+    ascii_name = _ud.normalize("NFKD", filename_xlsx).encode("ascii", "ignore").decode("ascii")
+    ascii_name = ascii_name.replace(" ", "_") or f"ketqua_{file_record.id}.xlsx"
+    encoded_name = quote(filename_xlsx, safe="")
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded_name}'},
+    )
 
 @router.delete("/clear")
 def clear_files(quarter_id: str, db: Session = Depends(get_db)):
