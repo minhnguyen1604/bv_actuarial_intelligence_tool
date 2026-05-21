@@ -13,13 +13,12 @@ app = FastAPI(title="BaoViet Actuarial Platform")
 app.include_router(parameters.router)
 app.include_router(files.router)
 
-# Mount the frontend directory to serve static files
-# We will use /api/ for our endpoints and serve frontend at the root
-app.mount("/static", StaticFiles(directory="../frontend"), name="static")
+# Serve the frontend directory at the root path
+app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
 
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/static/login.html")
+    return RedirectResponse(url="/login.html")
 
 @app.get("/api/health")
 async def health_check():

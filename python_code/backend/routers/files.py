@@ -96,12 +96,39 @@ def check_file(file_id: int, db: Session = Depends(get_db)):
         file_record.status = "Validated"
         db.commit()
 
-    return res
+    # Drop non-serializable 'df' and sanitize numpy/NaN/inf before returning JSON
+    import math, json
+    from fastapi.responses import JSONResponse
+
+    def _make_safe(obj):
+        """Recursively convert numpy scalars, NaN, inf to JSON-safe Python types."""
+        if obj is None:
+            return None
+        # numpy scalar types
+        type_name = type(obj).__name__
+        if type_name in ("int64", "int32", "int16", "int8", "uint64", "uint32", "uint16", "uint8"):
+            return int(obj)
+        if type_name in ("float64", "float32", "float16"):
+            if math.isnan(float(obj)) or math.isinf(float(obj)):
+                return None
+            return float(obj)
+        if isinstance(obj, float):
+            if math.isnan(obj) or math.isinf(obj):
+                return None
+            return obj
+        if isinstance(obj, dict):
+            return {str(k): _make_safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_make_safe(i) for i in obj]
+        return obj
+
+    safe_res = _make_safe({k: v for k, v in res.items() if k != "df"})
+    return JSONResponse(content=safe_res)
 
 @router.get("/{file_id}/check-report")
 def download_check_report(file_id: int, db: Session = Depends(get_db)):
     """
-    Re-run validation and return results as a downloadable Excel file.
+    Validation summary report (stats + warnings). See /download-checked for full data.
     """
     import openpyxl
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
@@ -112,12 +139,10 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
 
     res = validate_form(file_record.file_path, file_record.sheet_name, file_record.group_code)
 
-    # Build Excel workbook
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Validation Report"
 
-    # Styles
     header_fill = PatternFill("solid", fgColor="1E3A5F")
     header_font = Font(color="FFFFFF", bold=True, size=11)
     ok_font    = Font(color="059669", bold=True)
@@ -131,14 +156,12 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
     )
     center = Alignment(horizontal="center", vertical="center")
 
-    # Title
     ws.merge_cells("A1:C1")
     ws["A1"] = "Validation Report - " + file_record.file_name
     ws["A1"].font = Font(bold=True, size=13)
     ws["A1"].alignment = center
     ws.row_dimensions[1].height = 28
 
-    # Meta rows
     meta = [
         ("File", file_record.file_name),
         ("Sheet", file_record.sheet_name),
@@ -149,7 +172,6 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
         ws.cell(row=i, column=1, value=k).font = Font(bold=True)
         ws.cell(row=i, column=2, value=v)
 
-    # Stats header
     stat_start = len(meta) + 3
     ws.cell(row=stat_start, column=1, value="Metric").fill = header_fill
     ws.cell(row=stat_start, column=1).font = header_font
@@ -171,22 +193,20 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
         is_err = isinstance(value, int) and value > 0 and label != "Total rows"
         c_value.font = err_font if is_err else ok_font
 
-    # Warnings
-    warnings = res.get("warnings", [])
-    if warnings:
+    warnings_list = res.get("warnings", [])
+    if warnings_list:
         warn_start = stat_start + len(stat_rows) + 2
         ws.cell(row=warn_start, column=1, value="Warnings").font = Font(bold=True)
-        for k, w in enumerate(warnings, start=warn_start + 1):
+        for k, w in enumerate(warnings_list, start=warn_start + 1):
             cell = ws.cell(row=k, column=1, value=w)
             cell.fill = warn_fill
             ws.merge_cells(start_row=k, start_column=1, end_row=k, end_column=3)
 
-    # Errors
-    errors = res.get("errors", [])
-    if errors:
-        err_start = stat_start + len(stat_rows) + len(warnings) + 3
+    errors_list = res.get("errors", [])
+    if errors_list:
+        err_start = stat_start + len(stat_rows) + len(warnings_list) + 3
         ws.cell(row=err_start, column=1, value="Errors").font = Font(bold=True, color="DC2626")
-        for k, e in enumerate(errors, start=err_start + 1):
+        for k, e in enumerate(errors_list, start=err_start + 1):
             cell = ws.cell(row=k, column=1, value=e)
             cell.font = Font(color="DC2626")
             ws.merge_cells(start_row=k, start_column=1, end_row=k, end_column=3)
@@ -200,13 +220,103 @@ def download_check_report(file_id: int, db: Session = Depends(get_db)):
     buf.seek(0)
 
     from urllib.parse import quote
-    import unicodedata
+    import unicodedata as _ud
     safe_name = file_record.file_name.replace(".xlsx", "").replace(".xls", "")
     filename_xlsx = f"ValidationReport_{safe_name}.xlsx"
-    # ASCII fallback for plain filename field (latin-1 safe)
-    ascii_name = unicodedata.normalize("NFKD", filename_xlsx).encode("ascii", "ignore").decode("ascii")
+    ascii_name = _ud.normalize("NFKD", filename_xlsx).encode("ascii", "ignore").decode("ascii")
     ascii_name = ascii_name.replace(" ", "_") or f"ValidationReport_{file_record.id}.xlsx"
-    # RFC 5987 encoded name for full Unicode support
+    encoded_name = quote(filename_xlsx, safe="")
+
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{encoded_name}"},
+    )
+
+
+@router.get("/{file_id}/download-checked")
+def download_checked_excel(file_id: int, db: Session = Depends(get_db)):
+    """
+    Mirrors R's download_checked_excel2 downloadHandler (lines 727-765):
+    - Runs validation, gets annotated DataFrame with Check_Ngay_Hop_Le, Check_So_Tien, check_trung
+    - Exports full data rows to Excel
+    - Colors: Yellow = date error, Red = money error, Green = duplicate
+    Filename: <group_code>_check_ngay_<date>.xlsx
+    """
+    import openpyxl
+    from openpyxl.styles import PatternFill
+    from datetime import date as _date_cls
+
+    file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    res = validate_form(file_record.file_path, file_record.sheet_name, file_record.group_code)
+
+    if not res.get("ok"):
+        raise HTTPException(status_code=422, detail=res.get("errors", ["Validation failed"]))
+
+    df_out = res.get("df")
+    if df_out is None or (hasattr(df_out, "empty") and df_out.empty):
+        raise HTTPException(status_code=422, detail="No data available to download.")
+
+    # ── Build workbook mirroring R createWorkbook + addStyle ──────────────
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Check"
+
+    # Write header row
+    headers = list(df_out.columns)
+    for col_idx, col_name in enumerate(headers, start=1):
+        ws.cell(row=1, column=col_idx, value=col_name)
+
+    # Write data rows
+    for row_idx, (_, row) in enumerate(df_out.iterrows(), start=2):
+        for col_idx, col_name in enumerate(headers, start=1):
+            val = row[col_name]
+            # Convert pandas NA/NaT to None for Excel
+            if pd.isna(val) if not isinstance(val, str) else False:
+                val = None
+            ws.cell(row=row_idx, column=col_idx, value=val)
+
+    # ── Apply color fills (mirrors R addStyle logic, lines 739-763) ──────
+    # Yellow: date error  (#FFFF00)
+    # Green:  duplicate   (#00FF00)
+    # Red:    money error (#FF0000)
+    # Priority (same as R): yellow first, then green, then red (red overwrites)
+    yellow_fill = PatternFill("solid", fgColor="FFFF00")
+    green_fill  = PatternFill("solid", fgColor="00FF00")
+    red_fill    = PatternFill("solid", fgColor="FF0000")
+    n_cols = len(headers)
+
+    for row_idx, (_, row) in enumerate(df_out.iterrows(), start=2):
+        check_ngay = str(row.get("Check_Ngay_Hop_Le", "Ngày hợp lệ"))
+        check_tien = str(row.get("Check_So_Tien", "Số tiền hợp lệ"))
+        check_trung = row.get("check_trung", 0)
+
+        fill = None
+        if check_ngay != "Ngày hợp lệ":
+            fill = yellow_fill
+        if str(check_trung) == "Trùng":
+            fill = green_fill
+        if check_tien != "Số tiền hợp lệ":
+            fill = red_fill   # red has highest priority (overwrites)
+
+        if fill is not None:
+            for col_idx in range(1, n_cols + 1):
+                ws.cell(row=row_idx, column=col_idx).fill = fill
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    from urllib.parse import quote
+    import unicodedata as _ud
+    today_str = _date_cls.today().isoformat()
+    group_code = file_record.group_code or "unknown"
+    filename_xlsx = f"{group_code}_check_ngay_{today_str}.xlsx"
+    ascii_name = _ud.normalize("NFKD", filename_xlsx).encode("ascii", "ignore").decode("ascii")
+    ascii_name = ascii_name.replace(" ", "_") or f"checked_{file_record.id}.xlsx"
     encoded_name = quote(filename_xlsx, safe="")
 
     return StreamingResponse(
