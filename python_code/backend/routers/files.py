@@ -472,3 +472,19 @@ def clear_files(quarter_id: str, db: Session = Depends(get_db)):
         shutil.rmtree(quarter_dir, ignore_errors=True)
         
     return {"ok": True, "message": "All files cleared."}
+
+@router.delete("/{file_id}")
+def delete_file(file_id: int, db: Session = Depends(get_db)):
+    file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if file_record.file_path and os.path.exists(file_record.file_path):
+        try:
+            os.remove(file_record.file_path)
+        except Exception:
+            pass
+            
+    db.delete(file_record)
+    db.commit()
+    return {"ok": True, "message": "File deleted from queue."}
