@@ -972,6 +972,10 @@
             border-color: rgba(239, 68, 68, 0.3);
             color: #991b1b;
         }
+        .toast-info {
+            border-color: rgba(59, 130, 246, 0.3);
+            color: #1e3a8a;
+        }
 
         /* Currency grid and card */
         .currency-card {
@@ -1564,8 +1568,65 @@
             </div>
             <div style="display: flex; justify-content: flex-end; gap: 12px;">
                 <button class="btn btn-outline" id="downloadReportBtn" style="display: none; width: 110px;">Download</button>
-                <button class="btn btn-outline" id="valModalOkBtn" style="width: 110px;">Confirm</button>
+                <button class="btn btn-outline" onclick="closeValidationModal()" style="width: 110px;">Close</button>
+                <button class="btn btn-outline" id="valModalOkBtn" style="display: none; width: 110px;">Confirm</button>
+                <button class="btn btn-accent" id="valModalMergeBtn" style="display: none; width: 110px;">Merge</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Select Files to Calculate Modal -->
+    <div class="modal-overlay" id="selectUprFilesModal">
+        <div class="modal-content modal-large" style="width: 750px; max-width: 90vw;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: #111827;">Select Files for UPR Calculation</h3>
+                <button onclick="closeSelectUprFilesModal()" style="background: none; border: none; cursor: pointer; color: #9ca3af; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                Select the confirmed files you want to calculate for the current quarter.
+            </p>
+            
+            <!-- Table Container with custom scroll -->
+            <div class="hover-scroll" style="margin-bottom: 24px; max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                            <th style="padding: 12px 16px; width: 40px; text-align: center; vertical-align: middle;">
+                                <input type="checkbox" id="selectAllCalcFiles" style="cursor: pointer;">
+                            </th>
+                            <th style="padding: 12px 16px; font-weight: 600; color: #374151; vertical-align: middle;">File Name</th>
+                            <th style="padding: 12px 16px; font-weight: 600; color: #374151; width: 110px; vertical-align: middle;">Type</th>
+                            <th style="padding: 12px 16px; font-weight: 600; color: #374151; width: 100px; vertical-align: middle;">LOB</th>
+                            <th style="padding: 12px 16px; font-weight: 600; color: #374151; width: 110px; vertical-align: middle;">Merge</th>
+                            <th style="padding: 12px 16px; font-weight: 600; color: #374151; width: 120px; vertical-align: middle;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="calcFilesTableBody">
+                        <!-- Injected dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button class="btn btn-outline" onclick="closeSelectUprFilesModal()" style="width: 100px;">Cancel</button>
+                <button class="btn btn-accent" id="confirmCalculateBtn" style="width: 120px;" disabled>Calculate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Progress Toast -->
+    <div id="mergeProgressToast" style="position: fixed; bottom: -130px; right: 24px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); width: 320px; padding: 16px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; display: flex; flex-direction: column; gap: 12px; border: 1px solid rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bv-blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin 2s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                <span style="font-weight: 600; font-size: 13px; color: #111827;">Merging data...</span>
+            </div>
+            <span id="mergePercentage" style="font-size: 13px; font-weight: 700; color: var(--bv-blue);">0%</span>
+        </div>
+        <div style="width: 100%; background: #e5e7eb; border-radius: 99px; height: 6px; overflow: hidden;">
+            <div id="mergeProgressBar" style="height: 100%; width: 0%; background: var(--bv-blue); border-radius: 99px; transition: width 0.2s linear;"></div>
         </div>
     </div>
 
@@ -1588,6 +1649,38 @@
         const fileInput = document.getElementById('fileInput');
         let currentUploadFile = null;
         let currentCheckRowId = null;
+        let allQueueFiles = [];
+        
+        const MERGE_LOBS = ['Eng_LT', 'Eng_ST', 'Fire_LT', 'Fire_ST', 'Misc_LT', 'Misc_ST', 'XCG_CWVN_LT'];
+        function needsMerging(groupCode) {
+            return MERGE_LOBS.includes(groupCode);
+        }
+        function getLOBName(groupCode) {
+            if (!groupCode) return '';
+            return groupCode.split('_')[0];
+        }
+        function closeValidationModal() {
+            document.getElementById('validationModal').classList.remove('active');
+        }
+        function getStatusBadge(status, groupCode, fileId) {
+            const spanId = fileId ? ` id="status-${fileId}"` : '';
+            if (status === 'Pending') {
+                return `<span class="status warning"${spanId}>Pending</span>`;
+            } else if (status === 'Validated') {
+                return `<span class="status"${spanId} style="background: rgba(59, 130, 246, 0.1); color: #1d4ed8; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 600;">Validated</span>`;
+            } else if (status === 'Merged') {
+                const text = needsMerging(groupCode) ? 'Merged' : 'Ready';
+                return `<span class="status success"${spanId} style="background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 600;">${text}</span>`;
+            } else if (status === 'Calculating') {
+                return `<span class="status"${spanId} style="background: rgba(245, 158, 11, 0.1); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 600;">Calculating...</span>`;
+            } else if (status === 'Calculated') {
+                return `<span class="status"${spanId} style="background: rgba(0, 86, 163, 0.1); color: var(--bv-blue); border: 1px solid rgba(0, 86, 163, 0.3); font-weight: 600;">Calculated</span>`;
+            } else if (status === 'Error') {
+                return `<span class="status"${spanId} style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; font-weight: 600;">Error</span>`;
+            } else {
+                return `<span class="status warning"${spanId}>${status}</span>`;
+            }
+        }
 
         uploadZone.addEventListener('click', () => fileInput.click());
 
@@ -1890,6 +1983,8 @@
                     Checking form data, please wait…
                 </div>`;
             document.getElementById('downloadReportBtn').style.display = 'none';
+            document.getElementById('valModalOkBtn').style.display = 'none';
+            document.getElementById('valModalMergeBtn').style.display = 'none';
             document.getElementById('validationModal').classList.add('active');
             
             try {
@@ -1909,9 +2004,39 @@
                             <ul style="padding-left:20px;line-height:1.7;color:#b45309;margin-bottom:16px;">
                                 ${(resData.errors || []).map(e => `<li>${e}</li>`).join('')}
                             </ul>`;
+                        document.getElementById('valModalOkBtn').style.display = 'none';
+                        document.getElementById('valModalMergeBtn').style.display = 'none';
                     } else {
                         // Show stats (works for both ok:true and ok:false with only warnings)
-                        document.getElementById('valModalBody').innerHTML = renderStats(resData);
+                        const statsHtml = renderStats(resData);
+                        
+                        // Find the file to check group_code and term
+                        const fileRecord = allQueueFiles.find(f => f.id === id);
+                        const groupCode = fileRecord ? fileRecord.group_code : '';
+                        const needsMerge = needsMerging(groupCode);
+                        
+                        let bannerHtml = '';
+                        if (needsMerge) {
+                            bannerHtml = `
+                                <div style="padding: 12px 16px; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: #b45309; display: flex; align-items: center; gap: 8px;">
+                                    <span>⚠️</span> Nghiệp vụ này CẦN ghép file với quý trước.
+                                </div>
+                            `;
+                            // Show Merge, hide Confirm
+                            document.getElementById('valModalMergeBtn').style.display = 'inline-flex';
+                            document.getElementById('valModalOkBtn').style.display = 'none';
+                        } else {
+                            bannerHtml = `
+                                <div style="padding: 12px 16px; background: #ecfdf5; border: 1px solid #d1fae5; border-radius: 8px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: #065f46; display: flex; align-items: center; gap: 8px;">
+                                    <span>ℹ️</span> Nghiệp vụ này KHÔNG cần ghép file.
+                                </div>
+                            `;
+                            // Show Confirm, hide Merge
+                            document.getElementById('valModalOkBtn').style.display = 'inline-flex';
+                            document.getElementById('valModalMergeBtn').style.display = 'none';
+                        }
+                        
+                        document.getElementById('valModalBody').innerHTML = bannerHtml + statsHtml;
                     }
                 } else {
                     document.getElementById('valModalBody').innerHTML = `<p style="color:red;">Server error: ${resData.detail || 'Unknown'}</p>`;
@@ -1921,21 +2046,75 @@
             }
         }
 
-        document.getElementById('valModalOkBtn').addEventListener('click', () => {
-            document.getElementById('validationModal').classList.remove('active');
+        document.getElementById('valModalOkBtn').addEventListener('click', async () => {
+            if (!currentCheckRowId) return;
+            closeValidationModal();
+            showToast("Confirming and standardizing file...", "info");
             
-            // Update status in the main table if it was valid (For now we assume if no errors list it's valid)
-            const valBody = document.getElementById('valModalBody').innerHTML;
-            const isSuccess = !valBody.includes("Validation Errors Found");
-            if (isSuccess && currentCheckRowId) {
-                const statusSpan = document.getElementById(`status-${currentCheckRowId}`);
-                if (statusSpan) {
-                    statusSpan.className = "status success";
-                    statusSpan.innerText = "Validated";
-                    statusSpan.style.background = "rgba(16, 185, 129, 0.1)";
-                    statusSpan.style.color = "#047857";
-                    statusSpan.style.border = "1px solid rgba(16, 185, 129, 0.3)";
+            try {
+                const response = await fetch(`/api/files/${currentCheckRowId}/merge`, { method: 'POST' });
+                const resData = await response.json();
+                
+                if (response.ok) {
+                    showToast("File confirmed successfully!");
+                    await loadQueueFiles();
+                } else {
+                    alert(`Confirm failed: ${resData.detail || 'Unknown error'}`);
                 }
+            } catch (err) {
+                console.error("Error confirming file:", err);
+                alert(`Error confirming file: ${err}`);
+            }
+        });
+
+        document.getElementById('valModalMergeBtn').addEventListener('click', async () => {
+            if (!currentCheckRowId) return;
+            closeValidationModal();
+            
+            // Setup Progress Toast
+            const toast = document.getElementById('mergeProgressToast');
+            const percentageText = document.getElementById('mergePercentage');
+            const progressBar = document.getElementById('mergeProgressBar');
+            
+            percentageText.innerText = '0%';
+            progressBar.style.width = '0%';
+            toast.style.bottom = '24px'; // slide up
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 92) {
+                    progress += Math.floor(Math.random() * 8) + 4;
+                    if (progress > 92) progress = 92;
+                    percentageText.innerText = `${progress}%`;
+                    progressBar.style.width = `${progress}%`;
+                }
+            }, 150);
+            
+            try {
+                const response = await fetch(`/api/files/${currentCheckRowId}/merge`, { method: 'POST' });
+                const resData = await response.json();
+                
+                clearInterval(progressInterval);
+                
+                if (response.ok) {
+                    // Fast-forward to 100%
+                    percentageText.innerText = '100%';
+                    progressBar.style.width = '100%';
+                    
+                    setTimeout(async () => {
+                        toast.style.bottom = '-130px'; // hide toast
+                        showToast("Data merged successfully!");
+                        await loadQueueFiles();
+                    }, 500);
+                } else {
+                    toast.style.bottom = '-130px'; // hide toast
+                    alert(`Merge failed: ${resData.detail || 'Unknown error'}`);
+                }
+            } catch (err) {
+                clearInterval(progressInterval);
+                toast.style.bottom = '-130px'; // hide toast
+                console.error("Error during merge:", err);
+                alert(`Error merging file: ${err}`);
             }
         });
 
@@ -2028,6 +2207,7 @@
                 const response = await fetch(`/api/files/?quarter_id=${quarterId}`);
                 if (!response.ok) return;
                 const files = await response.json();
+                allQueueFiles = files; // Store globally!
                 
                 const tbody = document.getElementById('queueTableBody');
                 tbody.innerHTML = '';
@@ -2046,9 +2226,6 @@
                 }
                 
                 files.forEach(f => {
-                    const statusClass = (f.status === 'Pending') ? 'warning' : 'success';
-                    const statusBg = (f.status === 'Pending') ? '' : 'background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.3);';
-                    
                     tbody.insertAdjacentHTML('beforeend', `
                         <tr id="row-${f.id}">
                             <td>
@@ -2064,7 +2241,7 @@
                             </td>
                             <td style="vertical-align: middle;">${f.term}</td>
                             <td style="font-weight: 500; vertical-align: middle;">${f.group_code.split('_')[0]}</td>
-                            <td style="vertical-align: middle;"><span class="status ${statusClass}" id="status-${f.id}" style="${statusBg}">${f.status}</span></td>
+                            <td style="vertical-align: middle;">${getStatusBadge(f.status, f.group_code, f.id)}</td>
                         </tr>
                     `);
                 });
@@ -2142,7 +2319,103 @@
             window.open(`/api/upr/download/${quarterId}/${fileName}`, '_blank');
         }
 
-        async function runUPRCalculation() {
+        function closeSelectUprFilesModal() {
+            document.getElementById('selectUprFilesModal').classList.remove('active');
+        }
+
+        function openSelectUprFilesModal() {
+            const modal = document.getElementById('selectUprFilesModal');
+            const tbody = document.getElementById('calcFilesTableBody');
+            tbody.innerHTML = '';
+            
+            // Filter files that are eligible for calculation: Merged, Calculated, Error, Calculating
+            const eligibleFiles = allQueueFiles.filter(f => ['Merged', 'Calculated', 'Error', 'Calculating'].includes(f.status));
+            
+            if (eligibleFiles.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 32px; color: var(--text-secondary);">
+                            No files are ready for UPR calculation. Please confirm or merge validated files first.
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('confirmCalculateBtn').disabled = true;
+                document.getElementById('selectAllCalcFiles').checked = false;
+                modal.classList.add('active');
+                return;
+            }
+            
+            eligibleFiles.forEach(f => {
+                const isChecked = (f.status === 'Merged' || f.status === 'Error') ? 'checked' : '';
+                const mergeText = needsMerging(f.group_code) ? 'Có ghép' : 'Không ghép';
+                const mergeColor = needsMerging(f.group_code) ? '#b45309' : '#065f46';
+                
+                let statusText = 'Chưa tính';
+                let statusColor = '#6b7280';
+                if (f.status === 'Calculated') {
+                    statusText = 'Đã tính';
+                    statusColor = 'var(--bv-blue)';
+                } else if (f.status === 'Error') {
+                    statusText = 'Lỗi';
+                    statusColor = '#dc2626';
+                } else if (f.status === 'Calculating') {
+                    statusText = 'Đang tính...';
+                    statusColor = '#d97706';
+                }
+                
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr style="border-bottom: 1px solid #e5e7eb;">
+                        <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">
+                            <input type="checkbox" class="calc-file-cb" data-id="${f.id}" ${isChecked} style="cursor: pointer;">
+                        </td>
+                        <td style="padding: 12px 16px; font-weight: 600; color: #111827; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;" title="${f.file_name}">
+                            ${f.file_name}
+                        </td>
+                        <td style="padding: 12px 16px; vertical-align: middle; color: #374151;">${f.term}</td>
+                        <td style="padding: 12px 16px; vertical-align: middle; font-weight: 500; color: #374151;">${getLOBName(f.group_code)}</td>
+                        <td style="padding: 12px 16px; vertical-align: middle; font-weight: 600; color: ${mergeColor};">${mergeText}</td>
+                        <td style="padding: 12px 16px; vertical-align: middle; font-weight: 600; color: ${statusColor};">${statusText}</td>
+                    </tr>
+                `);
+            });
+            
+            // Update calculate button disabled state based on initial checked boxes
+            updateConfirmCalculateButtonState();
+            
+            // Hook checkboxes to update state on change
+            document.querySelectorAll('.calc-file-cb').forEach(cb => {
+                cb.addEventListener('change', updateConfirmCalculateButtonState);
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function updateConfirmCalculateButtonState() {
+            const checkedBoxes = document.querySelectorAll('.calc-file-cb:checked');
+            document.getElementById('confirmCalculateBtn').disabled = (checkedBoxes.length === 0);
+            updateSelectAllCheckboxState();
+        }
+
+        function updateSelectAllCheckboxState() {
+            const checkboxes = document.querySelectorAll('.calc-file-cb');
+            const checkedBoxes = document.querySelectorAll('.calc-file-cb:checked');
+            const selectAll = document.getElementById('selectAllCalcFiles');
+            if (checkboxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else if (checkedBoxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+        }
+
+        async function runUPRCalculation(fileIds = null) {
             const month = parseInt(document.getElementById('calcMonth').value) || 1;
             const year = parseInt(document.getElementById('calcYear').value) || new Date().getFullYear();
             const quarter = Math.ceil(month / 3);
@@ -2161,7 +2434,10 @@
                 const response = await fetch('/api/upr/calculate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ quarter_id: quarterId })
+                    body: JSON.stringify({
+                        quarter_id: quarterId,
+                        file_ids: fileIds
+                    })
                 });
                 const resData = await response.json();
                 
@@ -2612,7 +2888,23 @@
             syncUprTicker();
             loadFxRates();
         });
-        document.getElementById('btnCalculateUPR').addEventListener('click', runUPRCalculation);
+        document.getElementById('btnCalculateUPR').addEventListener('click', openSelectUprFilesModal);
+        
+        document.getElementById('confirmCalculateBtn').addEventListener('click', () => {
+            const selectedIds = Array.from(document.querySelectorAll('.calc-file-cb:checked'))
+                .map(cb => parseInt(cb.getAttribute('data-id')));
+            closeSelectUprFilesModal();
+            runUPRCalculation(selectedIds);
+        });
+
+        document.getElementById('selectAllCalcFiles').addEventListener('change', function(e) {
+            const checked = e.target.checked;
+            document.querySelectorAll('.calc-file-cb').forEach(cb => {
+                cb.checked = checked;
+            });
+            updateConfirmCalculateButtonState();
+        });
+        
         document.getElementById('btnSummarizeResults').addEventListener('click', runUPRSummarization);
         document.getElementById('syncFxRateBtn').addEventListener('click', syncUprTicker);
 
