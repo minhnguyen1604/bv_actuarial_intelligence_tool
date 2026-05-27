@@ -377,18 +377,28 @@ def download_ketqua(file_id: int, db: Session = Depends(get_db)):
     import openpyxl
     from openpyxl.styles import PatternFill, Font
     from datetime import date as _date_cls
-    from services.file_merger import CUR_DATA_ROOT
+    from services.file_merger import DATA_ROOT
 
     file_record = db.query(models.FileQueue).filter(models.FileQueue.id == file_id).first()
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found.")
 
-    # Build expected ketqua parquet path
+    # Build expected ketqua parquet path supporting dot format
+    dot_qid = file_record.quarter_id.replace("_", ".")
     ketqua_path = os.path.join(
-        CUR_DATA_ROOT,
-        file_record.quarter_id,
+        DATA_ROOT,
+        dot_qid,
         f"{file_record.group_code}_ketqua.parquet",
     )
+    if not os.path.exists(ketqua_path):
+        # Fallback to underscore format
+        alt_path = os.path.join(
+            DATA_ROOT,
+            file_record.quarter_id,
+            f"{file_record.group_code}_ketqua.parquet",
+        )
+        if os.path.exists(alt_path):
+            ketqua_path = alt_path
     if not os.path.exists(ketqua_path):
         raise HTTPException(
             status_code=404,

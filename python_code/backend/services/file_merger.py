@@ -32,7 +32,8 @@ if os.path.exists(_SCHEMAS_PATH):
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-CUR_DATA_ROOT = os.path.join(_BASE_DIR, "..", "cur_data")
+DATA_ROOT = os.path.join(_BASE_DIR, "..", "data")
+CUR_DATA_ROOT = DATA_ROOT
 
 NUMERIC_COLS = [
     "Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam",
@@ -197,10 +198,42 @@ def _find_data_start(df: pd.DataFrame):
     return None
 
 
+def get_quarter_dir(quarter_id: str) -> str:
+    """Return the quarter folder path under DATA_ROOT (using dot format, e.g. Q1.2026)."""
+    dot_qid = quarter_id.replace("_", ".")
+    return os.path.join(DATA_ROOT, dot_qid)
+
+
 def _cur_data_path(quarter_id: str, group_code: str) -> str:
-    folder = os.path.join(CUR_DATA_ROOT, quarter_id)
+    folder = get_quarter_dir(quarter_id)
     os.makedirs(folder, exist_ok=True)
     return os.path.join(folder, f"{group_code}.parquet")
+
+
+def _prev_quarter_db_path(prev_qid: str) -> Optional[str]:
+    """Check for previous quarter database in data/ (dot or underscore)."""
+    dot_format = prev_qid.replace("_", ".")
+    candidates = [
+        os.path.join(DATA_ROOT, f"{dot_format}.db"),
+        os.path.join(DATA_ROOT, f"{prev_qid}.db")
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def _prev_quarter_parquet_dir(prev_qid: str) -> Optional[str]:
+    """Check for previous quarter parquet directory in data/ (dot or underscore)."""
+    dot_format = prev_qid.replace("_", ".")
+    candidates = [
+        os.path.join(DATA_ROOT, prev_qid),
+        os.path.join(DATA_ROOT, dot_format)
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.isdir(c):
+            return c
+    return None
 
 
 def _prev_quarter_id(quarter_id: str) -> Optional[str]:
@@ -263,13 +296,66 @@ def merge_file(
     prev_qid = _prev_quarter_id(quarter_id)
 
     if prev_qid and gc not in ("Vietjet",):
-        prev_path = _cur_data_path(prev_qid, group_code)
-        if os.path.exists(prev_path):
-            prev_df = pd.read_parquet(prev_path)
+        prev_df = None
+        db_file = _prev_quarter_db_path(prev_qid)
+        if db_file:
+            import sqlite3
+            print(f"Loading previous quarter {prev_qid} data from SQLite database: {db_file}")
+            try:
+                conn = sqlite3.connect(db_file)
+                cursor = conn.cursor()
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (group_code,))
+                if cursor.fetchone():
+                    prev_df = pd.read_sql_query(f'SELECT * FROM "{group_code}"', conn)
+                    print(f"Successfully loaded {len(prev_df)} rows from table '{group_code}' in {db_file}")
+                else:
+                    print(f"Table '{group_code}' not found in database {db_file}")
+                conn.close()
+            except Exception as e:
+                print(f"Error loading previous quarter data from DB: {e}")
+
+        # Fallback to parquet folder
+        if prev_df is None:
+            prev_dir = _prev_quarter_parquet_dir(prev_qid)
+            if prev_dir:
+                prev_path = os.path.join(prev_dir, f"{group_code}.parquet")
+                if os.path.exists(prev_path):
+                    print(f"Fallback: loading previous quarter {prev_qid} data from parquet file: {prev_path}")
+                    try:
+                        prev_df = pd.read_parquet(prev_path)
+                    except Exception as e:
+                        print(f"Error loading fallback parquet file: {e}")
+
+        if prev_df is not None:
             df, changes = _merge_with_prev(df, prev_df, dpnv_date)
 
     # 4. Save merged data
     df.to_parquet(output_path, index=False)
+
+    # 4.1 Save to current quarter SQLite database (e.g. data/Q1.2026.db)
+    dot_qid = quarter_id.replace("_", ".")
+    db_path = os.path.join(DATA_ROOT, f"{dot_qid}.db")
+    try:
+        import sqlite3
+        print(f"Saving merged data to SQLite database: {db_path} (Table: {group_code})")
+        conn = sqlite3.connect(db_path)
+        
+        # Clean column datatypes to ensure SQLite compatibility
+        db_df = df.copy()
+        for col in db_df.columns:
+            if pd.api.types.is_datetime64_any_dtype(db_df[col]):
+                db_df[col] = db_df[col].dt.strftime('%Y-%m-%d %H:%M:%S')
+            elif db_df[col].dtype == 'object' or str(db_df[col].dtype) in ['string', 'category']:
+                db_df[col] = db_df[col].astype(str)
+                db_df[col] = db_df[col].replace({'nan': None, '<NA>': None, 'None': None, 'NAT': None})
+            elif str(db_df[col].dtype).startswith('Int') or str(db_df[col].dtype).startswith('Float'):
+                db_df[col] = db_df[col].where(db_df[col].notna(), None)
+                
+        db_df.to_sql(group_code, conn, if_exists="replace", index=False)
+        conn.close()
+        print(f"Successfully saved merged data to database table: {group_code}")
+    except Exception as e:
+        print(f"Error saving merged data to SQLite DB: {e}")
 
     # 5. Save ketqua audit DataFrame (mirrors R's checked_df1(ketqua))
     ketqua_path = None

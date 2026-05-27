@@ -12,7 +12,7 @@ import win32com.client
 
 # Directory definitions
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CUR_DATA_ROOT = os.path.join(BASE_DIR, "..", "cur_data")
+DATA_ROOT = os.path.join(BASE_DIR, "..", "data")
 OUTPUT_EXCEL_ROOT = os.path.join(BASE_DIR, "..", "output_excel")
 
 # Ensure folders exist
@@ -118,7 +118,13 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
     Core UPR calculation implementation matching R's 4.1.ky_mau.R logic.
     Returns the path to the generated output Excel file.
     """
-    parquet_path = os.path.join(CUR_DATA_ROOT, quarter_id, f"{group_code}.parquet")
+    parquet_path = os.path.join(DATA_ROOT, quarter_id, f"{group_code}.parquet")
+    if not os.path.exists(parquet_path):
+        dot_qid = quarter_id.replace("_", ".")
+        alt_path = os.path.join(DATA_ROOT, dot_qid, f"{group_code}.parquet")
+        if os.path.exists(alt_path):
+            parquet_path = alt_path
+
     if not os.path.exists(parquet_path):
         raise FileNotFoundError(f"Merged parquet file not found at {parquet_path}")
         

@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./upr_data.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./data/parameters.db"
 # If using PostgreSQL or MySQL later, just change the URL above.
 # connect_args={"check_same_thread": False} is needed only for SQLite.
 engine = create_engine(

@@ -1578,6 +1578,30 @@
         </div>
     </div>
 
+    <!-- Closed Quarter Warning Modal -->
+    <div class="modal-overlay" id="pastQuarterWarningModal" style="z-index: 10010;">
+        <div class="modal-content" style="max-width: 450px; text-align: center; padding: 32px 24px;">
+            <div style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: #fef3c7; color: #d97706; margin-bottom: 20px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+            </div>
+            
+            <h3 style="margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #111827;">Closed Quarter Warning</h3>
+            
+            <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0 0 28px;">
+                Quarter <strong id="warningQuarterId" style="color: #d97706;">Q4.2025</strong> has already been closed. Modifying or recalculating data for closed quarters may alter finalized reports. Are you sure you want to proceed or would you like to choose a different date?
+            </p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="btn btn-outline" id="warningChangeDateBtn" style="height: 44px; font-weight: 600;">Change Date</button>
+                <button class="btn btn-accent" id="warningProceedBtn" style="height: 44px; font-weight: 600; background-color: #d97706; border-color: #d97706;">Recalculate</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Select Files to Calculate Modal -->
     <div class="modal-overlay" id="selectUprFilesModal">
         <div class="modal-content modal-large" style="width: 750px; max-width: 90vw;">
@@ -2245,6 +2269,7 @@
                             </td>
                         </tr>
                     `;
+                    loadReports();
                     return;
                 }
                 
@@ -2914,6 +2939,55 @@
             });
         });
 
+        // Session variables for calculation date confirmation
+        let lastConfirmedYear = null;
+        let lastConfirmedMonth = null;
+        let lastConfirmedDay = null;
+
+        function checkClosedQuarterAndLoad() {
+            const yearInput = document.getElementById('calcYear');
+            const monthInput = document.getElementById('calcMonth');
+            const dayInput = document.getElementById('calcDay');
+
+            const selectedYear = parseInt(yearInput.value) || new Date().getFullYear();
+            const selectedMonth = parseInt(monthInput.value) || 1;
+            const selectedDay = parseInt(dayInput.value) || 1;
+
+            // Calculate selected quarter end date
+            const q = Math.ceil(selectedMonth / 3);
+            const endMonth = q * 3; // 3, 6, 9, 12
+            let endDay = 30;
+            if (endMonth === 3 || endMonth === 12) {
+                endDay = 31;
+            }
+
+            // Selected quarter end date
+            const selectedQuarterEndDate = new Date(selectedYear, endMonth - 1, endDay);
+            selectedQuarterEndDate.setHours(0, 0, 0, 0);
+
+            // Today's date
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            if (selectedQuarterEndDate < today) {
+                // It is a closed quarter in the past! Show Warning Pop-up Modal.
+                const warningModal = document.getElementById('pastQuarterWarningModal');
+                const warningQuarterLabel = document.getElementById('warningQuarterId');
+                
+                warningQuarterLabel.textContent = `Q${q}.${selectedYear}`;
+                warningModal.classList.add('active');
+            } else {
+                // Present/future quarter, load normally
+                lastConfirmedYear = selectedYear;
+                lastConfirmedMonth = selectedMonth;
+                lastConfirmedDay = selectedDay;
+                
+                loadQueueFiles();
+                syncUprTicker();
+                loadFxRates();
+            }
+        }
+
         // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             // Calculate current date dynamically
@@ -2926,6 +3000,11 @@
             document.getElementById('calcYear').value = year;
             document.getElementById('calcMonth').value = String(month).padStart(2, '0');
             document.getElementById('calcDay').value = String(now.getDate()).padStart(2, '0');
+
+            // Initialize confirmed date tracking
+            lastConfirmedYear = year;
+            lastConfirmedMonth = month;
+            lastConfirmedDay = now.getDate();
             
             // Set Fx Rates select dropdowns dynamically
             const fxYearSelect = document.getElementById('fxYear');
@@ -2955,15 +3034,35 @@
             loadFxRates();
         });
 
-        document.getElementById('calcMonth').addEventListener('change', () => {
+        document.getElementById('calcMonth').addEventListener('change', checkClosedQuarterAndLoad);
+        document.getElementById('calcYear').addEventListener('change', checkClosedQuarterAndLoad);
+        
+        document.getElementById('warningProceedBtn').addEventListener('click', () => {
+            const yearInput = document.getElementById('calcYear');
+            const monthInput = document.getElementById('calcMonth');
+            const dayInput = document.getElementById('calcDay');
+
+            lastConfirmedYear = parseInt(yearInput.value) || new Date().getFullYear();
+            lastConfirmedMonth = parseInt(monthInput.value) || 1;
+            lastConfirmedDay = parseInt(dayInput.value) || 1;
+
+            document.getElementById('pastQuarterWarningModal').classList.remove('active');
+
             loadQueueFiles();
             syncUprTicker();
             loadFxRates();
         });
-        document.getElementById('calcYear').addEventListener('change', () => {
-            loadQueueFiles();
-            syncUprTicker();
-            loadFxRates();
+
+        document.getElementById('warningChangeDateBtn').addEventListener('click', () => {
+            const yearInput = document.getElementById('calcYear');
+            const monthInput = document.getElementById('calcMonth');
+            const dayInput = document.getElementById('calcDay');
+
+            yearInput.value = lastConfirmedYear;
+            monthInput.value = String(lastConfirmedMonth).padStart(2, '0');
+            dayInput.value = String(lastConfirmedDay).padStart(2, '0');
+
+            document.getElementById('pastQuarterWarningModal').classList.remove('active');
         });
         document.getElementById('btnCalculateUPR').addEventListener('click', openSelectUprFilesModal);
         
