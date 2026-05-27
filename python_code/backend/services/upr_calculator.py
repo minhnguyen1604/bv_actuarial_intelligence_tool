@@ -172,10 +172,10 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
     # R: four_last_quarters <- as.vector(ty_gia[(nrow(ty_gia) -3) :nrow(ty_gia),1])
     four_last_quarters = ty_gia.iloc[-4:, 0].tolist()
     
-    # Output path
+    # Output path - Named after group_code (LOB) instead of the raw uploaded file name
     quarter_out_dir = os.path.join(OUTPUT_EXCEL_ROOT, quarter_id)
     os.makedirs(quarter_out_dir, exist_ok=True)
-    out_file_path = os.path.join(quarter_out_dir, f"{file_name}.xlsx")
+    out_file_path = os.path.join(quarter_out_dir, f"{group_code}.xlsx")
     
     if is_vietjet:
         # --- Vietjet Branch ---
@@ -967,7 +967,7 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
     
     # Process each calculated file
     for f in calculated_files:
-        excel_path = os.path.join(OUTPUT_EXCEL_ROOT, quarter_id, f"{f.file_name}.xlsx")
+        excel_path = os.path.join(OUTPUT_EXCEL_ROOT, quarter_id, f"{f.group_code}.xlsx")
         if not os.path.exists(excel_path):
             continue
             
@@ -999,23 +999,29 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
             # Group by Quy and sum
             df_sum = data.groupby("Quy", as_index=False).sum()
             
-            # Determine group
+            # Determine group using group_code (LOB), with fallback to file_name
+            group_code_lower = f.group_code.lower() if f.group_code else ""
             fn_lower = f.file_name.lower()
-            if "lt" in fn_lower:
-                df_sum.insert(0, "SourceFile", f.file_name)
+            
+            is_lt = group_code_lower.endswith("_lt") or "lt" in fn_lower
+            is_travel_wj = "travel" in group_code_lower or "vietjet" in group_code_lower or "travel" in fn_lower or "vietjet" in fn_lower
+            is_tttbvv = "tttbvv" in group_code_lower or "tttbvv" in fn_lower
+            
+            if is_lt:
+                df_sum.insert(0, "SourceFile", f.group_code)
                 group_data["LT"].append(df_sum)
-            elif "travel" in fn_lower or "vietjet" in fn_lower:
-                df_sum.insert(0, "SourceFile", f.file_name)
+            elif is_travel_wj:
+                df_sum.insert(0, "SourceFile", f.group_code)
                 group_data["Travel"].append(df_sum)
-            elif "tttbvv" in fn_lower:
-                # TTTBVV is stored individually in its own sheet, named after the file
-                group_data["TTTBVV"][f.file_name] = df_sum
+            elif is_tttbvv:
+                # TTTBVV is stored individually in its own sheet, named after the LOB/group code
+                group_data["TTTBVV"][f.group_code] = df_sum
             else:
-                df_sum.insert(0, "SourceFile", f.file_name)
+                df_sum.insert(0, "SourceFile", f.group_code)
                 group_data["ShortTerm"].append(df_sum)
                 
         except Exception as e:
-            print(f"Error reading result sheet from {f.file_name}: {e}")
+            print(f"Error reading result sheet from {f.group_code}: {e}")
             continue
             
     # Create final summarized workbook

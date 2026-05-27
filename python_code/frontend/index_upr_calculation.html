@@ -2353,7 +2353,7 @@
                                     </div>
                                     <div style="min-width: 0; flex: 1;">
                                         <div style="font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;" title="${r.file_name}">${r.file_name}</div>
-                                        <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Size: ${(r.size_bytes / 1024).toFixed(1)} KB | Modified: ${new Date(r.modified_at * 1000).toLocaleTimeString()}</div>
+                                        <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Size: ${(r.size_bytes / 1024).toFixed(1)} KB | Modified: ${new Date(r.modified_at * 1000).toLocaleDateString('en-GB')} ${new Date(r.modified_at * 1000).toLocaleTimeString('en-US')}</div>
                                     </div>
                                 </div>
                             </td>
