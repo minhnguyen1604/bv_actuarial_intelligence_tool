@@ -1076,7 +1076,7 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
             
     # Save output file with timestamp
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    summary_filename = f"Tong_Hop_Result_{timestamp}.xlsx"
+    summary_filename = f"Tong_Hop_Ketqua_{timestamp}.xlsx"
     summary_dir = os.path.join(OUTPUT_EXCEL_ROOT, quarter_id)
     os.makedirs(summary_dir, exist_ok=True)
     summary_path = os.path.join(summary_dir, summary_filename)
