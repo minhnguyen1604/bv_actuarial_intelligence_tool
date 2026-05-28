@@ -832,7 +832,7 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
                 ws_kp.cell(row=row, column=col_out_demngay).value = f'=IF(OR({tu_ngay}{row}="",{tu_thang}{row}="",{tu_nam}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) - DATE({tu_nam}{row},{tu_thang}{row},{tu_ngay}{row}) < 365,1,0))'
                 
                 # Het_hieu_luc
-                ws_kp.cell(row=row, column=col_out_hethieuluc).value = f'=IF(OR({dpnv_ngay_col}{row}="",{dpnv_thang_col}{row}="",{dpnv_nam_col}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({dpnv_nam_col}{row},{dpnv_thang_col}{row},{dpnv_nam_col}{row}) - DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) >=0,1))'
+                ws_kp.cell(row=row, column=col_out_hethieuluc).value = f'=IF(OR({dpnv_ngay_col}{row}="",{dpnv_thang_col}{row}="",{dpnv_nam_col}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({dpnv_nam_col}{row},{dpnv_thang_col}{row},{dpnv_ngay_col}{row}) - DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) >=0,1))'
                 
         # Result Page Setup
         # columns: Ky_phi, Quy, columns_to_sum (5 columns)
