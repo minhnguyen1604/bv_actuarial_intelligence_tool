@@ -883,6 +883,8 @@
             border-radius: 16px;
             width: 400px;
             max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         .modal-content h3 {
@@ -903,11 +905,11 @@
             background: transparent;
         }
         .hover-scroll::-webkit-scrollbar-thumb {
-            background: transparent;
+            background: rgba(0, 0, 0, 0.08);
             border-radius: 10px;
         }
         .hover-scroll:hover::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.15);
+            background: rgba(0, 0, 0, 0.2);
         }
 
         .file-list-item {
