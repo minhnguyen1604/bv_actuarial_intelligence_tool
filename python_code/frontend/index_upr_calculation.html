@@ -2960,9 +2960,14 @@
 
             document.getElementById('valModalTitle').innerText = 'UPR Calculation';
             document.getElementById('valModalBody').innerHTML = `
-                <div style="display:flex;align-items:center;gap:12px;padding:24px 0;color:var(--text-secondary);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                    Executing UPR calculations. This may take up to 2 minutes due to Excel engine recalculation...
+                <div style="padding: 24px 0;">
+                    <div style="display:flex;align-items:center;gap:12px;color:var(--text-secondary);margin-bottom:12px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        <span id="uprCalcStatusText" style="font-size:14px;font-weight:600;">Starting UPR calculation task...</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.08); height: 10px; border-radius: 5px; overflow: hidden; position: relative;">
+                        <div id="uprCalcProgressBar" style="width: 0%; height: 100%; background: var(--bv-blue); transition: width 0.3s ease;"></div>
+                    </div>
                 </div>`;
             document.getElementById('downloadReportBtn').style.display = 'none';
             document.getElementById('valModalOkBtn').style.display = 'none';
@@ -2980,18 +2985,42 @@
                 });
                 const resData = await response.json();
                 
-                if (response.ok) {
-                    const count = (resData.calculated || []).length;
-                    document.getElementById('valModalBody').innerHTML = `
-                        <div style="padding:16px 0 0;">
-                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
-                                ✅ UPR Calculations Completed Successfully
-                            </div>
-                            <p style="font-size:14px;color:#374151;">Processed <strong>${count}</strong> file(s) for quarter <strong>${quarterId}</strong>.</p>
-                        </div>`;
-                    loadQueueFiles();
+                if (response.ok && resData.task_id) {
+                    const taskId = resData.task_id;
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const statusResp = await fetch(`/api/upr/task-status/${taskId}`);
+                            const statusData = await statusResp.json();
+                            if (statusResp.ok) {
+                                document.getElementById('uprCalcStatusText').innerText = statusData.message || 'Processing...';
+                                document.getElementById('uprCalcProgressBar').style.width = `${statusData.progress}%`;
+                                
+                                if (statusData.status === 'success') {
+                                    clearInterval(pollInterval);
+                                    const count = (statusData.result.calculated || []).length;
+                                    document.getElementById('valModalBody').innerHTML = `
+                                        <div style="padding:16px 0 0;">
+                                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
+                                                ✅ UPR Calculations Completed Successfully
+                                            </div>
+                                            <p style="font-size:14px;color:#374151;">Processed <strong>${count}</strong> file(s) for quarter <strong>${quarterId}</strong>.</p>
+                                        </div>`;
+                                    loadQueueFiles();
+                                } else if (statusData.status === 'failed') {
+                                    clearInterval(pollInterval);
+                                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Calculation Failed: ${statusData.error || 'Unknown error'}</p>`;
+                                }
+                            } else {
+                                clearInterval(pollInterval);
+                                document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Calculation Failed: ${statusData.detail || 'Status lookup failed'}</p>`;
+                            }
+                        } catch (err) {
+                            clearInterval(pollInterval);
+                            document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to check status: ${err}</p>`;
+                        }
+                    }, 500);
                 } else {
-                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Calculation Failed: ${resData.detail || 'Unknown error'}</p>`;
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Calculation Trigger Failed: ${resData.detail || 'Unknown error'}</p>`;
                 }
             } catch (err) {
                 document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to trigger calculation: ${err}</p>`;
@@ -3006,9 +3035,14 @@
 
             document.getElementById('valModalTitle').innerText = 'Summarize UPR Reports';
             document.getElementById('valModalBody').innerHTML = `
-                <div style="display:flex;align-items:center;gap:12px;padding:24px 0;color:var(--text-secondary);">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
-                    Consolidating calculated reports, formatting results, and building consolidated sheet...
+                <div style="padding: 24px 0;">
+                    <div style="display:flex;align-items:center;gap:12px;color:var(--text-secondary);margin-bottom:12px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                        <span id="uprSumStatusText" style="font-size:14px;font-weight:600;">Starting UPR reports summarization...</span>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.08); height: 10px; border-radius: 5px; overflow: hidden; position: relative;">
+                        <div id="uprSumProgressBar" style="width: 0%; height: 100%; background: var(--bv-blue); transition: width 0.3s ease;"></div>
+                    </div>
                 </div>`;
             document.getElementById('downloadReportBtn').style.display = 'none';
             document.getElementById('valModalOkBtn').style.display = 'none';
@@ -3023,17 +3057,41 @@
                 });
                 const resData = await response.json();
                 
-                if (response.ok) {
-                    document.getElementById('valModalBody').innerHTML = `
-                        <div style="padding:16px 0 0;">
-                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
-                                ✅ Summarization Completed
-                            </div>
-                            <p style="font-size:14px;color:#374151;">Generated consolidated workbook: <strong style="color:var(--bv-accent);">${resData.file_name}</strong>.</p>
-                        </div>`;
-                    loadReports();
+                if (response.ok && resData.task_id) {
+                    const taskId = resData.task_id;
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const statusResp = await fetch(`/api/upr/task-status/${taskId}`);
+                            const statusData = await statusResp.json();
+                            if (statusResp.ok) {
+                                document.getElementById('uprSumStatusText').innerText = statusData.message || 'Processing...';
+                                document.getElementById('uprSumProgressBar').style.width = `${statusData.progress}%`;
+                                
+                                if (statusData.status === 'success') {
+                                    clearInterval(pollInterval);
+                                    document.getElementById('valModalBody').innerHTML = `
+                                        <div style="padding:16px 0 0;">
+                                            <div style="padding:12px 16px;background:rgba(16,185,129,0.08);border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600;color:#059669;">
+                                                ✅ Summarization Completed
+                                            </div>
+                                            <p style="font-size:14px;color:#374151;">Generated consolidated workbook: <strong style="color:var(--bv-accent);">${statusData.result.file_name}</strong>.</p>
+                                        </div>`;
+                                    loadReports();
+                                } else if (statusData.status === 'failed') {
+                                    clearInterval(pollInterval);
+                                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Summarization Failed: ${statusData.error || 'Unknown error'}</p>`;
+                                }
+                            } else {
+                                clearInterval(pollInterval);
+                                document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Summarization Failed: ${statusData.detail || 'Status lookup failed'}</p>`;
+                            }
+                        } catch (err) {
+                            clearInterval(pollInterval);
+                            document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to check status: ${err}</p>`;
+                        }
+                    }, 500);
                 } else {
-                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Summarization Failed: ${resData.detail || 'Unknown error'}</p>`;
+                    document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Summarization Trigger Failed: ${resData.detail || 'Unknown error'}</p>`;
                 }
             } catch (err) {
                 document.getElementById('valModalBody').innerHTML = `<p style="color:red;font-weight:600;">Failed to trigger summarization: ${err}</p>`;

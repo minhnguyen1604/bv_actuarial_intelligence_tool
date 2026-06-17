@@ -4,11 +4,10 @@ import datetime
 import openpyxl
 from openpyxl.utils import get_column_letter
 import pandas as pd
+import numpy as np
 from sqlalchemy.orm import Session
 
 import models
-import pythoncom
-import win32com.client
 
 # Directory definitions
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,6 +16,11 @@ OUTPUT_EXCEL_ROOT = os.path.join(BASE_DIR, "..", "output_excel")
 
 # Ensure folders exist
 os.makedirs(OUTPUT_EXCEL_ROOT, exist_ok=True)
+
+import tempfile
+TEMP_DIR = os.path.join(DATA_ROOT, "tmp")
+os.makedirs(TEMP_DIR, exist_ok=True)
+tempfile.tempdir = TEMP_DIR
 
 def int2col(col_idx: int) -> str:
     """Convert a 1-based column index to an Excel column letter."""
@@ -77,27 +81,357 @@ def load_ty_gia() -> pd.DataFrame:
     return pd.DataFrame(rows, columns=cols)
 
 def recalculate_excel_file(file_path: str):
-    """Force Excel to recalculate and save the file via COM."""
-    pythoncom.CoInitialize()
-    try:
-        excel = win32com.client.DispatchEx("Excel.Application")
-        excel.Visible = False
-        excel.DisplayAlerts = False
+    """No-op. Excel COM recalculation has been deprecated for performance."""
+    pass
+
+def calculate_st_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: pd.DataFrame, dpnv_date: datetime.date, four_last_quarters: list[str]) -> pd.DataFrame:
+    summary_rows = []
+    
+    ty_gia_dict_usd = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["USD"]))
+    ty_gia_dict_eur = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["EUR"]))
+    fallback_usd = ty_gia["USD"].iloc[-1] if not ty_gia.empty else 1.0
+    fallback_eur = ty_gia["EUR"].iloc[-1] if not ty_gia.empty else 1.0
+    
+    dpnv = pd.to_datetime(dpnv_date)
+    
+    ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in df.columns else \
+              ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in df.columns else None)
+              
+    for ky in ky_available:
+        sh = f"Ky_phi{ky}"
         
-        abs_path = os.path.abspath(file_path)
-        wb = excel.Workbooks.Open(abs_path)
+        thang = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Thang"], errors='coerce').fillna(0).astype(int)
+        nam = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Nam"], errors='coerce').fillna(0).astype(int)
         
-        # Force full recalculation
-        excel.CalculateFull()
+        quy = np.where(thang == 0, 0, (thang - 1) // 3 + 1)
+        quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
+        quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
         
-        wb.Save()
-        wb.Close(SaveChanges=True)
-        excel.Quit()
-    except Exception as e:
-        print(f"Error recalculating Excel file {file_path}: {e}")
-        raise e
-    finally:
-        pythoncom.CoUninitialize()
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        
+        vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        eur = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_EUR"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        
+        phi_goc = vnd + usd * rate_usd + eur * rate_eur
+        
+        if ret_col:
+            hi = pd.to_numeric(df[ret_col].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+            tile = np.where((hi == 0.0) | df[ret_col].isna(), 1.0, np.where(hi > 1.0, hi / 100.0, hi))
+        else:
+            tile = np.ones(len(df))
+            
+        phi_giulai = phi_goc * tile
+        
+        def parse_date_series(d_col, m_col, y_col):
+            d_val = pd.to_numeric(df[d_col], errors='coerce')
+            m_val = pd.to_numeric(df[m_col], errors='coerce')
+            y_val = pd.to_numeric(df[y_col], errors='coerce')
+            d_str = y_val.fillna(2000).astype(int).astype(str).str.zfill(4) + '-' + \
+                    m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
+                    d_val.fillna(1).astype(int).astype(str).str.zfill(2)
+            parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
+            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
+            return pd.Series(parsed)
+            
+        tu_date = parse_date_series("Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam")
+        den_date = parse_date_series("Thoi_han_bao_hiem_Den_Ngay", "Thoi_han_bao_hiem_Den_Thang", "Thoi_han_bao_hiem_Den_Nam")
+        
+        diff_days = (den_date - tu_date).dt.days
+        dem_ngay = np.where(diff_days.isna(), 0, np.where(diff_days < 365, 1, 0))
+        
+        diff_dpnv_den = (dpnv - den_date).dt.days
+        hethieuluc = np.where(diff_dpnv_den.isna(), 0, np.where(diff_dpnv_den >= 0, 1, 0))
+        
+        for q in four_last_quarters:
+            mask_q = (quy_nam == q)
+            
+            phi_goc_sum = phi_goc[mask_q].sum()
+            phi_giulai_sum = phi_giulai[mask_q].sum()
+            
+            mask_giam = mask_q & (dem_ngay == 1) & (hethieuluc == 1)
+            giam_goc_sum = phi_goc[mask_giam].sum()
+            giam_giulai_sum = phi_giulai[mask_giam].sum()
+            giam_tai_sum = giam_goc_sum - giam_giulai_sum
+            
+            summary_rows.append({
+                "Ky_phi": sh,
+                "Quy": q,
+                "Phi_bao_hiem_goc": phi_goc_sum,
+                "Phi_bao_hiem_giu_lai": phi_giulai_sum,
+                "Giam_phi_bao_hiem_goc": giam_goc_sum,
+                "Giam_phi_bao_hiem_giu_lai": giam_giulai_sum,
+                "Giam_phi_bao_hiem_tai": giam_tai_sum
+            })
+            
+    return pd.DataFrame(summary_rows)
+
+def calculate_vietjet_summary_df(df: pd.DataFrame, four_last_quarters: list[str]) -> pd.DataFrame:
+    summary_rows = []
+    
+    thang = pd.to_numeric(df["Thang_phat_sinh_doanh_thu"], errors='coerce').fillna(0).astype(int)
+    nam = pd.to_numeric(df["Nam_phat_sinh_doanh_thu"], errors='coerce').fillna(0).astype(int)
+    
+    quy = np.where(thang == 0, 0, np.where(thang == 3, 2, (thang - 1) // 3 + 1))
+    
+    quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
+    quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
+    
+    phi_goc = pd.to_numeric(df["Phi_bao_hiem_goc"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+    phi_tai = pd.to_numeric(df["Phi_bao_hiem_tai"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+    phi_giulai = phi_goc - phi_tai
+    
+    hieu_luc = df["hieu_luc"].astype(str).str.strip().str.lower().values
+    
+    for q in four_last_quarters:
+        mask_q = (quy_nam == q)
+        
+        phi_goc_sum = phi_goc[mask_q].sum()
+        phi_giulai_sum = phi_giulai[mask_q].sum()
+        
+        mask_giam = mask_q & (hieu_luc == "het")
+        giam_goc_sum = phi_goc[mask_giam].sum()
+        giam_giulai_sum = phi_giulai[mask_giam].sum()
+        giam_tai_sum = giam_goc_sum - giam_giulai_sum
+        
+        summary_rows.append({
+            "Quy": q,
+            "Phi_bao_hiem_goc": phi_goc_sum,
+            "Phi_bao_hiem_giu_lai": phi_giulai_sum,
+            "Giam_phi_bao_hiem_goc": giam_goc_sum,
+            "Giam_phi_bao_hiem_giu_lai": giam_giulai_sum,
+            "Giam_phi_bao_hiem_tai": giam_tai_sum
+        })
+        
+    return pd.DataFrame(summary_rows)
+
+def calculate_tttbvv_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: pd.DataFrame, dpnv_date: datetime.date, four_last_quarters: list[str]) -> pd.DataFrame:
+    summary_rows = []
+    
+    ty_gia_dict_usd = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["USD"]))
+    ty_gia_dict_eur = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["EUR"]))
+    fallback_usd = ty_gia["USD"].iloc[-1] if not ty_gia.empty else 1.0
+    fallback_eur = ty_gia["EUR"].iloc[-1] if not ty_gia.empty else 1.0
+    
+    dpnv = pd.to_datetime(dpnv_date)
+    
+    ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in df.columns else \
+              ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in df.columns else None)
+              
+    for ky in ky_available:
+        sh = f"Ky_phi{ky}"
+        
+        thang = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Thang"], errors='coerce').fillna(0).astype(int)
+        nam = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Nam"], errors='coerce').fillna(0).astype(int)
+        
+        quy = np.where(thang == 0, 0, (thang - 1) // 3 + 1)
+        quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
+        quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
+        
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        
+        vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        eur = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_EUR"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        
+        phi_goc = vnd + usd * rate_usd + eur * rate_eur
+        
+        if ret_col:
+            hi = pd.to_numeric(df[ret_col].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+            tile = np.where((hi == 0.0) | df[ret_col].isna(), 1.0, np.where(hi > 1.0, hi / 100.0, hi))
+        else:
+            tile = np.ones(len(df))
+            
+        phi_giulai = phi_goc * tile
+        
+        def parse_date_series(d_col, m_col, y_col):
+            d_val = pd.to_numeric(df[d_col], errors='coerce')
+            m_val = pd.to_numeric(df[m_col], errors='coerce')
+            y_val = pd.to_numeric(df[y_col], errors='coerce')
+            d_str = y_val.fillna(2000).astype(int).astype(str).str.zfill(4) + '-' + \
+                    m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
+                    d_val.fillna(1).astype(int).astype(str).str.zfill(2)
+            parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
+            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
+            return pd.Series(parsed)
+            
+        tu_date = parse_date_series(f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam")
+        den_date = parse_date_series(f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam")
+        
+        tong_so_ngay = (den_date - tu_date).dt.days + 1
+        tong_so_ngay = np.where(tong_so_ngay < 0, 0, tong_so_ngay)
+        
+        so_ngay_da_qua = (dpnv - tu_date).dt.days + 1
+        
+        so_ngay_con_lai = np.where(
+            so_ngay_da_qua < 0,
+            tong_so_ngay,
+            np.where(so_ngay_da_qua > tong_so_ngay, 0, tong_so_ngay - so_ngay_da_qua)
+        )
+        
+        ratio = np.where(tong_so_ngay == 0, 0.0, so_ngay_con_lai / tong_so_ngay)
+        
+        du_phong_goc = ratio * phi_goc
+        du_phong_giulai = ratio * phi_giulai
+        
+        for q in four_last_quarters:
+            mask_q = (quy_nam == q)
+            
+            phi_goc_sum = phi_goc[mask_q].sum()
+            phi_giulai_sum = phi_giulai[mask_q].sum()
+            dpgoc_sum = du_phong_goc[mask_q].sum()
+            dpgiu_sum = du_phong_giulai[mask_q].sum()
+            dptai_sum = dpgoc_sum - dpgiu_sum
+            
+            summary_rows.append({
+                "Ky_phi": sh,
+                "Quy": q,
+                "Phi_bao_hiem_goc": phi_goc_sum,
+                "Phi_bao_hiem_giu_lai": phi_giulai_sum,
+                "Du_phong_bao_hiem_goc": dpgoc_sum,
+                "Du_phong_bao_hiem_giu_lai": dpgiu_sum,
+                "Du_phong_bao_hiem_tai": dptai_sum
+            })
+            
+    return pd.DataFrame(summary_rows)
+
+def calculate_lt_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: pd.DataFrame, dpnv_date: datetime.date, four_last_quarters: list[str]) -> pd.DataFrame:
+    summary_rows = []
+    
+    ty_gia_dict_usd = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["USD"]))
+    ty_gia_dict_eur = dict(zip(ty_gia["Thoi_gian"].astype(str), ty_gia["EUR"]))
+    fallback_usd = ty_gia["USD"].iloc[-1] if not ty_gia.empty else 1.0
+    fallback_eur = ty_gia["EUR"].iloc[-1] if not ty_gia.empty else 1.0
+    
+    dpnv = pd.to_datetime(dpnv_date)
+    dpnv_nam = dpnv_date.year
+    dpnv_thang = dpnv_date.month
+    
+    ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in df.columns else \
+              ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in df.columns else None)
+              
+    quarters_list = ["Số dùng để tính"] + four_last_quarters
+    
+    for ky in ky_available:
+        sh = f"Ky_phi{ky}"
+        
+        thang = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Thang"], errors='coerce').fillna(0).astype(int)
+        nam = pd.to_numeric(df[f"Ky_phi_{ky}_Ghi_Nam"], errors='coerce').fillna(0).astype(int)
+        
+        quy = np.where(thang == 0, 0, (thang - 1) // 3 + 1)
+        quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
+        quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
+        
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        
+        vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        eur = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_EUR"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+        
+        phi_sau_dong = vnd + usd * rate_usd + eur * rate_eur
+        
+        if ret_col:
+            hi = pd.to_numeric(df[ret_col].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
+            tile = np.where((hi == 0.0) | df[ret_col].isna(), 1.0, np.where(hi > 1.0, hi / 100.0, hi))
+        else:
+            tile = np.ones(len(df))
+            
+        phi_giulai = phi_sau_dong * tile
+        phi_tai = phi_sau_dong - phi_giulai
+        
+        def parse_date_series(d_col, m_col, y_col):
+            d_val = pd.to_numeric(df[d_col], errors='coerce')
+            m_val = pd.to_numeric(df[m_col], errors='coerce')
+            y_val = pd.to_numeric(df[y_col], errors='coerce')
+            d_str = y_val.fillna(2000).astype(int).astype(str).str.zfill(4) + '-' + \
+                    m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
+                    d_val.fillna(1).astype(int).astype(str).str.zfill(2)
+            parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
+            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
+            return pd.Series(parsed)
+            
+        tu_date = parse_date_series("Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam")
+        den_date = parse_date_series("Thoi_han_bao_hiem_Den_Ngay", "Thoi_han_bao_hiem_Den_Thang", "Thoi_han_bao_hiem_Den_Nam")
+        
+        tu_date_kp = parse_date_series(f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam")
+        den_date_kp = parse_date_series(f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam")
+        ghi_date = parse_date_series(f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam")
+        
+        diff_dpnv_den = (dpnv - den_date_kp).dt.days
+        c1 = np.where(diff_dpnv_den.isna(), 0, np.where(diff_dpnv_den >= 0, 0, 1))
+        
+        diff_den_tu = (den_date - tu_date).dt.days
+        c2 = np.where(diff_den_tu.isna() | (diff_den_tu <= 365), 0, 1)
+        
+        c3 = np.where(df[f"Ky_phi_{ky}_So_tien_VND"].isna() & df[f"Ky_phi_{ky}_So_tien_USD"].isna() & df[f"Ky_phi_{ky}_So_tien_EUR"].isna(), 0, 1)
+        
+        diff_kp = (den_date_kp - tu_date_kp).dt.days
+        c4 = np.where(diff_kp.isna(), 0, np.where(diff_kp > 0, 1, 0))
+        
+        c5 = np.where(df[f"Ky_phi_{ky}_Ghi_Thang"].isna() & df[f"Ky_phi_{ky}_Ghi_Nam"].isna(), 0, 1)
+        
+        diff_dpnv_tu = (dpnv - tu_date).dt.days
+        c6 = np.where(diff_dpnv_tu.isna(), 0, np.where(diff_dpnv_tu >= 0, 1, 0))
+        
+        diff_ghi_dpnv = (ghi_date - dpnv).dt.days
+        c7 = np.where(diff_ghi_dpnv.isna(), 0, np.where(diff_ghi_dpnv > 0, 0, 1))
+        
+        tonghop = np.where((c1 == 0) | (c2 == 0) | (c3 == 0) | (c4 == 0) | (c5 == 0) | (c6 == 0) | (c7 == 0), 0, 1)
+        
+        tu_nam_kp = pd.to_numeric(df[f"Ky_phi_{ky}_Tu_Nam"], errors='coerce').fillna(0).astype(int)
+        tu_thang_kp = pd.to_numeric(df[f"Ky_phi_{ky}_Tu_Thang"], errors='coerce').fillna(0).astype(int)
+        thu_tu = np.where(
+            tonghop == 0,
+            0,
+            (dpnv_nam - tu_nam_kp) * 4 + (dpnv_thang - 1) // 3 + 1 - ((tu_thang_kp - 1) // 3 + 1) + 1
+        )
+        
+        diff_kp_1 = (den_date_kp - tu_date_kp).dt.days + 1
+        mau_so = np.where(diff_kp_1.isna(), 0.0, (diff_kp_1 / 365.0) * 8.0)
+        
+        huong_cu = np.where(tonghop == 0, mau_so, np.where(thu_tu <= 0, 0.0, thu_tu * 2.0 - 1.0))
+        chua_huong = mau_so - huong_cu
+        
+        diff_den_dpnv = (den_date_kp - dpnv).dt.days
+        chua_huong_dc = np.where(
+            chua_huong >= 0.0,
+            chua_huong,
+            np.where(diff_den_dpnv.isna(), 0.0, (diff_den_dpnv / 365.0) * 8.0)
+        )
+        
+        ts_final = chua_huong_dc
+        ms_final = mau_so
+        
+        upr_ratio = np.where(ms_final == 0.0, 0.0, ts_final / ms_final)
+        
+        giu_chua_huong = phi_giulai * upr_ratio
+        giu_duoc_huong = phi_giulai - giu_chua_huong
+        
+        tai_chua_huong = phi_tai * upr_ratio
+        tai_duoc_huong = phi_tai - tai_chua_huong
+        
+        for q in quarters_list:
+            if q == "Số dùng để tính":
+                mask_q = (tonghop == 1)
+            else:
+                mask_q = (tonghop == 1) & (quy_nam == q)
+                
+            summary_rows.append({
+                "Ky_phi": sh,
+                "Quy": q,
+                "Phi_bao_hiem_sau_dong": phi_sau_dong[mask_q].sum(),
+                "Phi_bao_hiem_giu_lai": phi_giulai[mask_q].sum(),
+                "Phi_tai_bao_hiem": phi_tai[mask_q].sum(),
+                "Phi_bao_hiem_giu_lai_duoc_huong": giu_duoc_huong[mask_q].sum(),
+                "Phi_tai_bao_hiem_duoc_huong": tai_duoc_huong[mask_q].sum(),
+                "Phi_bao_hiem_giu_lai_chua_huong": giu_chua_huong[mask_q].sum(),
+                "Phi_tai_bao_hiem_chua_huong": tai_chua_huong[mask_q].sum()
+            })
+            
+    return pd.DataFrame(summary_rows)
 
 def write_df_to_sheet(ws, df: pd.DataFrame, with_filter: bool = True):
     """Write pandas DataFrame to openpyxl worksheet."""
@@ -138,16 +472,14 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
     is_tttbvv = "tttbvv" in file_name.lower()
     is_lt = group_code.upper().endswith("_LT")
     
-    # Create workbook
-    wb = openpyxl.Workbook()
-    if "Sheet" in wb.sheetnames:
-        wb.remove(wb["Sheet"])
+    # Create workbook in write-only mode to prevent massive memory usage (8M+ cells for PA_ST LOB)
+    wb = openpyxl.Workbook(write_only=True)
         
     # Write exchange rates sheet
     ws_tygia = wb.create_sheet("Tygia")
     write_df_to_sheet(ws_tygia, ty_gia, with_filter=False)
     
-    # Create Result sheet (R creates it early)
+    # Create Result sheet
     ws_result = wb.create_sheet("Result")
     
     # Get Ky_phi sheets available
@@ -163,13 +495,11 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
     dpnv_nam = dpnv_date.year
     
     # Define VLOOKUP range & fallback cell
-    # Note: Tygia starts at A1, USD in B, EUR in C. Header row is 1, data rows are 2 to len(ty_gia)+1
     num_rates = len(ty_gia)
     vlookup_range = f"Tygia!$A$1:$C${num_rates + 1}"
     fallback_cell = f"Tygia!$A${num_rates + 1}"
     
     # Extract four last quarters from exchange rates
-    # R: four_last_quarters <- as.vector(ty_gia[(nrow(ty_gia) -3) :nrow(ty_gia),1])
     four_last_quarters = ty_gia.iloc[-4:, 0].tolist()
     
     # Output path - Named after group_code (LOB) instead of the raw uploaded file name
@@ -187,79 +517,77 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
             "Giam_phi_bao_hiem_tai"
         ]
         
-        # Add formula columns to df
         sheet_data = df.copy()
-        cols_to_add = ["Quy_phat_sinh_doanh_thu", "Quy_Nam", "Phi_bao_hiem_giu_lai"]
-        for col in cols_to_add:
-            if col not in sheet_data.columns:
-                sheet_data[col] = None
-                
-        ws_wj = wb.create_sheet("Vietjet")
-        write_df_to_sheet(ws_wj, sheet_data, with_filter=True)
+        extra_cols = ["Quy_phat_sinh_doanh_thu", "Quy_Nam", "Phi_bao_hiem_giu_lai"]
         
-        n = len(sheet_data)
-        header = list(sheet_data.columns)
+        ws_wj = wb.create_sheet("Vietjet")
+        headers = list(sheet_data.columns) + extra_cols
+        ws_wj.append(headers)
         
         def col_pos(col_name):
-            return header.index(col_name) + 1
+            return headers.index(col_name) + 1
             
-        col_thang = int2col(col_pos("Thang_phat_sinh_doanh_thu"))
-        col_out_quy = col_pos("Quy_phat_sinh_doanh_thu")
+        col_thang_let = int2col(col_pos("Thang_phat_sinh_doanh_thu"))
+        col_quy_let = int2col(col_pos("Quy_phat_sinh_doanh_thu"))
+        col_nam_let = int2col(col_pos("Nam_phat_sinh_doanh_thu"))
+        goc_let = int2col(col_pos("Phi_bao_hiem_goc"))
+        tai_let = int2col(col_pos("Phi_bao_hiem_tai"))
         
-        col_quy = int2col(col_pos("Quy_phat_sinh_doanh_thu"))
-        col_nam = int2col(col_pos("Nam_phat_sinh_doanh_thu"))
-        col_out_quynam = col_pos("Quy_Nam")
-        
-        goc = int2col(col_pos("Phi_bao_hiem_goc"))
-        tai = int2col(col_pos("Phi_bao_hiem_tai"))
-        col_out_giulai = col_pos("Phi_bao_hiem_giu_lai")
-        
-        # Write rows formulas
-        for row in range(2, n + 2):
-            ws_wj.cell(row=row, column=col_out_quy).value = f'=IF({col_thang}{row}="",0,IF(VALUE({col_thang}{row})=3,2, INT(({col_thang}{row}-1)/3)+1))'
-            ws_wj.cell(row=row, column=col_out_quynam).value = f'=CONCATENATE("Q",{col_quy}{row},"/",{col_nam}{row})'
-            ws_wj.cell(row=row, column=col_out_giulai).value = f'={goc}{row}-{tai}{row}'
+        n = len(sheet_data)
+        col_lists = []
+        for col in sheet_data.columns:
+            lst = sheet_data[col].tolist()
+            cleaned = ["" if (x is None or x is pd.NA or x is pd.NaT or x != x) else x for x in lst]
+            col_lists.append(cleaned)
+            
+        for idx, row in enumerate(zip(*col_lists)):
+            row_idx = idx + 2
+            row_vals = list(row)
+            
+            formula_quy = f'=IF({col_thang_let}{row_idx}="",0,IF(VALUE({col_thang_let}{row_idx})=3,2, INT(({col_thang_let}{row_idx}-1)/3)+1))'
+            formula_quynam = f'=CONCATENATE("Q",{col_quy_let}{row_idx},"/",{col_nam_let}{row_idx})'
+            formula_giulai = f'={goc_let}{row_idx}-{tai_let}{row_idx}'
+            
+            row_vals.extend([formula_quy, formula_quynam, formula_giulai])
+            ws_wj.append(row_vals)
+            
+        if n > 0:
+            ws_wj.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{n + 1}"
             
         # Result Page Setup
-        # result_data has columns: Quy, plus columns_to_sum
         num_result_rows = len(four_last_quarters)
         
         # Write SUBTOTAL row
-        ws_result.cell(row=1, column=1).value = "SUBTOTAL"
+        subtotal_row = ["SUBTOTAL"]
         for j, col in enumerate(columns_to_sum):
-            col_letter = int2col(j + 2) # Column A = Quy, Columns B..F = columns_to_sum
-            ws_result.cell(row=1, column=j + 2).value = f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})"
-            
+            col_letter = int2col(j + 2)
+            subtotal_row.append(f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})")
+        ws_result.append(subtotal_row)
+        
         # Write Headers
-        ws_result.cell(row=2, column=1).value = "Quy"
-        for j, col in enumerate(columns_to_sum):
-            ws_result.cell(row=2, column=j + 2).value = col
-            
+        ws_result.append(["Quy"] + columns_to_sum)
+        
         # Write Rows
         for i, q in enumerate(four_last_quarters):
             row_idx = i + 3
-            ws_result.cell(row=row_idx, column=1).value = q
+            row_vals = [q]
             
-            # Formulas for columns_to_sum
-            # col 1-2 (Phi_bao_hiem_goc, Phi_bao_hiem_giu_lai)
             for j in range(2):
                 col_name = columns_to_sum[j]
                 c_range = f"Vietjet!{int2col(col_pos(col_name))}2:{int2col(col_pos(col_name))}{n+1}"
                 q_range = f"Vietjet!{int2col(col_pos('Quy_Nam'))}2:{int2col(col_pos('Quy_Nam'))}{n+1}"
-                ws_result.cell(row=row_idx, column=j + 2).value = f'=SUMIFS({c_range},{q_range},"{q}")'
+                row_vals.append(f'=SUMIFS({c_range},{q_range},"{q}")')
                 
-            # col 3 (Giam_phi_bao_hiem_goc)
             goc_range = f"Vietjet!{int2col(col_pos('Phi_bao_hiem_goc'))}2:{int2col(col_pos('Phi_bao_hiem_goc'))}{n+1}"
             hieu_luc_range = f"Vietjet!{int2col(col_pos('hieu_luc'))}2:{int2col(col_pos('hieu_luc'))}{n+1}"
             q_range = f"Vietjet!{int2col(col_pos('Quy_Nam'))}2:{int2col(col_pos('Quy_Nam'))}{n+1}"
-            ws_result.cell(row=row_idx, column=4).value = f'=SUMIFS({goc_range},{hieu_luc_range},"het",{q_range},"{q}")'
+            row_vals.append(f'=SUMIFS({goc_range},{hieu_luc_range},"het",{q_range},"{q}")')
             
-            # col 4 (Giam_phi_bao_hiem_giu_lai)
             giu_range = f"Vietjet!{int2col(col_pos('Phi_bao_hiem_giu_lai'))}2:{int2col(col_pos('Phi_bao_hiem_giu_lai'))}{n+1}"
-            ws_result.cell(row=row_idx, column=5).value = f'=SUMIFS({giu_range},{hieu_luc_range},"het",{q_range},"{q}")'
+            row_vals.append(f'=SUMIFS({giu_range},{hieu_luc_range},"het",{q_range},"{q}")')
             
-            # col 5 (Giam_phi_bao_hiem_tai)
-            ws_result.cell(row=row_idx, column=6).value = f"=D{row_idx}-E{row_idx}"
+            row_vals.append(f"=D{row_idx}-E{row_idx}")
+            ws_result.append(row_vals)
             
     elif is_tttbvv:
         # --- TTTBVV Branch ---
@@ -275,161 +603,145 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
             raise ValueError(f"No installments found for TTTBVV file {file_name}")
             
         sheet_names = [f"Ky_phi{k}" for k in ky_available]
+        n = len(df)
         
-        # Process each installment
-        for ky in ky_available:
-            # Generate sheet data
-            fee_cols = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
-                        f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
-                        f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
-                        f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
-            fee_cols_exist = [c for c in fee_cols if c in df.columns]
-            base_cols = list(df.columns[:min(24, len(df.columns))])
-            sheet_data = df[base_cols + fee_cols_exist].copy()
+        dummy_ky = ky_available[0]
+        fee_cols = [f"Ky_phi_{dummy_ky}_So_tien_VND", f"Ky_phi_{dummy_ky}_So_tien_USD", f"Ky_phi_{dummy_ky}_So_tien_EUR",
+                    f"Ky_phi_{dummy_ky}_Tu_Ngay", f"Ky_phi_{dummy_ky}_Tu_Thang", f"Ky_phi_{dummy_ky}_Tu_Nam",
+                    f"Ky_phi_{dummy_ky}_Den_Ngay", f"Ky_phi_{dummy_ky}_Den_Thang", f"Ky_phi_{dummy_ky}_Den_Nam",
+                    f"Ky_phi_{dummy_ky}_Ghi_Ngay", f"Ky_phi_{dummy_ky}_Ghi_Thang", f"Ky_phi_{dummy_ky}_Ghi_Nam"]
+        fee_cols_exist = [c for c in fee_cols if c in df.columns]
+        base_cols = list(df.columns[:min(24, len(df.columns))])
+        
+        extra_cols = [
+            "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang","Thoi_diem_tinh_DPNV_Nam",
+            "Quy_ghi_doanh_thu", "Nam_ghi_doanh_thu", "Quy_Nam","Phi_bao_hiem_goc","Ty_le_giu_lai_BHBV",
+            "Phi_bao_hiem_giu_lai","Tong_so_ngay","So_ngay_da_qua","So_ngay_con_lai","Du_phong_bao_hiem_goc","Du_phong_bao_hiem_giu_lai"
+        ]
+        
+        def write_tttbvv_installment_sheet(ws_kp, ky):
+            fee_cols_ky = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
+                           f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
+                           f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
+                           f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
+            fee_cols_exist_ky = [c for c in fee_cols_ky if c in df.columns]
+            sheet_data = df[base_cols + fee_cols_exist_ky].copy()
             
-            cols_to_add = [
-                "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang","Thoi_diem_tinh_DPNV_Nam",
-                "Quy_ghi_doanh_thu", "Nam_ghi_doanh_thu", "Quy_Nam","Phi_bao_hiem_goc","Ty_le_giu_lai_BHBV",
-                "Phi_bao_hiem_giu_lai","Tong_so_ngay","So_ngay_da_qua","So_ngay_con_lai","Du_phong_bao_hiem_goc","Du_phong_bao_hiem_giu_lai"
-            ]
-            for col in cols_to_add:
-                if col not in sheet_data.columns:
-                    sheet_data[col] = None
-                    
-            sheet_data["Thoi_diem_tinh_DPNV_Ngay"] = dpnv_ngay
-            sheet_data["Thoi_diem_tinh_DPNV_Thang"] = dpnv_thang
-            sheet_data["Thoi_diem_tinh_DPNV_Nam"] = dpnv_nam
+            headers = list(sheet_data.columns) + extra_cols
+            ws_kp.append(headers)
             
-            sheet_name = f"Ky_phi{ky}"
-            ws_kp = wb.create_sheet(sheet_name)
-            write_df_to_sheet(ws_kp, sheet_data, with_filter=True)
-            
-            n = len(sheet_data)
-            header = list(sheet_data.columns)
             def col_pos(col_name):
-                return header.index(col_name) + 1
+                return headers.index(col_name) + 1
                 
-            col_thang = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
-            col_nam = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
-            col_out_quy = col_pos("Quy_ghi_doanh_thu")
-            col_out_nam = col_pos("Nam_ghi_doanh_thu")
+            col_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
+            col_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
+            col_quy_let = int2col(col_pos("Quy_ghi_doanh_thu"))
+            col_nam_ghi_let = int2col(col_pos("Nam_ghi_doanh_thu"))
             
-            col_quy = int2col(col_pos("Quy_ghi_doanh_thu"))
-            col_nam_ghi = int2col(col_pos("Nam_ghi_doanh_thu"))
-            col_out_quynam = col_pos("Quy_Nam")
+            col_vnd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
+            col_usd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
+            col_eur_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
+            col_quynam_let = int2col(col_pos("Quy_Nam"))
             
-            col_vnd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
-            col_usd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
-            col_eur = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
-            col_out_goc = col_pos("Phi_bao_hiem_goc")
-            
-            # Find Ty_le_giu_lai_cua_BHBV column name
             ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in sheet_data.columns else \
                       ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in sheet_data.columns else None)
             if not ret_col:
                 raise ValueError("Could not find Ty_le_giu_lai_cua_BHBV column in TTTBVV sheet data")
+            hi_let = int2col(col_pos(ret_col))
+            
+            phi_goc_col_let = int2col(col_pos("Phi_bao_hiem_goc"))
+            tile_col_let = int2col(col_pos("Ty_le_giu_lai_BHBV"))
+            
+            tu_ngay_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Ngay"))
+            tu_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Thang"))
+            tu_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Nam"))
+            
+            den_ngay_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
+            den_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
+            den_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
+            
+            dpnv_ngay_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
+            dpnv_thang_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
+            dpnv_nam_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
+            
+            a_col_let = int2col(col_pos("Tong_so_ngay"))
+            b_col_let = int2col(col_pos("So_ngay_da_qua"))
+            b_col_con_let = int2col(col_pos("So_ngay_con_lai"))
+            c_col_goc_let = int2col(col_pos("Phi_bao_hiem_goc"))
+            c_col_giu_let = int2col(col_pos("Phi_bao_hiem_giu_lai"))
+            
+            col_lists = []
+            for col in sheet_data.columns:
+                lst = sheet_data[col].tolist()
+                cleaned = ["" if (x is None or x is pd.NA or x is pd.NaT or x != x) else x for x in lst]
+                col_lists.append(cleaned)
                 
-            hi = int2col(col_pos(ret_col))
-            col_out_tile = col_pos("Ty_le_giu_lai_BHBV")
-            
-            phi_goc_col = int2col(col_pos("Phi_bao_hiem_goc"))
-            tile_col = int2col(col_pos("Ty_le_giu_lai_BHBV"))
-            col_out_giulai = col_pos("Phi_bao_hiem_giu_lai")
-            
-            tu_ngay = int2col(col_pos(f"Ky_phi_{ky}_Tu_Ngay"))
-            tu_thang = int2col(col_pos(f"Ky_phi_{ky}_Tu_Thang"))
-            tu_nam = int2col(col_pos(f"Ky_phi_{ky}_Tu_Nam"))
-            
-            den_ngay = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
-            den_thang = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
-            den_nam = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
-            col_out_tongngay = col_pos("Tong_so_ngay")
-            
-            dpnv_ngay_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
-            dpnv_thang_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
-            dpnv_nam_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
-            col_out_ngaydaqua = col_pos("So_ngay_da_qua")
-            
-            a_col = int2col(col_pos("Tong_so_ngay"))
-            b_col = int2col(col_pos("So_ngay_da_qua"))
-            col_out_ngayconlai = col_pos("So_ngay_con_lai")
-            
-            b_col_con = int2col(col_pos("So_ngay_con_lai"))
-            c_col_goc = int2col(col_pos("Phi_bao_hiem_goc"))
-            col_out_dpgoc = col_pos("Du_phong_bao_hiem_goc")
-            
-            c_col_giu = int2col(col_pos("Phi_bao_hiem_giu_lai"))
-            col_out_dpgiu = col_pos("Du_phong_bao_hiem_giu_lai")
-            
-            for row in range(2, n + 2):
-                ws_kp.cell(row=row, column=col_out_quy).value = f'=IF({col_thang}{row}="",0,INT(({col_thang}{row}-1)/3)+1)'
-                ws_kp.cell(row=row, column=col_out_nam).value = f'=VALUE({col_nam}{row})'
-                ws_kp.cell(row=row, column=col_out_quynam).value = f'=CONCATENATE("Q",{col_quy}{row},"/",{col_nam_ghi}{row})'
+            for idx, row in enumerate(zip(*col_lists)):
+                row_idx = idx + 2
+                row_vals = list(row)
                 
-                # Phi_bao_hiem_goc
-                ws_kp.cell(row=row, column=col_out_goc).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
-                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+                formula_quy = f'=IF({col_thang_let}{row_idx}="",0,INT(({col_thang_let}{row_idx}-1)/3)+1)'
+                formula_nam = f'=VALUE({col_nam_let}{row_idx})'
+                formula_quynam = f'=CONCATENATE("Q",{col_quy_let}{row_idx},"/",{col_nam_ghi_let}{row_idx})'
+                
+                formula_goc = (
+                    f'=VALUE({col_vnd_let}{row_idx}) + VALUE({col_usd_let}{row_idx}) * IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 2, 0)), '
+                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur_let}{row_idx}) * '
+                    f'IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
-                # Ty_le_giu_lai_BHBV
-                ws_kp.cell(row=row, column=col_out_tile).value = f'=IF(OR({hi}{row}="",{hi}{row}=0), 1, IF(VALUE({hi}{row}) > 1, VALUE({hi}{row}) / 100, VALUE({hi}{row})))'
+                formula_tile = f'=IF(OR({hi_let}{row_idx}="",{hi_let}{row_idx}=0), 1, IF(VALUE({hi_let}{row_idx}) > 1, VALUE({hi_let}{row_idx}) / 100, VALUE({hi_let}{row_idx})))'
+                formula_giulai = f'=IF({phi_goc_col_let}{row_idx}="", 0, VALUE({phi_goc_col_let}{row_idx}) * {tile_col_let}{row_idx})'
                 
-                # Phi_bao_hiem_giu_lai
-                ws_kp.cell(row=row, column=col_out_giulai).value = f'=IF({phi_goc_col}{row}="", 0, VALUE({phi_goc_col}{row}) * {tile_col}{row})'
+                formula_tongngay = f'=MAX(0,DATE({den_nam_let}{row_idx},{den_thang_let}{row_idx},{den_ngay_let}{row_idx}) - DATE({tu_nam_let}{row_idx},{tu_thang_let}{row_idx},{tu_ngay_let}{row_idx})+1)'
+                formula_ngaydaqua = f'=DATE({dpnv_nam_col_let}{row_idx},{dpnv_thang_col_let}{row_idx},{dpnv_ngay_col_let}{row_idx}) - DATE({tu_nam_let}{row_idx},{tu_thang_let}{row_idx},{tu_ngay_let}{row_idx})+1'
+                formula_ngayconlai = f'=IF({b_col_let}{row_idx}<0,{a_col_let}{row_idx},IF({b_col_let}{row_idx}>{a_col_let}{row_idx},0,{a_col_let}{row_idx}-{b_col_let}{row_idx}))'
                 
-                # Tong_so_ngay
-                ws_kp.cell(row=row, column=col_out_tongngay).value = f'=MAX(0,DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) - DATE({tu_nam}{row},{tu_thang}{row},{tu_ngay}{row})+1)'
+                formula_dpgoc = f'={b_col_con_let}{row_idx}/{a_col_let}{row_idx}*{c_col_goc_let}{row_idx}'
+                formula_dpgiu = f'={b_col_con_let}{row_idx}/{a_col_let}{row_idx}*{c_col_giu_let}{row_idx}'
                 
-                # So_ngay_da_qua
-                ws_kp.cell(row=row, column=col_out_ngaydaqua).value = f'=DATE({dpnv_nam_col}{row},{dpnv_thang_col}{row},{dpnv_ngay_col}{row}) - DATE({tu_nam}{row},{tu_thang}{row},{tu_ngay}{row})+1'
+                row_vals.extend([
+                    dpnv_ngay, dpnv_thang, dpnv_nam,
+                    formula_quy, formula_nam, formula_quynam,
+                    formula_goc, formula_tile, formula_giulai,
+                    formula_tongngay, formula_ngaydaqua, formula_ngayconlai,
+                    formula_dpgoc, formula_dpgiu
+                ])
+                ws_kp.append(row_vals)
                 
-                # So_ngay_con_lai
-                ws_kp.cell(row=row, column=col_out_ngayconlai).value = f'=IF({b_col}{row}<0,{a_col}{row},IF({b_col}{row}>{a_col}{row},0,{a_col}{row}-{b_col}{row}))'
+            if len(sheet_data) > 0:
+                ws_kp.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{len(sheet_data) + 1}"
                 
-                # Du_phong_bao_hiem_goc
-                ws_kp.cell(row=row, column=col_out_dpgoc).value = f'={b_col_con}{row}/{a_col}{row}*{c_col_goc}{row}'
-                
-                # Du_phong_bao_hiem_giu_lai
-                ws_kp.cell(row=row, column=col_out_dpgiu).value = f'={b_col_con}{row}/{a_col}{row}*{c_col_giu}{row}'
-                
-        # Result Page Setup
-        # columns: Ky_phi, Quy, columns_to_sum (5 columns)
+            return {name: col_pos(name) for name in headers}
+        
+        col_pos_map = None
+        for ky in ky_available:
+            ws_kp = wb.create_sheet(f"Ky_phi{ky}")
+            col_pos_map = write_tttbvv_installment_sheet(ws_kp, ky)
+            
         num_result_rows = len(sheet_names) * len(four_last_quarters)
         
-        # Write SUBTOTAL row
-        ws_result.cell(row=1, column=1).value = "SUBTOTAL"
+        subtotal_row = ["SUBTOTAL", ""]
         for j, col in enumerate(columns_to_sum):
-            col_letter = int2col(j + 3) # A = Ky_phi, B = Quy, Columns C..G = columns_to_sum
-            ws_result.cell(row=1, column=j + 3).value = f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})"
-            
-        # Write Headers
-        ws_result.cell(row=2, column=1).value = "Ky_phi"
-        ws_result.cell(row=2, column=2).value = "Quy"
-        for j, col in enumerate(columns_to_sum):
-            ws_result.cell(row=2, column=j + 3).value = col
-            
-        # Write Rows
+            col_letter = int2col(j + 3)
+            subtotal_row.append(f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})")
+        ws_result.append(subtotal_row)
+        
+        ws_result.append(["Ky_phi", "Quy"] + columns_to_sum)
+        
         row_idx = 3
         for sh in sheet_names:
             for q in four_last_quarters:
-                ws_result.cell(row=row_idx, column=1).value = sh
-                ws_result.cell(row=row_idx, column=2).value = q
+                row_vals = [sh, q]
                 
-                # Formulas for columns_to_sum (first 4 columns via SUMIFS)
-                # Note: We need to look up column indexes in the Ky_phi sheet.
-                # All Ky_phi sheets have the same schema, so we can use the last processed one.
                 for j in range(4):
                     col_name = columns_to_sum[j]
-                    c_range = f"{sh}!{int2col(col_pos(col_name))}2:{int2col(col_pos(col_name))}{n+1}"
-                    q_range = f"{sh}!{int2col(col_pos('Quy_Nam'))}2:{int2col(col_pos('Quy_Nam'))}{n+1}"
-                    ws_result.cell(row=row_idx, column=j + 3).value = f'=SUMIFS({c_range},{q_range},"{q}")'
+                    c_range = f"{sh}!{int2col(col_pos_map[col_name])}2:{int2col(col_pos_map[col_name])}{n+1}"
+                    q_range = f"{sh}!{int2col(col_pos_map['Quy_Nam'])}2:{int2col(col_pos_map['Quy_Nam'])}{n+1}"
+                    row_vals.append(f'=SUMIFS({c_range},{q_range},"{q}")')
                     
-                # 5th column: Du_phong_bao_hiem_tai = Du_phong_goc - Du_phong_giu
-                # Columns: A=Ky_phi, B=Quy, C=Phi_goc, D=Phi_giu, E=Du_phong_goc, F=Du_phong_giu, G=Du_phong_tai
-                # So it is =E - F
-                ws_result.cell(row=row_idx, column=7).value = f"=E{row_idx}-F{row_idx}"
+                row_vals.append(f"=E{row_idx}-F{row_idx}")
+                ws_result.append(row_vals)
                 row_idx += 1
                 
     elif is_lt:
@@ -448,281 +760,217 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
             raise ValueError(f"No installments found for LT file {file_name}")
             
         sheet_names = [f"Ky_phi{k}" for k in ky_available]
+        n = len(df)
         
-        # Process each installment
-        for ky in ky_available:
-            fee_cols = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
-                        f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
-                        f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
-                        f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
-            fee_cols_exist = [c for c in fee_cols if c in df.columns]
+        extra_cols = [
+            "Quy_ghi_nhan_doanh_thu", "Quy_ghi_nhan_doanh_thu_2024", "Quy_ghi_nhan_doanh_thu_2025", 
+            "Thoi_diem_ghi_nhan_doanh_thu", "Check_01", "Check_02", "Check_03", "Check_04", "Check_05", 
+            "Check_06", "Check_07", "Tổng hợp các tiêu chí", 
+            "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang", "Thoi_diem_tinh_DPNV_Nam", 
+            "Thu_tu_Quy_DPNV", "Mau_so", "Tu_so_huong_cu", "Tu_so_chua_huong", 
+            "Tu_so_huong_sau_dieu_chinh", "Tu_so_chua_huong_dieu_chinh", 
+            "TS_chua_huong_SĐC_final", "MS_SĐC_final", 
+            "Phi_bao_hiem_sau_dong", "Phi_bao_hiem_giu_lai", "Phi_tai_bao_hiem", 
+            "Phi_bao_hiem_giu_lai_duoc_huong", "Phi_tai_bao_hiem_duoc_huong", 
+            "Phi_bao_hiem_giu_lai_chua_huong", "Phi_tai_bao_hiem_chua_huong", 
+            "Check_Phi_bao_hiem_giu_lai_chua_huong", "Check_Phi_tai_bao_hiem_chua_huong"
+        ]
+        
+        def write_lt_installment_sheet(ws_kp, ky):
+            fee_cols_ky = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
+                           f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
+                           f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
+                           f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
+            fee_cols_exist_ky = [c for c in fee_cols_ky if c in df.columns]
             base_cols = list(df.columns[:min(24, len(df.columns))])
-            sheet_data = df[base_cols + fee_cols_exist].copy()
+            sheet_data = df[base_cols + fee_cols_exist_ky].copy()
             
-            cols_to_add = [
-                "Quy_ghi_nhan_doanh_thu", "Quy_ghi_nhan_doanh_thu_2024", "Quy_ghi_nhan_doanh_thu_2025", 
-                "Thoi_diem_ghi_nhan_doanh_thu", "Check_01", "Check_02", "Check_03", "Check_04", "Check_05", 
-                "Check_06", "Check_07", "Tổng hợp các tiêu chí", 
-                "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang", "Thoi_diem_tinh_DPNV_Nam", 
-                "Thu_tu_Quy_DPNV", "Mau_so", "Tu_so_huong_cu", "Tu_so_chua_huong", 
-                "Tu_so_huong_sau_dieu_chinh", "Tu_so_chua_huong_dieu_chinh", 
-                "TS_chua_huong_SĐC_final", "MS_SĐC_final", 
-                "Phi_bao_hiem_sau_dong", "Phi_bao_hiem_giu_lai", "Phi_tai_bao_hiem", 
-                "Phi_bao_hiem_giu_lai_duoc_huong", "Phi_tai_bao_hiem_duoc_huong", 
-                "Phi_bao_hiem_giu_lai_chua_huong", "Phi_tai_bao_hiem_chua_huong", 
-                "Check_Phi_bao_hiem_giu_lai_chua_huong", "Check_Phi_tai_bao_hiem_chua_huong"
-            ]
-            for col in cols_to_add:
-                if col not in sheet_data.columns:
-                    sheet_data[col] = None
-                    
-            sheet_data["Thoi_diem_tinh_DPNV_Ngay"] = dpnv_ngay
-            sheet_data["Thoi_diem_tinh_DPNV_Thang"] = dpnv_thang
-            sheet_data["Thoi_diem_tinh_DPNV_Nam"] = dpnv_nam
+            headers = list(sheet_data.columns) + extra_cols
+            ws_kp.append(headers)
             
-            sheet_name = f"Ky_phi{ky}"
-            ws_kp = wb.create_sheet(sheet_name)
-            write_df_to_sheet(ws_kp, sheet_data, with_filter=True)
-            
-            n = len(sheet_data)
-            header = list(sheet_data.columns)
             def col_pos(col_name):
-                return header.index(col_name) + 1
+                return headers.index(col_name) + 1
                 
-            col_thang = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
-            col_nam = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
-            col_out_quy = col_pos("Quy_ghi_nhan_doanh_thu")
+            col_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
+            col_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
+            col_quy_let = int2col(col_pos("Quy_ghi_nhan_doanh_thu"))
+            col_nam_ghi_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
             
-            col_quy = int2col(col_pos("Quy_ghi_nhan_doanh_thu"))
-            col_nam_ghi = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
-            col_out_quy_2024 = col_pos("Quy_ghi_nhan_doanh_thu_2024")
-            col_out_quy_2025 = col_pos("Quy_ghi_nhan_doanh_thu_2025")
-            col_out_quynam = col_pos("Thoi_diem_ghi_nhan_doanh_thu")
+            col_den_ngay_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
+            col_den_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
+            col_den_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
             
-            col_den_ngay = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
-            col_den_thang = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
-            col_den_nam = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
+            col_dpnv_ngay_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
+            col_dpnv_thang_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
+            col_dpnv_nam_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
             
-            col_dpnv_ngay = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
-            col_dpnv_thang = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
-            col_dpnv_nam = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
-            col_out_c1 = col_pos("Check_01")
+            tu_ngay_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
+            tu_thang_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
+            tu_nam_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
             
-            tu_ngay = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
-            tu_thang = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
-            tu_nam = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
-            den_ngay = int2col(col_pos("Thoi_han_bao_hiem_Den_Ngay"))
-            den_thang = int2col(col_pos("Thoi_han_bao_hiem_Den_Thang"))
-            den_nam = int2col(col_pos("Thoi_han_bao_hiem_Den_Nam"))
-            col_out_c2 = col_pos("Check_02")
+            den_ngay_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Ngay"))
+            den_thang_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Thang"))
+            den_nam_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Nam"))
             
-            col_vnd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
-            col_usd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
-            col_eur = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
-            col_out_c3 = col_pos("Check_03")
+            col_vnd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
+            col_usd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
+            col_eur_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
+            col_quynam_let = int2col(col_pos("Thoi_diem_ghi_nhan_doanh_thu"))
             
-            tu_nam_kp = int2col(col_pos(f"Ky_phi_{ky}_Tu_Nam"))
-            tu_thang_kp = int2col(col_pos(f"Ky_phi_{ky}_Tu_Thang"))
-            tu_ngay_kp = int2col(col_pos(f"Ky_phi_{ky}_Tu_Ngay"))
-            den_nam_kp = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
-            den_thang_kp = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
-            den_ngay_kp = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
-            col_out_c4 = col_pos("Check_04")
+            tu_nam_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Nam"))
+            tu_thang_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Thang"))
+            tu_ngay_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Tu_Ngay"))
+            den_nam_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Nam"))
+            den_thang_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Thang"))
+            den_ngay_kp_let = int2col(col_pos(f"Ky_phi_{ky}_Den_Ngay"))
             
-            col_ghi_thang = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
-            col_ghi_nam = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
-            col_out_c5 = col_pos("Check_05")
+            col_ghi_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
+            col_ghi_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
             
-            col_tu_nam = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
-            col_tu_thang = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
-            col_tu_ngay = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
-            col_out_c6 = col_pos("Check_06")
+            col_tu_nam_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
+            col_tu_thang_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
+            col_tu_ngay_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
             
-            col_ghi_ngay = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Ngay"))
-            col_out_c7 = col_pos("Check_07")
+            col_ghi_ngay_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Ngay"))
             
-            c1_c = int2col(col_pos("Check_01"))
-            c2_c = int2col(col_pos("Check_02"))
-            c3_c = int2col(col_pos("Check_03"))
-            c4_c = int2col(col_pos("Check_04"))
-            c5_c = int2col(col_pos("Check_05"))
-            c6_c = int2col(col_pos("Check_06"))
-            c7_c = int2col(col_pos("Check_07"))
-            col_out_tonghop = col_pos("Tổng hợp các tiêu chí")
+            c1_c_let = int2col(col_pos("Check_01"))
+            c2_c_let = int2col(col_pos("Check_02"))
+            c3_c_let = int2col(col_pos("Check_03"))
+            c4_c_let = int2col(col_pos("Check_04"))
+            c5_c_let = int2col(col_pos("Check_05"))
+            c6_c_let = int2col(col_pos("Check_06"))
+            c7_c_let = int2col(col_pos("Check_07"))
+            col_tonghop_let = int2col(col_pos("Tổng hợp các tiêu chí"))
             
-            col_tonghop = int2col(col_pos("Tổng hợp các tiêu chí"))
-            col_out_thu_tu = col_pos("Thu_tu_Quy_DPNV")
-            
-            col_out_mau_so = col_pos("Mau_so")
-            
-            col_thu_tu = int2col(col_pos("Thu_tu_Quy_DPNV"))
-            col_mau_so = int2col(col_pos("Mau_so"))
-            col_out_huong_cu = col_pos("Tu_so_huong_cu")
-            
-            col_huong_cu = int2col(col_pos("Tu_so_huong_cu"))
-            col_out_chua_huong = col_pos("Tu_so_chua_huong")
-            
-            col_chua_huong_dieu_chinh = int2col(col_pos("Tu_so_chua_huong_dieu_chinh"))
-            col_out_huong_sdc = col_pos("Tu_so_huong_sau_dieu_chinh")
-            
-            col_chua_huong = int2col(col_pos("Tu_so_chua_huong"))
-            col_out_chua_huong_dieu_chinh = col_pos("Tu_so_chua_huong_dieu_chinh")
-            
-            col_out_ts_final = col_pos("TS_chua_huong_SĐC_final")
-            col_out_ms_final = col_pos("MS_SĐC_final")
-            
-            col_out_phi_sau_dong = col_pos("Phi_bao_hiem_sau_dong")
+            col_thu_tu_let = int2col(col_pos("Thu_tu_Quy_DPNV"))
+            col_mau_so_let = int2col(col_pos("Mau_so"))
+            col_huong_cu_let = int2col(col_pos("Tu_so_huong_cu"))
+            col_chua_huong_let = int2col(col_pos("Tu_so_chua_huong"))
+            col_chua_huong_dieu_chinh_let = int2col(col_pos("Tu_so_chua_huong_dieu_chinh"))
             
             ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in sheet_data.columns else \
                       ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in sheet_data.columns else None)
             if not ret_col:
                 raise ValueError("Could not find Ty_le_giu_lai_cua_BHBV column in LT sheet data")
-            hi = int2col(col_pos(ret_col))
-            phi_col = int2col(col_pos("Phi_bao_hiem_sau_dong"))
-            col_out_phi_giu_lai = col_pos("Phi_bao_hiem_giu_lai")
+            hi_let = int2col(col_pos(ret_col))
             
-            phi_giu_lai = int2col(col_pos("Phi_bao_hiem_giu_lai"))
-            col_out_phi_tai = col_pos("Phi_tai_bao_hiem")
+            phi_col_let = int2col(col_pos("Phi_bao_hiem_sau_dong"))
+            phi_giu_lai_let = int2col(col_pos("Phi_bao_hiem_giu_lai"))
             
-            ms_final = int2col(col_pos("MS_SĐC_final"))
-            ts_final = int2col(col_pos("TS_chua_huong_SĐC_final"))
-            col_out_giu_chua_huong = col_pos("Phi_bao_hiem_giu_lai_chua_huong")
+            ms_final_let = int2col(col_pos("MS_SĐC_final"))
+            ts_final_let = int2col(col_pos("TS_chua_huong_SĐC_final"))
             
-            phi_giu_chua_huong = int2col(col_pos("Phi_bao_hiem_giu_lai_chua_huong"))
-            col_out_giu_duoc_huong = col_pos("Phi_bao_hiem_giu_lai_duoc_huong")
+            phi_giu_chua_huong_let = int2col(col_pos("Phi_bao_hiem_giu_lai_chua_huong"))
+            phi_tai_let = int2col(col_pos("Phi_tai_bao_hiem"))
+            phi_tai_chua_huong_let = int2col(col_pos("Phi_tai_bao_hiem_chua_huong"))
             
-            phi_tai = int2col(col_pos("Phi_tai_bao_hiem"))
-            phi_tai_chua_huong = int2col(col_pos("Phi_tai_bao_hiem_chua_huong"))
-            col_out_tai_duoc_huong = col_pos("Phi_tai_bao_hiem_duoc_huong")
-            col_out_tai_chua_huong = col_pos("Phi_tai_bao_hiem_chua_huong")
+            ts_huong_sdc_let = int2col(col_pos("Tu_so_huong_sau_dieu_chinh"))
+            phi_giu_duoc_huong_let = int2col(col_pos("Phi_bao_hiem_giu_lai_duoc_huong"))
+            phi_tai_duoc_huong_let = int2col(col_pos("Phi_tai_bao_hiem_duoc_huong"))
             
-            ts_huong_sdc = int2col(col_pos("Tu_so_huong_sau_dieu_chinh"))
-            phi_giu_duoc_huong = int2col(col_pos("Phi_bao_hiem_giu_lai_duoc_huong"))
-            col_out_check_giu = col_pos("Check_Phi_bao_hiem_giu_lai_chua_huong")
-            
-            phi_tai_duoc_huong = int2col(col_pos("Phi_tai_bao_hiem_duoc_huong"))
-            col_out_check_tai = col_pos("Check_Phi_tai_bao_hiem_chua_huong")
-            
-            for row in range(2, n + 2):
-                ws_kp.cell(row=row, column=col_out_quy).value = f'=IF({col_thang}{row}="",0,INT(({col_thang}{row}-1)/3)+1)'
-                ws_kp.cell(row=row, column=col_out_quy_2024).value = f'=IF(VALUE({col_nam}{row})=2024,{col_quy}{row},0)'
-                ws_kp.cell(row=row, column=col_out_quy_2025).value = f'=IF(VALUE({col_nam}{row})=2025,{col_quy}{row},0)'
-                ws_kp.cell(row=row, column=col_out_quynam).value = f'=CONCATENATE("Q",{col_quy}{row},"/",{col_nam_ghi}{row})'
+            col_lists = []
+            for col in sheet_data.columns:
+                lst = sheet_data[col].tolist()
+                cleaned = ["" if (x is None or x is pd.NA or x is pd.NaT or x != x) else x for x in lst]
+                col_lists.append(cleaned)
                 
-                # Check_01
-                ws_kp.cell(row=row, column=col_out_c1).value = f'=IFERROR(IF(DATE({col_dpnv_nam}{row},{col_dpnv_thang}{row},{col_dpnv_ngay}{row}) - DATE({col_den_nam}{row},{col_den_thang}{row},{col_den_ngay}{row}) >= 0, 0, 1), 0)'
+            for idx, row in enumerate(zip(*col_lists)):
+                row_idx = idx + 2
+                row_vals = list(row)
                 
-                # Check_02
-                ws_kp.cell(row=row, column=col_out_c2).value = f'=IF(OR({tu_ngay}{row}="",{tu_thang}{row}="",{tu_nam}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) - DATE({tu_nam}{row},{tu_thang}{row},{tu_ngay}{row}) <= 365,0,1))'
+                formula_quy = f'=IF({col_thang_let}{row_idx}="",0,INT(({col_thang_let}{row_idx}-1)/3)+1)'
+                formula_quy_2024 = f'=IF(VALUE({col_nam_let}{row_idx})=2024,{col_quy_let}{row_idx},0)'
+                formula_quy_2025 = f'=IF(VALUE({col_nam_let}{row_idx})=2025,{col_quy_let}{row_idx},0)'
+                formula_quynam = f'=CONCATENATE("Q",{col_quy_let}{row_idx},"/",{col_nam_ghi_let}{row_idx})'
                 
-                # Check_03
-                ws_kp.cell(row=row, column=col_out_c3).value = f'=IF(AND({col_vnd}{row}="",{col_usd}{row}="",{col_eur}{row}=""),0,1)'
+                formula_c1 = f'=IFERROR(IF(DATE({col_dpnv_nam_let}{row_idx},{col_dpnv_thang_let}{row_idx},{col_dpnv_ngay_let}{row_idx}) - DATE({col_den_nam_let}{row_idx},{col_den_thang_let}{row_idx},{col_den_ngay_let}{row_idx}) >= 0, 0, 1), 0)'
+                formula_c2 = f'=IF(OR({tu_ngay_let}{row_idx}="",{tu_thang_let}{row_idx}="",{tu_nam_let}{row_idx}="",{den_ngay_let}{row_idx}="",{den_thang_let}{row_idx}="",{den_nam_let}{row_idx}=""),0,IF(DATE({den_nam_let}{row_idx},{den_thang_let}{row_idx},{den_nam_let}{row_idx}) - DATE({tu_nam_let}{row_idx},{tu_thang_let}{row_idx},{tu_ngay_let}{row_idx}) <= 365,0,1))'
+                formula_c3 = f'=IF(AND({col_vnd_let}{row_idx}="",{col_usd_let}{row_idx}="",{col_eur_let}{row_idx}=""),0,1)'
+                formula_c4 = f'=IFERROR(IF(DATE({den_nam_kp_let}{row_idx},{den_thang_kp_let}{row_idx},{den_ngay_kp_let}{row_idx})-DATE({tu_nam_kp_let}{row_idx},{tu_thang_kp_let}{row_idx},{tu_ngay_kp_let}{row_idx})>0,1,0),0)'
+                formula_c5 = f'=IF(AND({col_ghi_thang_let}{row_idx}="",{col_ghi_nam_let}{row_idx}=""), 0,1)'
+                formula_c6 = f'=IFERROR(IF(DATE({col_dpnv_nam_let}{row_idx},{col_dpnv_thang_let}{row_idx},{col_dpnv_ngay_let}{row_idx}) - DATE({col_tu_nam_let}{row_idx},{col_tu_thang_let}{row_idx},{col_tu_ngay_let}{row_idx})>=0,1,0),0)'
+                formula_c7 = f'=IFERROR(IF(DATE({col_ghi_nam_let}{row_idx},{col_ghi_thang_let}{row_idx},{col_ghi_ngay_let}{row_idx}) - DATE({col_dpnv_nam_let}{row_idx},{col_dpnv_thang_let}{row_idx},{col_dpnv_ngay_let}{row_idx}) > 0, 0, 1), 0)'
                 
-                # Check_04
-                ws_kp.cell(row=row, column=col_out_c4).value = f'=IFERROR(IF(DATE({den_nam_kp}{row},{den_thang_kp}{row},{den_ngay_kp}{row})-DATE({tu_nam_kp}{row},{tu_thang_kp}{row},{tu_ngay_kp}{row})>0,1,0),0)'
+                formula_tonghop = f'=IF(OR({c1_c_let}{row_idx}=0,{c2_c_let}{row_idx}=0,{c3_c_let}{row_idx}=0,{c4_c_let}{row_idx}=0,{c5_c_let}{row_idx}=0,{c6_c_let}{row_idx}=0,{c7_c_let}{row_idx}=0), 0, 1)'
+                formula_thutu = f'=IF({col_tonghop_let}{row_idx}=0, 0, IFERROR(({col_dpnv_nam_let}{row_idx} - {tu_nam_kp_let}{row_idx}) * 4 + INT(({col_dpnv_thang_let}{row_idx} - 1) / 3) + 1 - (INT(({tu_thang_kp_let}{row_idx} - 1) / 3) + 1 )+1, 0))'
+                formula_mauso = f'=IFERROR(((DATE({den_nam_kp_let}{row_idx},{den_thang_kp_let}{row_idx},{den_ngay_kp_let}{row_idx}) - DATE({tu_nam_kp_let}{row_idx},{tu_thang_kp_let}{row_idx},{tu_ngay_kp_let}{row_idx}) + 1) / 365) * 8, 0)'
                 
-                # Check_05
-                ws_kp.cell(row=row, column=col_out_c5).value = f'=IF(AND({col_ghi_thang}{row}="",{col_ghi_nam}{row}=""), 0,1)'
+                formula_huongcu = f'=IF({col_tonghop_let}{row_idx}=0, {col_mau_so_let}{row_idx}, IF({col_thu_tu_let}{row_idx}<=0, 0, {col_thu_tu_let}{row_idx}*2-1))'
+                formula_chuahuong = f'={col_mau_so_let}{row_idx} - {col_huong_cu_let}{row_idx}'
+                formula_chuahuongdc = f'=IFERROR(IF({col_chua_huong_let}{row_idx}>=0, {col_chua_huong_let}{row_idx}, ((DATE({den_nam_kp_let}{row_idx},{den_thang_kp_let}{row_idx},{den_ngay_kp_let}{row_idx}) - DATE({col_dpnv_nam_let}{row_idx},{col_dpnv_thang_let}{row_idx},{col_dpnv_ngay_let}{row_idx})) / 365) * 8),0)'
+                formula_huongsdc = f'={col_mau_so_let}{row_idx} - {col_chua_huong_dieu_chinh_let}{row_idx}'
                 
-                # Check_06
-                ws_kp.cell(row=row, column=col_out_c6).value = f'=IFERROR(IF(DATE({col_dpnv_nam}{row},{col_dpnv_thang}{row},{col_dpnv_ngay}{row}) - DATE({col_tu_nam}{row},{col_tu_thang}{row},{col_tu_ngay}{row})>=0,1,0),0)'
+                formula_tsfinal = f'={col_chua_huong_dieu_chinh_let}{row_idx}'
+                formula_msfinal = f'={col_mau_so_let}{row_idx}'
                 
-                # Check_07
-                ws_kp.cell(row=row, column=col_out_c7).value = f'=IFERROR(IF(DATE({col_ghi_nam}{row},{col_ghi_thang}{row},{col_ghi_ngay}{row}) - DATE({col_dpnv_nam}{row},{col_dpnv_thang}{row},{col_dpnv_ngay}{row}) > 0, 0, 1), 0)'
-                
-                # Tổng hợp các tiêu chí
-                ws_kp.cell(row=row, column=col_out_tonghop).value = f'=IF(OR({c1_c}{row}=0,{c2_c}{row}=0,{c3_c}{row}=0,{c4_c}{row}=0,{c5_c}{row}=0,{c6_c}{row}=0,{c7_c}{row}=0), 0, 1)'
-                
-                # Thu_tu_Quy_DPNV
-                ws_kp.cell(row=row, column=col_out_thu_tu).value = f'=IF({col_tonghop}{row}=0, 0, IFERROR(({col_dpnv_nam}{row} - {tu_nam_kp}{row}) * 4 + INT(({col_dpnv_thang}{row} - 1) / 3) + 1 - (INT(({tu_thang_kp}{row} - 1) / 3) + 1 )+1, 0))'
-                
-                # Mau_so
-                ws_kp.cell(row=row, column=col_out_mau_so).value = f'=IFERROR(((DATE({den_nam_kp}{row},{den_thang_kp}{row},{den_ngay_kp}{row}) - DATE({tu_nam_kp}{row},{tu_thang_kp}{row},{tu_ngay_kp}{row}) + 1) / 365) * 8, 0)'
-                
-                # Tu_so_huong_cu
-                ws_kp.cell(row=row, column=col_out_huong_cu).value = f'=IF({col_tonghop}{row}=0, {col_mau_so}{row}, IF({col_thu_tu}{row}<=0, 0, {col_thu_tu}{row}*2-1))'
-                
-                # Tu_so_chua_huong
-                ws_kp.cell(row=row, column=col_out_chua_huong).value = f'={col_mau_so}{row} - {col_huong_cu}{row}'
-                
-                # Tu_so_chua_huong_dieu_chinh
-                ws_kp.cell(row=row, column=col_out_chua_huong_dieu_chinh).value = f'=IFERROR(IF({col_chua_huong}{row}>=0, {col_chua_huong}{row}, ((DATE({den_nam_kp}{row},{den_thang_kp}{row},{den_ngay_kp}{row}) - DATE({col_dpnv_nam}{row},{col_dpnv_thang}{row},{col_dpnv_ngay}{row})) / 365) * 8),0)'
-                
-                # Tu_so_huong_sau_dieu_chinh
-                ws_kp.cell(row=row, column=col_out_huong_sdc).value = f'={col_mau_so}{row} - {col_chua_huong_dieu_chinh}{row}'
-                
-                # TS_chua_huong_SĐC_final
-                ws_kp.cell(row=row, column=col_out_ts_final).value = f'={col_chua_huong_dieu_chinh}{row}'
-                
-                # MS_SĐC_final
-                ws_kp.cell(row=row, column=col_out_ms_final).value = f'={col_mau_so}{row}'
-                
-                # Phi_bao_hiem_sau_dong
-                ws_kp.cell(row=row, column=col_out_phi_sau_dong).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
-                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+                formula_phisau = (
+                    f'=VALUE({col_vnd_let}{row_idx}) + VALUE({col_usd_let}{row_idx}) * IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 2, 0)), '
+                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur_let}{row_idx}) * '
+                    f'IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
-                # Phi_bao_hiem_giu_lai
-                ws_kp.cell(row=row, column=col_out_phi_giu_lai).value = f'=IF({phi_col}{row}="", 0, VALUE({phi_col}{row}) * IF(OR({hi}{row}="",{hi}{row}=0), 1, IF(VALUE({hi}{row}) > 1, VALUE({hi}{row}) / 100, VALUE({hi}{row}))))'
+                formula_phigiu = f'=IF({phi_col_let}{row_idx}="", 0, VALUE({phi_col_let}{row_idx}) * IF(OR({hi_let}{row_idx}="",{hi_let}{row_idx}=0), 1, IF(VALUE({hi_let}{row_idx}) > 1, VALUE({hi_let}{row_idx}) / 100, VALUE({hi_let}{row_idx}))))'
+                formula_phitai = f'=IF({phi_col_let}{row_idx}="", 0, VALUE({phi_col_let}{row_idx}) - VALUE({phi_giu_lai_let}{row_idx}))'
                 
-                # Phi_tai_bao_hiem
-                ws_kp.cell(row=row, column=col_out_phi_tai).value = f'=IF({phi_col}{row}="", 0, VALUE({phi_col}{row}) - VALUE({phi_giu_lai}{row}))'
+                formula_giuchuahuong = f'=IF(VALUE({ms_final_let}{row_idx})=0, 0, VALUE({phi_giu_lai_let}{row_idx}) * VALUE({ts_final_let}{row_idx}) / VALUE({ms_final_let}{row_idx}))'
+                formula_giuduochuong = f'=VALUE({phi_giu_lai_let}{row_idx}) - VALUE({phi_giu_chua_huong_let}{row_idx})'
+                formula_taichuahuong = f'=IF(VALUE({ms_final_let}{row_idx})=0, 0, VALUE({phi_tai_let}{row_idx}) * VALUE({ts_final_let}{row_idx}) / VALUE({ms_final_let}{row_idx}))'
+                formula_taiduochuong = f'=VALUE({phi_tai_let}{row_idx}) - VALUE({phi_tai_chua_huong_let}{row_idx})'
                 
-                # Phi_bao_hiem_giu_lai_chua_huong
-                ws_kp.cell(row=row, column=col_out_giu_chua_huong).value = f'=IF(VALUE({ms_final}{row})=0, 0, VALUE({phi_giu_lai}{row}) * VALUE({ts_final}{row}) / VALUE({ms_final}{row}))'
+                formula_checkgiu = f'=IF(VALUE({ms_final_let}{row_idx}) = 0, 0, VALUE({phi_giu_lai_let}{row_idx}) * (VALUE({ts_huong_sdc_let}{row_idx}) / VALUE({ms_final_let}{row_idx})) - VALUE({phi_giu_duoc_huong_let}{row_idx}))'
+                formula_checktai = f'=IF(VALUE({ms_final_let}{row_idx}) = 0, 0, VALUE({phi_tai_let}{row_idx}) * (VALUE({ts_huong_sdc_let}{row_idx}) / VALUE({ms_final_let}{row_idx})) - VALUE({phi_tai_duoc_huong_let}{row_idx}))'
                 
-                # Phi_bao_hiem_giu_lai_duoc_huong
-                ws_kp.cell(row=row, column=col_out_giu_duoc_huong).value = f'=VALUE({phi_giu_lai}{row}) - VALUE({phi_giu_chua_huong}{row})'
+                row_vals.extend([
+                    formula_quy, formula_quy_2024, formula_quy_2025,
+                    formula_quynam,
+                    formula_c1, formula_c2, formula_c3, formula_c4, formula_c5, formula_c6, formula_c7,
+                    formula_tonghop,
+                    dpnv_ngay, dpnv_thang, dpnv_nam,
+                    formula_thutu, formula_mauso, formula_huongcu, formula_chuahuong,
+                    formula_huongsdc, formula_chuahuongdc,
+                    formula_tsfinal, formula_msfinal,
+                    formula_phisau, formula_phigiu, formula_phitai,
+                    formula_giuduochuong, formula_taiduochuong, formula_giuchuahuong, formula_taichuahuong,
+                    formula_checkgiu, formula_checktai
+                ])
+                ws_kp.append(row_vals)
                 
-                # Phi_tai_bao_hiem_chua_huong
-                ws_kp.cell(row=row, column=col_out_tai_chua_huong).value = f'=IF(VALUE({ms_final}{row})=0, 0, VALUE({phi_tai}{row}) * VALUE({ts_final}{row}) / VALUE({ms_final}{row}))'
+            if len(sheet_data) > 0:
+                ws_kp.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{len(sheet_data) + 1}"
                 
-                # Phi_tai_bao_hiem_duoc_huong
-                ws_kp.cell(row=row, column=col_out_tai_duoc_huong).value = f'=VALUE({phi_tai}{row}) - VALUE({phi_tai_chua_huong}{row})'
-                
-                # Check_Phi_bao_hiem_giu_lai_chua_huong
-                ws_kp.cell(row=row, column=col_out_check_giu).value = f'=IF(VALUE({ms_final}{row}) = 0, 0, VALUE({phi_giu_lai}{row}) * (VALUE({ts_huong_sdc}{row}) / VALUE({ms_final}{row})) - VALUE({phi_giu_duoc_huong}{row}))'
-                
-                # Check_Phi_tai_bao_hiem_chua_huong
-                ws_kp.cell(row=row, column=col_out_check_tai).value = f'=IF(VALUE({ms_final}{row}) = 0, 0, VALUE({phi_tai}{row}) * (VALUE({ts_huong_sdc}{row}) / VALUE({ms_final}{row})) - VALUE({phi_tai_duoc_huong}{row}))'
-                
-        # Result Page Setup
-        # columns: Ky_phi, Quy, columns_to_sum (7 columns)
-        # Note that R prefixes with "Số dùng để tính", and then the four quarters
+            return {name: col_pos(name) for name in headers}
+            
+        col_pos_map = None
+        for ky in ky_available:
+            ws_kp = wb.create_sheet(f"Ky_phi{ky}")
+            col_pos_map = write_lt_installment_sheet(ws_kp, ky)
+            
         quarters_list = ["Số dùng để tính"] + four_last_quarters
         num_result_rows = len(sheet_names) * len(quarters_list)
         
-        # Write SUBTOTAL row
-        ws_result.cell(row=1, column=1).value = "SUBTOTAL"
+        subtotal_row = ["SUBTOTAL", ""]
         for j, col in enumerate(columns_to_sum):
-            col_letter = int2col(j + 3) # Columns C..I = columns_to_sum
-            ws_result.cell(row=1, column=j + 3).value = f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})"
-            
-        # Write Headers
-        ws_result.cell(row=2, column=1).value = "Ky_phi"
-        ws_result.cell(row=2, column=2).value = "Quy"
-        for j, col in enumerate(columns_to_sum):
-            ws_result.cell(row=2, column=j + 3).value = col
-            
-        # Write Rows
+            col_letter = int2col(j + 3)
+            subtotal_row.append(f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})")
+        ws_result.append(subtotal_row)
+        
+        ws_result.append(["Ky_phi", "Quy"] + columns_to_sum)
+        
         row_idx = 3
         for sh in sheet_names:
             for q in quarters_list:
-                ws_result.cell(row=row_idx, column=1).value = sh
-                ws_result.cell(row=row_idx, column=2).value = q
+                row_vals = [sh, q]
                 
-                # SUMIFS formulas
                 for j, col in enumerate(columns_to_sum):
-                    c_range = f"{sh}!{int2col(col_pos(col))}2:{int2col(col_pos(col))}{n+1}"
-                    criteria_range = f"{sh}!{int2col(col_pos('Tổng hợp các tiêu chí'))}2:{int2col(col_pos('Tổng hợp các tiêu chí'))}{n+1}"
-                    q_range = f"{sh}!{int2col(col_pos('Thoi_diem_ghi_nhan_doanh_thu'))}2:{int2col(col_pos('Thoi_diem_ghi_nhan_doanh_thu'))}{n+1}"
+                    c_range = f"{sh}!{int2col(col_pos_map[col])}2:{int2col(col_pos_map[col])}{n+1}"
+                    criteria_range = f"{sh}!{int2col(col_pos_map['Tổng hợp các tiêu chí'])}2:{int2col(col_pos_map['Tổng hợp các tiêu chí'])}{n+1}"
+                    q_range = f"{sh}!{int2col(col_pos_map['Thoi_diem_ghi_nhan_doanh_thu'])}2:{int2col(col_pos_map['Thoi_diem_ghi_nhan_doanh_thu'])}{n+1}"
                     
                     if q != "Số dùng để tính":
-                        ws_result.cell(row=row_idx, column=j + 3).value = f'=SUMIFS({c_range},{criteria_range},"1",{q_range},"{q}")'
+                        row_vals.append(f'=SUMIFS({c_range},{criteria_range},"1",{q_range},"{q}")')
                     else:
-                        ws_result.cell(row=row_idx, column=j + 3).value = f'=SUMIFS({c_range},{criteria_range},"1")'
+                        row_vals.append(f'=SUMIFS({c_range},{criteria_range},"1")')
+                ws_result.append(row_vals)
                 row_idx += 1
                 
     else:
@@ -739,153 +987,158 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
             raise ValueError(f"No installments found for ST file {file_name}")
             
         sheet_names = [f"Ky_phi{k}" for k in ky_available]
+        n = len(df)
         
-        # Process each installment
-        for ky in ky_available:
-            fee_cols = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
-                        f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
-                        f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
-                        f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
-            fee_cols_exist = [c for c in fee_cols if c in df.columns]
+        extra_cols = [
+            "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang","Thoi_diem_tinh_DPNV_Nam",
+            "Quy_ghi_doanh_thu", "Nam_ghi_doanh_thu", "Quy_Nam","Phi_bao_hiem_goc","Ty_le_giu_lai_BHBV",
+            "Phi_bao_hiem_giu_lai","Dem_ngay","Het_hieu_luc"
+        ]
+        
+        def write_st_installment_sheet(ws_kp, ky):
+            fee_cols_ky = [f"Ky_phi_{ky}_So_tien_VND", f"Ky_phi_{ky}_So_tien_USD", f"Ky_phi_{ky}_So_tien_EUR",
+                           f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam",
+                           f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam",
+                           f"Ky_phi_{ky}_Ghi_Ngay", f"Ky_phi_{ky}_Ghi_Thang", f"Ky_phi_{ky}_Ghi_Nam"]
+            fee_cols_exist_ky = [c for c in fee_cols_ky if c in df.columns]
             base_cols = list(df.columns[:min(24, len(df.columns))])
-            sheet_data = df[base_cols + fee_cols_exist].copy()
+            sheet_data = df[base_cols + fee_cols_exist_ky].copy()
             
-            cols_to_add = [
-                "Thoi_diem_tinh_DPNV_Ngay", "Thoi_diem_tinh_DPNV_Thang","Thoi_diem_tinh_DPNV_Nam",
-                "Quy_ghi_doanh_thu", "Nam_ghi_doanh_thu", "Quy_Nam","Phi_bao_hiem_goc","Ty_le_giu_lai_BHBV",
-                "Phi_bao_hiem_giu_lai","Dem_ngay","Het_hieu_luc"
-            ]
-            for col in cols_to_add:
-                if col not in sheet_data.columns:
-                    sheet_data[col] = None
-                    
-            sheet_data["Thoi_diem_tinh_DPNV_Ngay"] = dpnv_ngay
-            sheet_data["Thoi_diem_tinh_DPNV_Thang"] = dpnv_thang
-            sheet_data["Thoi_diem_tinh_DPNV_Nam"] = dpnv_nam
+            headers = list(sheet_data.columns) + extra_cols
+            ws_kp.append(headers)
             
-            sheet_name = f"Ky_phi{ky}"
-            ws_kp = wb.create_sheet(sheet_name)
-            write_df_to_sheet(ws_kp, sheet_data, with_filter=True)
-            
-            n = len(sheet_data)
-            header = list(sheet_data.columns)
             def col_pos(col_name):
-                return header.index(col_name) + 1
+                return headers.index(col_name) + 1
                 
-            col_thang = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
-            col_nam = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
-            col_out_quy = col_pos("Quy_ghi_doanh_thu")
-            col_out_nam = col_pos("Nam_ghi_doanh_thu")
+            col_thang_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Thang"))
+            col_nam_let = int2col(col_pos(f"Ky_phi_{ky}_Ghi_Nam"))
+            col_quy_let = int2col(col_pos("Quy_ghi_doanh_thu"))
+            col_nam_ghi_let = int2col(col_pos("Nam_ghi_doanh_thu"))
             
-            col_quy = int2col(col_pos("Quy_ghi_doanh_thu"))
-            col_nam_ghi = int2col(col_pos("Nam_ghi_doanh_thu"))
-            col_out_quynam = col_pos("Quy_Nam")
-            
-            col_vnd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
-            col_usd = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
-            col_eur = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
-            col_out_goc = col_pos("Phi_bao_hiem_goc")
+            col_vnd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_VND"))
+            col_usd_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_USD"))
+            col_eur_let = int2col(col_pos(f"Ky_phi_{ky}_So_tien_EUR"))
+            col_quynam_let = int2col(col_pos("Quy_Nam"))
             
             ret_col = "Ty_le_giu_lai_cua_BHBV" if "Ty_le_giu_lai_cua_BHBV" in sheet_data.columns else \
                       ("Ty_le_giu_lai_cua_BHBV_checked" if "Ty_le_giu_lai_cua_BHBV_checked" in sheet_data.columns else None)
             if not ret_col:
                 raise ValueError("Could not find Ty_le_giu_lai_cua_BHBV column in ST sheet data")
-            hi = int2col(col_pos(ret_col))
-            col_out_tile = col_pos("Ty_le_giu_lai_BHBV")
+            hi_let = int2col(col_pos(ret_col))
             
-            phi_goc_col = int2col(col_pos("Phi_bao_hiem_goc"))
-            tile_col = int2col(col_pos("Ty_le_giu_lai_BHBV"))
-            col_out_giulai = col_pos("Phi_bao_hiem_giu_lai")
+            phi_goc_col_let = int2col(col_pos("Phi_bao_hiem_goc"))
+            tile_col_let = int2col(col_pos("Ty_le_giu_lai_BHBV"))
             
-            tu_ngay = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
-            tu_thang = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
-            tu_nam = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
-            den_ngay = int2col(col_pos("Thoi_han_bao_hiem_Den_Ngay"))
-            den_thang = int2col(col_pos("Thoi_han_bao_hiem_Den_Thang"))
-            den_nam = int2col(col_pos("Thoi_han_bao_hiem_Den_Nam"))
-            col_out_demngay = col_pos("Dem_ngay")
+            tu_ngay_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Ngay"))
+            tu_thang_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Thang"))
+            tu_nam_let = int2col(col_pos("Thoi_han_bao_hiem_Tu_Nam"))
             
-            dpnv_ngay_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
-            dpnv_thang_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
-            dpnv_nam_col = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
-            col_out_hethieuluc = col_pos("Het_hieu_luc")
+            den_ngay_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Ngay"))
+            den_thang_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Thang"))
+            den_nam_let = int2col(col_pos("Thoi_han_bao_hiem_Den_Nam"))
             
-            for row in range(2, n + 2):
-                ws_kp.cell(row=row, column=col_out_quy).value = f'=IF({col_thang}{row}="",0,INT(({col_thang}{row}-1)/3)+1)'
-                ws_kp.cell(row=row, column=col_out_nam).value = f'=VALUE({col_nam}{row})'
-                ws_kp.cell(row=row, column=col_out_quynam).value = f'=CONCATENATE("Q",{col_quy}{row},"/",{col_nam_ghi}{row})'
+            dpnv_ngay_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Ngay"))
+            dpnv_thang_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Thang"))
+            dpnv_nam_col_let = int2col(col_pos("Thoi_diem_tinh_DPNV_Nam"))
+            
+            col_lists = []
+            for col in sheet_data.columns:
+                lst = sheet_data[col].tolist()
+                cleaned = ["" if (x is None or x is pd.NA or x is pd.NaT or x != x) else x for x in lst]
+                col_lists.append(cleaned)
                 
-                # Phi_bao_hiem_goc
-                ws_kp.cell(row=row, column=col_out_goc).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
-                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+            for idx, row in enumerate(zip(*col_lists)):
+                row_idx = idx + 2
+                row_vals = list(row)
+                
+                formula_quy = f'=IF({col_thang_let}{row_idx}="",0,INT(({col_thang_let}{row_idx}-1)/3)+1)'
+                formula_nam = f'=VALUE({col_nam_let}{row_idx})'
+                formula_quynam = f'=CONCATENATE("Q",{col_quy_let}{row_idx},"/",{col_nam_ghi_let}{row_idx})'
+                
+                formula_goc = (
+                    f'=VALUE({col_vnd_let}{row_idx}) + VALUE({col_usd_let}{row_idx}) * IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 2, 0)), '
+                    f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur_let}{row_idx}) * '
+                    f'IFERROR(VALUE(VLOOKUP({col_quynam_let}{row_idx}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
-                # Ty_le_giu_lai_BHBV
-                ws_kp.cell(row=row, column=col_out_tile).value = f'=IF(OR({hi}{row}="",{hi}{row}=0), 1, IF(VALUE({hi}{row}) > 1, VALUE({hi}{row}) / 100, VALUE({hi}{row})))'
+                formula_tile = f'=IF(OR({hi_let}{row_idx}="",{hi_let}{row_idx}=0), 1, IF(VALUE({hi_let}{row_idx}) > 1, VALUE({hi_let}{row_idx}) / 100, VALUE({hi_let}{row_idx})))'
+                formula_giulai = f'=IF({phi_goc_col_let}{row_idx}="", 0, VALUE({phi_goc_col_let}{row_idx}) * {tile_col_let}{row_idx})'
                 
-                # Phi_bao_hiem_giu_lai
-                ws_kp.cell(row=row, column=col_out_giulai).value = f'=IF({phi_goc_col}{row}="", 0, VALUE({phi_goc_col}{row}) * {tile_col}{row})'
+                formula_demngay = f'=IF(OR({tu_ngay_let}{row_idx}="",{tu_thang_let}{row_idx}="",{tu_nam_let}{row_idx}="",{den_ngay_let}{row_idx}="",{den_thang_let}{row_idx}="",{den_nam_let}{row_idx}=""),0,IF(DATE({den_nam_let}{row_idx},{den_thang_let}{row_idx},{den_ngay_let}{row_idx}) - DATE({tu_nam_let}{row_idx},{tu_thang_let}{row_idx},{tu_ngay_let}{row_idx}) < 365,1,0))'
+                formula_hethieuluc = f'=IF(OR({dpnv_ngay_col_let}{row_idx}="",{dpnv_thang_col_let}{row_idx}="",{dpnv_nam_col_let}{row_idx}="",{den_ngay_let}{row_idx}="",{den_thang_let}{row_idx}="",{den_nam_let}{row_idx}=""),0,IF(DATE({dpnv_nam_col_let}{row_idx},{dpnv_thang_col_let}{row_idx},{dpnv_ngay_col_let}{row_idx}) - DATE({den_nam_let}{row_idx},{den_thang_let}{row_idx},{den_ngay_let}{row_idx}) >=0,1))'
                 
-                # Dem_ngay
-                ws_kp.cell(row=row, column=col_out_demngay).value = f'=IF(OR({tu_ngay}{row}="",{tu_thang}{row}="",{tu_nam}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) - DATE({tu_nam}{row},{tu_thang}{row},{tu_ngay}{row}) < 365,1,0))'
+                row_vals.extend([
+                    dpnv_ngay, dpnv_thang, dpnv_nam,
+                    formula_quy, formula_nam, formula_quynam,
+                    formula_goc, formula_tile, formula_giulai,
+                    formula_demngay, formula_hethieuluc
+                ])
+                ws_kp.append(row_vals)
                 
-                # Het_hieu_luc
-                ws_kp.cell(row=row, column=col_out_hethieuluc).value = f'=IF(OR({dpnv_ngay_col}{row}="",{dpnv_thang_col}{row}="",{dpnv_nam_col}{row}="",{den_ngay}{row}="",{den_thang}{row}="",{den_nam}{row}=""),0,IF(DATE({dpnv_nam_col}{row},{dpnv_thang_col}{row},{dpnv_ngay_col}{row}) - DATE({den_nam}{row},{den_thang}{row},{den_ngay}{row}) >=0,1))'
+            if len(sheet_data) > 0:
+                ws_kp.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{len(sheet_data) + 1}"
                 
-        # Result Page Setup
-        # columns: Ky_phi, Quy, columns_to_sum (5 columns)
+            return {name: col_pos(name) for name in headers}
+            
+        col_pos_map = None
+        for ky in ky_available:
+            ws_kp = wb.create_sheet(f"Ky_phi{ky}")
+            col_pos_map = write_st_installment_sheet(ws_kp, ky)
+            
         num_result_rows = len(sheet_names) * len(four_last_quarters)
         
-        # Write SUBTOTAL row
-        ws_result.cell(row=1, column=1).value = "SUBTOTAL"
+        subtotal_row = ["SUBTOTAL", ""]
         for j, col in enumerate(columns_to_sum):
-            col_letter = int2col(j + 3) # Columns C..G = columns_to_sum
-            ws_result.cell(row=1, column=j + 3).value = f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})"
-            
-        # Write Headers
-        ws_result.cell(row=2, column=1).value = "Ky_phi"
-        ws_result.cell(row=2, column=2).value = "Quy"
-        for j, col in enumerate(columns_to_sum):
-            ws_result.cell(row=2, column=j + 3).value = col
-            
-        # Write Rows
+            col_letter = int2col(j + 3)
+            subtotal_row.append(f"=SUBTOTAL(9,{col_letter}3:{col_letter}{num_result_rows + 2})")
+        ws_result.append(subtotal_row)
+        
+        ws_result.append(["Ky_phi", "Quy"] + columns_to_sum)
+        
         row_idx = 3
         for sh in sheet_names:
             for q in four_last_quarters:
-                ws_result.cell(row=row_idx, column=1).value = sh
-                ws_result.cell(row=row_idx, column=2).value = q
+                row_vals = [sh, q]
                 
-                # Columns 1-2 (Phi_bao_hiem_goc, Phi_bao_hiem_giu_lai) via SUMIFS
                 for j in range(2):
                     col_name = columns_to_sum[j]
-                    c_range = f"{sh}!{int2col(col_pos(col_name))}2:{int2col(col_pos(col_name))}{n+1}"
-                    q_range = f"{sh}!{int2col(col_pos('Quy_Nam'))}2:{int2col(col_pos('Quy_Nam'))}{n+1}"
-                    ws_result.cell(row=row_idx, column=j + 3).value = f'=SUMIFS({c_range},{q_range},"{q}")'
+                    c_range = f"{sh}!{int2col(col_pos_map[col_name])}2:{int2col(col_pos_map[col_name])}{n+1}"
+                    q_range = f"{sh}!{int2col(col_pos_map['Quy_Nam'])}2:{int2col(col_pos_map['Quy_Nam'])}{n+1}"
+                    row_vals.append(f'=SUMIFS({c_range},{q_range},"{q}")')
                     
-                # Column 3 (Giam_phi_bao_hiem_goc)
-                goc_range = f"{sh}!{int2col(col_pos('Phi_bao_hiem_goc'))}2:{int2col(col_pos('Phi_bao_hiem_goc'))}{n+1}"
-                dem_ngay_range = f"{sh}!{int2col(col_pos('Dem_ngay'))}2:{int2col(col_pos('Dem_ngay'))}{n+1}"
-                hieu_luc_range = f"{sh}!{int2col(col_pos('Het_hieu_luc'))}2:{int2col(col_pos('Het_hieu_luc'))}{n+1}"
-                q_range = f"{sh}!{int2col(col_pos('Quy_Nam'))}2:{int2col(col_pos('Quy_Nam'))}{n+1}"
-                ws_result.cell(row=row_idx, column=5).value = f'=SUMIFS({goc_range},{dem_ngay_range},"1",{hieu_luc_range},"1",{q_range},"{q}")'
+                goc_range = f"{sh}!{int2col(col_pos_map['Phi_bao_hiem_goc'])}2:{int2col(col_pos_map['Phi_bao_hiem_goc'])}{n+1}"
+                dem_ngay_range = f"{sh}!{int2col(col_pos_map['Dem_ngay'])}2:{int2col(col_pos_map['Dem_ngay'])}{n+1}"
+                hieu_luc_range = f"{sh}!{int2col(col_pos_map['Het_hieu_luc'])}2:{int2col(col_pos_map['Het_hieu_luc'])}{n+1}"
+                q_range = f"{sh}!{int2col(col_pos_map['Quy_Nam'])}2:{int2col(col_pos_map['Quy_Nam'])}{n+1}"
+                row_vals.append(f'=SUMIFS({goc_range},{dem_ngay_range},"1",{hieu_luc_range},"1",{q_range},"{q}")')
                 
-                # Column 4 (Giam_phi_bao_hiem_giu_lai)
-                giu_range = f"{sh}!{int2col(col_pos('Phi_bao_hiem_giu_lai'))}2:{int2col(col_pos('Phi_bao_hiem_giu_lai'))}{n+1}"
-                ws_result.cell(row=row_idx, column=6).value = f'=SUMIFS({giu_range},{dem_ngay_range},"1",{hieu_luc_range},"1",{q_range},"{q}")'
+                giu_range = f"{sh}!{int2col(col_pos_map['Phi_bao_hiem_giu_lai'])}2:{int2col(col_pos_map['Phi_bao_hiem_giu_lai'])}{n+1}"
+                row_vals.append(f'=SUMIFS({giu_range},{dem_ngay_range},"1",{hieu_luc_range},"1",{q_range},"{q}")')
                 
-                # Column 5 (Giam_phi_bao_hiem_tai) = Giam_goc - Giam_giu
-                # Columns: A=Ky_phi, B=Quy, C=Phi_goc, D=Phi_giu, E=Giam_goc, F=Giam_giu, G=Giam_tai
-                # So it is =E - F
-                ws_result.cell(row=row_idx, column=7).value = f"=E{row_idx}-F{row_idx}"
+                row_vals.append(f"=E{row_idx}-F{row_idx}")
+                ws_result.append(row_vals)
                 row_idx += 1
                 
     wb.save(out_file_path)
     
-    # Recalculate using Excel COM
+    # Calculate the summary DataFrame in Python and save it to parquet
+    summary_path = out_file_path.replace(".xlsx", "_summary.parquet")
+    try:
+        if is_vietjet:
+            df_summary = calculate_vietjet_summary_df(df, four_last_quarters)
+        elif is_tttbvv:
+            df_summary = calculate_tttbvv_summary_df(df, ky_available, ty_gia, dpnv_date, four_last_quarters)
+        elif is_lt:
+            df_summary = calculate_lt_summary_df(df, ky_available, ty_gia, dpnv_date, four_last_quarters)
+        else:
+            df_summary = calculate_st_summary_df(df, ky_available, ty_gia, dpnv_date, four_last_quarters)
+        
+        df_summary.to_parquet(summary_path)
+    except Exception as e:
+        print(f"Error pre-calculating summary for {file_name}: {e}")
+        raise e
+        
     recalculate_excel_file(out_file_path)
-    
     return out_file_path
 
 def calculate_upr_for_quarter(db: Session, quarter_id: str, file_ids: list[int] = None) -> dict:
@@ -971,21 +1224,12 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
         if not os.path.exists(excel_path):
             continue
             
-        # Re-activate via Excel COM first to ensure values are calculated
-        recalculate_excel_file(excel_path)
-        
-        # Load Result sheet using pandas (we need the actual calculated values)
-        # Note: pandas loads the values cached in the Excel sheet
-        # Since we just called CalculateFull() and saved via win32com, values are guaranteed to exist.
         try:
-            # We skip the first row (the SUBTOTAL row), and use the second row as header
-            df_raw = pd.read_excel(excel_path, sheet_name="Result", header=None)
-            if len(df_raw) < 2:
+            summary_path = excel_path.replace(".xlsx", "_summary.parquet")
+            if not os.path.exists(summary_path):
                 continue
                 
-            headers = df_raw.iloc[1].tolist()
-            data = df_raw.iloc[2:].copy()
-            data.columns = headers
+            data = pd.read_parquet(summary_path)
             
             # Remove Ky_phi if present
             if "Ky_phi" in data.columns:
