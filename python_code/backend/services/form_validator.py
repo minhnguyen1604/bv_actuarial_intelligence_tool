@@ -18,6 +18,7 @@ import re
 import json
 import unicodedata
 import pandas as pd
+import numpy as np
 from typing import List, Dict, Any, Optional
 
 # ---------------------------------------------------------------------------
@@ -276,6 +277,12 @@ def _validate_xcg(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
     ngay_cols = [c for c in df.columns if re.search(r"NGAY_|_DAY$", str(c), re.IGNORECASE)]
     col_list  = list(df.columns)
 
+    _BLANK = {"", "none", "nan", "nat", "null", "na"}
+    def _to_num_series(s):
+        s_str = s.astype(str).str.strip().str.lower()
+        s_str = s_str.replace(list(_BLANK), np.nan)
+        return pd.to_numeric(s_str, errors='coerce')
+
     # Intermediate per-triple validity series
     hop_le_map: Dict[str, pd.Series] = {}
     for ngay_col in ngay_cols:
@@ -287,21 +294,42 @@ def _validate_xcg(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
             thang_col = col_list[idx + 1]
             nam_col   = col_list[idx + 2]
             prefix    = re.sub(r"(NGAY_|_DAY)$", "", ngay_col, flags=re.IGNORECASE)
-            valid_series = df.apply(
-                lambda row, nc=ngay_col, tc=thang_col, yc=nam_col:
-                    kiem_tra_ngay_hop_le(row[nc], row[tc], row[yc]),
-                axis=1,
+            
+            d = _to_num_series(df[ngay_col])
+            m = _to_num_series(df[thang_col])
+            y = _to_num_series(df[nam_col])
+
+            is_all_null = d.isna() & m.isna() & y.isna()
+            is_all_zero = (d == 0) & (m == 0) & (y == 0)
+            is_any_null = d.isna() | m.isna() | y.isna()
+
+            d_int = d.fillna(1).astype(int)
+            m_int = m.fillna(1).astype(int)
+            y_int = y.fillna(2000).astype(int)
+
+            valid_range = (y_int >= 1) & (y_int <= 9999) & (m_int >= 1) & (m_int <= 12) & (d_int >= 1) & (d_int <= 31)
+            
+            date_str = (
+                y_int.astype(str).str.zfill(4) + '-' +
+                m_int.astype(str).str.zfill(2) + '-' +
+                d_int.astype(str).str.zfill(2)
             )
+            
+            parsed_dates = pd.to_datetime(date_str, format='%Y-%m-%d', errors='coerce')
+            is_valid_date = parsed_dates.notna() & valid_range & (parsed_dates.dt.day == d_int)
+
+            valid_series = is_all_null | (is_all_zero & ~is_any_null) | (~is_any_null & is_valid_date)
             hop_le_map[prefix] = valid_series
 
-    def _build_check_ngay(row_idx):
-        sai = [prefix for prefix, s in hop_le_map.items() if not s.iloc[row_idx]]
-        if not sai:
-            return "Ngày hợp lệ"
-        return "Sai: " + ", ".join(sai)
-
     if hop_le_map:
-        df["Check_Ngay_Hop_Le"] = [_build_check_ngay(i) for i in range(total_rows)]
+        errors_combined = np.array([""] * total_rows, dtype=object)
+        for prefix, is_valid in hop_le_map.items():
+            errors_combined = np.where(
+                ~is_valid,
+                np.where(errors_combined == "", prefix, errors_combined + ", " + prefix),
+                errors_combined
+            )
+        df["Check_Ngay_Hop_Le"] = np.where(errors_combined == "", "Ngày hợp lệ", "Sai: " + errors_combined)
     else:
         df["Check_Ngay_Hop_Le"] = "Ngày hợp lệ"
 
@@ -313,16 +341,29 @@ def _validate_xcg(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
                                                       str(c), re.IGNORECASE)]
     check_money_results: Dict[str, pd.Series] = {}
     for col in tien_cols:
-        check_money_results[col] = df[col].apply(kiem_tra_so_tien)
-
-    def _build_check_tien(row_idx):
-        sai = [col for col, s in check_money_results.items() if s.iloc[row_idx] != "Hợp lệ"]
-        if not sai:
-            return "Số tiền hợp lệ"
-        return "Sai: " + ", ".join(sai)
+        s = df[col].astype(str).str.strip()
+        is_empty = s.isin(["", "None", "nan", "NaN", "NA"]) | df[col].isna()
+        has_alpha = s.str.contains(r"[A-Za-z]", regex=True, na=False)
+        has_invalid = s.str.contains(r"[^0-9,.\-]", regex=True, na=False)
+        
+        clean_s = s.str.replace(",", "", regex=False)
+        converted = pd.to_numeric(clean_s, errors='coerce')
+        is_convertible = converted.notna() | is_empty
+        
+        condlist = [is_empty, has_alpha, has_invalid, ~is_convertible]
+        choicelist = ["Hợp lệ", "Chứa chữ", "Ký tự không hợp lệ", "Không chuyển được sang số"]
+        check_money_results[col] = np.select(condlist, choicelist, default="Hợp lệ")
 
     if check_money_results:
-        df["Check_So_Tien"] = [_build_check_tien(i) for i in range(total_rows)]
+        errors_combined_money = np.array([""] * total_rows, dtype=object)
+        for col, status_series in check_money_results.items():
+            is_valid_money = status_series == "Hợp lệ"
+            errors_combined_money = np.where(
+                ~is_valid_money,
+                np.where(errors_combined_money == "", col, errors_combined_money + ", " + col),
+                errors_combined_money
+            )
+        df["Check_So_Tien"] = np.where(errors_combined_money == "", "Số tiền hợp lệ", "Sai: " + errors_combined_money)
     else:
         df["Check_So_Tien"] = "Số tiền hợp lệ"
 
@@ -476,24 +517,52 @@ def _validate_general(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
     ngay_cols = [c for c in data.columns if c.endswith("_Ngay")]
     hop_le_map: Dict[str, pd.Series] = {}
 
+    _BLANK = {"", "none", "nan", "nat", "null", "na"}
+    def _to_num_series(s):
+        s_str = s.astype(str).str.strip().str.lower()
+        s_str = s_str.replace(list(_BLANK), np.nan)
+        return pd.to_numeric(s_str, errors='coerce')
+
     for ngay_col in ngay_cols:
         prefix    = ngay_col[:-len("_Ngay")]
         thang_col = f"{prefix}_Thang"
         nam_col   = f"{prefix}_Nam"
         if thang_col in data.columns and nam_col in data.columns:
-            valid_series = data.apply(
-                lambda row, nc=ngay_col, tc=thang_col, yc=nam_col:
-                    kiem_tra_ngay_hop_le(row[nc], row[tc], row[yc]),
-                axis=1,
+            d = _to_num_series(data[ngay_col])
+            m = _to_num_series(data[thang_col])
+            y = _to_num_series(data[nam_col])
+
+            is_all_null = d.isna() & m.isna() & y.isna()
+            is_all_zero = (d == 0) & (m == 0) & (y == 0)
+            is_any_null = d.isna() | m.isna() | y.isna()
+
+            d_int = d.fillna(1).astype(int)
+            m_int = m.fillna(1).astype(int)
+            y_int = y.fillna(2000).astype(int)
+
+            valid_range = (y_int >= 1) & (y_int <= 9999) & (m_int >= 1) & (m_int <= 12) & (d_int >= 1) & (d_int <= 31)
+            
+            date_str = (
+                y_int.astype(str).str.zfill(4) + '-' +
+                m_int.astype(str).str.zfill(2) + '-' +
+                d_int.astype(str).str.zfill(2)
             )
+            
+            parsed_dates = pd.to_datetime(date_str, format='%Y-%m-%d', errors='coerce')
+            is_valid_date = parsed_dates.notna() & valid_range & (parsed_dates.dt.day == d_int)
+
+            valid_series = is_all_null | (is_all_zero & ~is_any_null) | (~is_any_null & is_valid_date)
             hop_le_map[prefix] = valid_series
 
-    def _build_check_ngay_general(row_idx):
-        sai = [p for p, s in hop_le_map.items() if not s.iloc[row_idx]]
-        return "Ngày hợp lệ" if not sai else ("Sai: " + ", ".join(sai))
-
     if hop_le_map:
-        data["Check_Ngay_Hop_Le"] = [_build_check_ngay_general(i) for i in range(total_rows)]
+        errors_combined = np.array([""] * total_rows, dtype=object)
+        for prefix, is_valid in hop_le_map.items():
+            errors_combined = np.where(
+                ~is_valid,
+                np.where(errors_combined == "", prefix, errors_combined + ", " + prefix),
+                errors_combined
+            )
+        data["Check_Ngay_Hop_Le"] = np.where(errors_combined == "", "Ngày hợp lệ", "Sai: " + errors_combined)
     else:
         data["Check_Ngay_Hop_Le"] = "Ngày hợp lệ"
 
@@ -502,16 +571,31 @@ def _validate_general(df: pd.DataFrame, group_code: str) -> Dict[str, Any]:
     # ── Money validation ──────────────────────────────────────────────────────
     # R lines 620-642: grep("_So_tien"), per-col _check, then Check_So_Tien
     tien_cols = [c for c in data.columns if "_So_tien" in c]
-    check_money_results: Dict[str, pd.Series] = {}
+    check_money_results: Dict[str, np.ndarray] = {}
     for col in tien_cols:
-        check_money_results[col] = data[col].apply(kiem_tra_so_tien)
-
-    def _build_check_tien_general(row_idx):
-        sai = [c for c, s in check_money_results.items() if s.iloc[row_idx] != "Hợp lệ"]
-        return "Số tiền hợp lệ" if not sai else ("Sai: " + ", ".join(sai))
+        s = data[col].astype(str).str.strip()
+        is_empty = s.isin(["", "None", "nan", "NaN", "NA"]) | data[col].isna()
+        has_alpha = s.str.contains(r"[A-Za-z]", regex=True, na=False)
+        has_invalid = s.str.contains(r"[^0-9,.\-]", regex=True, na=False)
+        
+        clean_s = s.str.replace(",", "", regex=False)
+        converted = pd.to_numeric(clean_s, errors='coerce')
+        is_convertible = converted.notna() | is_empty
+        
+        condlist = [is_empty, has_alpha, has_invalid, ~is_convertible]
+        choicelist = ["Hợp lệ", "Chứa chữ", "Ký tự không hợp lệ", "Không chuyển được sang số"]
+        check_money_results[col] = np.select(condlist, choicelist, default="Hợp lệ")
 
     if check_money_results:
-        data["Check_So_Tien"] = [_build_check_tien_general(i) for i in range(total_rows)]
+        errors_combined_money = np.array([""] * total_rows, dtype=object)
+        for col, status_series in check_money_results.items():
+            is_valid_money = status_series == "Hợp lệ"
+            errors_combined_money = np.where(
+                ~is_valid_money,
+                np.where(errors_combined_money == "", col, errors_combined_money + ", " + col),
+                errors_combined_money
+            )
+        data["Check_So_Tien"] = np.where(errors_combined_money == "", "Số tiền hợp lệ", "Sai: " + errors_combined_money)
     else:
         data["Check_So_Tien"] = "Số tiền hợp lệ"
 
