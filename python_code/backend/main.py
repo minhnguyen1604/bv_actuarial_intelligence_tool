@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 import models
 from database import engine
-from routers import parameters, files, upr
+from routers import parameters, files, upr, vas_analysis
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -17,6 +17,7 @@ async def health_check():
 app.include_router(parameters.router)
 app.include_router(files.router)
 app.include_router(upr.router)
+app.include_router(vas_analysis.router)
 
 @app.get("/")
 async def root():

@@ -4,12 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BaoViet Actuarial Intelligence</title>
+    <title>BVGI Intelligence Tool</title>
+    <link rel="icon" type="image/png" href="BVH.VN-4893b119.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- SheetJS for local Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Plotly.js for charts -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
     <style>
         :root {
             /* Sleek Grey-White Palette */
@@ -1209,6 +1212,73 @@
             background: transparent;
             border-color: transparent;
         }
+        /* VAS Analysis tab styling */
+        .vas-tab-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .vas-tab-link:hover {
+            color: var(--bv-blue);
+            background: rgba(0, 86, 163, 0.05);
+        }
+        .vas-tab-link.active {
+            color: var(--bv-blue);
+            background: rgba(0, 86, 163, 0.1);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+            border-bottom: none !important;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 14px;
+            padding: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease-in-out;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 86, 163, 0.08);
+            border-color: rgba(0, 86, 163, 0.2);
+        }
+        .kpi-title {
+            font-weight: 700;
+            color: var(--bv-blue);
+            margin-bottom: 12px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .kpi-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .kpi-row:last-child {
+            margin-bottom: 0;
+        }
+        .kpi-green {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .kpi-red {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
     </style>
 </head>
 
@@ -1249,6 +1319,10 @@
         <div class="nav-item" data-tooltip="OSC Calculation">
             <span class="nav-icon">◐</span>
             <span class="nav-text">OSC Calculation</span>
+        </div>
+        <div class="nav-item" data-tooltip="VAS Analysis" id="vasAnalysisNavItem">
+            <span class="nav-icon">◰</span>
+            <span class="nav-text">VAS Analysis</span>
         </div>
         <div class="nav-item" onclick="toggleSubmenu('reports-submenu', this)" data-tooltip="Reports">
             <span class="nav-icon">◫</span>
@@ -1531,8 +1605,339 @@
                     </div>
                 </div>
             </div>
+
+        </div>
+
+        <!-- VAS Analysis View -->
+        <div id="vas-analysis-view" class="content" style="display: none; flex-direction: column; height: 100%; overflow-y: auto;">
+            
+            <!-- Tab Links -->
+            <div class="panel glass-panel" style="padding: 12px 28px; margin-bottom: 20px; flex-shrink: 0; display: flex; gap: 8px; align-items: center; z-index: 10;">
+                <div class="vas-tab-link active" id="tabLinkInput" onclick="switchVasTab('vas-input-tab')">Upload & Input</div>
+                <div class="vas-tab-link" id="tabLinkOverview" onclick="switchVasTab('vas-overview-tab')">Overview</div>
+                <div class="vas-tab-link" id="tabLinkCompare" onclick="switchVasTab('vas-compare-tab')">Comparison</div>
+                <div class="vas-tab-link" id="tabLinkHistory" onclick="switchVasTab('vas-history-tab')">Historical Data</div>
+                <div class="vas-tab-link" id="tabLinkDetail" onclick="switchVasTab('vas-detail-tab')">Professional Detail</div>
+            </div>
+
+            <!-- Tab 1: Upload & Input -->
+            <div id="vas-input-tab" class="vas-tab-content" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="setup-grid" style="display: grid; grid-template-columns: 3.5fr 8.5fr; gap: 20px; margin-bottom: 0;">
+                    <!-- Left Side: upload & settings -->
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+                        <div>
+                            <label class="form-label">Year</label>
+                            <input type="number" id="vasYear" class="form-control" value="2025" style="text-align: center;">
+                        </div>
+                        <div>
+                            <label class="form-label">Quarter</label>
+                            <select id="vasQuarter" class="form-control">
+                                <option value="Q1">Q1</option>
+                                <option value="Q2">Q2</option>
+                                <option value="Q3">Q3</option>
+                                <option value="Q4">Q4</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Select VAS full Excel</label>
+                            <div class="upload-zone" id="vasUploadZone" style="padding: 20px 10px; margin-bottom: 10px;">
+                                <div class="upload-icon" style="font-size: 24px; margin-bottom: 6px;">⏏</div>
+                                <div style="font-size: 12px; font-weight: 600;" id="vasUploadText">Choose file...</div>
+                                <input type="file" id="vasFileInput" style="display: none;" accept=".xlsx, .xlsm">
+                            </div>
+                        </div>
+                        <div style="display: none;" id="vasSheetsContainer">
+                            <div style="margin-bottom: 10px;">
+                                <label class="form-label">Sheet Result</label>
+                                <select id="vasSheetResult" class="form-control"></select>
+                            </div>
+                            <div style="margin-bottom: 10px;">
+                                <label class="form-label">Sheet Doanh thu bồi thường</label>
+                                <select id="vasSheetDtbt" class="form-control"></select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" id="btnVasCheck" style="flex: 1; height: 38px; padding: 0;">Kiểm tra</button>
+                            <button class="btn btn-accent" id="btnVasMerge" style="flex: 1; height: 38px; padding: 0;" disabled>Ghép dữ liệu</button>
+                        </div>
+                        <button class="btn btn-primary" id="btnVasUpdate" style="width: 100%; height: 38px; display: none;">Update DATA hiện có</button>
+                    </div>
+                    <!-- Right Side: calculation output table -->
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 400px;">
+                        <div class="panel-header" style="margin-bottom: 12px;">
+                            <div class="panel-title" id="vasCalcTableTitle">KẾT QUẢ TỔNG HỢP</div>
+                        </div>
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasCalcTable" style="border-spacing: 0; width: 100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
+                                    <tr>
+                                        <th style="text-align: left;">Line</th>
+                                        <th>Type</th>
+                                        <th>Written</th>
+                                        <th>Paid</th>
+                                        <th>@UPR</th>
+                                        <th>@OsC</th>
+                                        <th>UPR</th>
+                                        <th>OsC</th>
+                                        <th>Incurred/Earned</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vasCalcTableBody">
+                                    <tr>
+                                        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-secondary);">Chưa có dữ liệu. Hãy tải file lên và chạy tính toán.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- Cards and Charts of newly calculated quarter -->
+                <div class="panel glass-panel" style="display: none;" id="vasCalcDetailPanel">
+                    <div class="panel-header" style="margin-bottom: 16px;">
+                        <div class="panel-title">KPI Cards (Current Run)</div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label class="form-label" style="margin: 0; font-size:12px;">Type:</label>
+                            <select id="vasCalcDetailType" class="form-control" style="width: 120px; height: 32px; padding: 2px 8px;"></select>
+                            <label class="form-label" style="margin: 0; margin-left: 10px; font-size:12px;">Quý/Lũy kế:</label>
+                            <select id="vasCalcDetailQlk" class="form-control" style="width: 120px; height: 32px; padding: 2px 8px;"></select>
+                        </div>
+                    </div>
+                    <div class="kpi-grid" id="vasCalcKpiGrid"></div>
+                    
+                    <div class="panel-header" style="margin-top: 20px; margin-bottom: 12px;">
+                        <div class="panel-title">Ratios & Outliers Grid</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;" id="vasCalcChartsGrid"></div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Overview -->
+            <div id="vas-overview-tab" class="vas-tab-content" style="display: none; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="panel glass-panel" style="padding: 16px 20px; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; flex-shrink: 0;">
+                    <div>
+                        <label class="form-label">Quý/Lũy kế</label>
+                        <select id="vasOvrQlk" class="form-control" style="width: 140px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Năm</label>
+                        <select id="vasOvrYear" class="form-control" style="width: 100px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Quý</label>
+                        <select id="vasOvrQuarter" class="form-control" style="width: 100px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Type</label>
+                        <select id="vasOvrType" class="form-control" style="width: 120px;"></select>
+                    </div>
+                </div>
+                <div class="panel glass-panel" style="padding: 20px;">
+                    <div class="panel-title" style="margin-bottom: 16px;">Lines Summary</div>
+                    <div class="kpi-grid" id="vasOvrKpiGrid"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-height: 450px;">
+                    <!-- Written premium growth table -->
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 400px;">
+                        <div class="panel-title" style="margin-bottom: 12px;">Written Premium History & YoY Growth</div>
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasOvrTable" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasOvrTableHead"></thead>
+                                <tbody id="vasOvrTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Charts container -->
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; gap: 16px; min-height: 400px;">
+                        <div class="panel-header" style="margin-bottom: 0;">
+                            <div class="panel-title">Charts Analytics</div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label class="form-label" style="margin:0; font-size:12px;">LOB:</label>
+                                <select id="vasOvrChartLob" class="form-control" style="width: 180px; height: 32px; padding: 2px 8px;"></select>
+                            </div>
+                        </div>
+                        <div id="vasOvrChartBar" style="flex: 1; min-height: 200px;"></div>
+                        <div id="vasOvrChartLine" style="flex: 1; min-height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Comparison -->
+            <div id="vas-compare-tab" class="vas-tab-content" style="display: none; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="panel glass-panel" style="padding: 16px 20px; display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; flex-shrink: 0;">
+                    <div>
+                        <label class="form-label">Quý/Lũy kế</label>
+                        <select id="vasCmpQlk" class="form-control" style="width: 140px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Type</label>
+                        <select id="vasCmpType" class="form-control" style="width: 120px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Chỉ tiêu</label>
+                        <select id="vasCmpMetric" class="form-control" style="width: 200px;">
+                            <option value="OsC">OsC</option>
+                            <option value="UPR">UPR</option>
+                            <option value="Written">Written</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Paid/Written">Paid/Written</option>
+                            <option value="Incurred/Earned" selected>Incurred/Earned</option>
+                            <option value="@OsC">@OsC</option>
+                            <option value="@UPR">@UPR</option>
+                            <option value="@IBNR">@IBNR</option>
+                            <option value="@CAT">@CAT</option>
+                            <option value="Sub total(earned)">Sub total(earned)</option>
+                            <option value="Sub total(incurred)">Sub total(incurred)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Năm bắt đầu</label>
+                        <select id="vasCmpStartYear" class="form-control" style="width: 100px;">
+                            <option value="2020">2020</option>
+                            <option value="2021">2021</option>
+                            <option value="2022">2022</option>
+                            <option value="2023" selected>2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-outline" id="btnVasDownloadAllData" style="height: 42px; margin-left: auto;">Tải toàn bộ DATA</button>
+                </div>
+                
+                <!-- Compare 1: Quarterly comparison -->
+                <div class="setup-grid" style="display: grid; grid-template-columns: 8.5fr 3.5fr; gap: 20px; margin-bottom: 0;">
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 350px;">
+                        <div class="panel-header" style="margin-bottom: 12px;">
+                            <div class="panel-title">So sánh chỉ tiêu giữa các quý (Triệu VND / %)</div>
+                            <button class="btn btn-outline btn-icon-sm" id="btnVasDownloadCmp1" title="Download Excel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                        </div>
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasCmp1Table" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasCmp1TableHead"></thead>
+                                <tbody id="vasCmp1TableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
+                        <div class="panel-title" style="margin-bottom: 16px;">Nhận xét biến động</div>
+                        <div id="vasCmp1Comments" style="flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.5;"></div>
+                    </div>
+                </div>
+
+                <!-- Compare 2: Type comparison -->
+                <div class="setup-grid" style="display: grid; grid-template-columns: 8.5fr 3.5fr; gap: 20px; margin-bottom: 0;">
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 350px;">
+                        <div class="panel-header" style="margin-bottom: 12px;">
+                            <div class="panel-title" id="vasCmp2Title">So sánh giữa các Type</div>
+                            <button class="btn btn-outline btn-icon-sm" id="btnVasDownloadCmp2" title="Download Excel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                        </div>
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasCmp2Table" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
+                                    <tr>
+                                        <th style="text-align:left;">Line</th>
+                                        <th>DIRECT</th>
+                                        <th>RECOVERY</th>
+                                        <th>INWARD</th>
+                                        <th>RETROCESSION</th>
+                                        <th>NET</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vasCmp2TableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
+                        <div class="panel-title" style="margin-bottom: 16px;">Nhận xét cấu trúc</div>
+                        <div id="vasCmp2Comments" style="flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.5;"></div>
+                    </div>
+                </div>
+                <!-- Compare charts container -->
+                <div class="panel glass-panel" style="padding: 20px;">
+                    <div class="panel-title" style="margin-bottom: 16px;">Biểu đồ so sánh các năm</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;" id="vasCmpChartsGrid"></div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Historical Data -->
+            <div id="vas-history-tab" class="vas-tab-content" style="display: none; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; flex: 1; min-height: 450px;">
+                    <div class="panel-header" style="margin-bottom: 16px;">
+                        <div class="panel-title">Xem dữ liệu kiểu Excel</div>
+                        <button class="btn btn-outline" id="btnVasDownloadAllHistory">Tải về Excel</button>
+                    </div>
+                    <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <table id="vasHistoryTable" style="border-spacing:0; width:100%;">
+                            <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasHistoryTableHead"></thead>
+                            <tbody id="vasHistoryTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Professional Detail -->
+            <div id="vas-detail-tab" class="vas-tab-content" style="display: none; flex-direction: column; gap: 20px; flex: 1;">
+                <div class="panel glass-panel" style="padding: 16px 20px; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; flex-shrink: 0;">
+                    <div>
+                        <label class="form-label">Chọn nghiệp vụ</label>
+                        <select id="vasDetLine" class="form-control" style="width: 220px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Chọn Quý-Năm</label>
+                        <select id="vasDetPeriod" class="form-control" style="width: 140px;"></select>
+                    </div>
+                    <div>
+                        <label class="form-label">Chọn Quý/Lũy kế</label>
+                        <select id="vasDetQlk" class="form-control" style="width: 140px;"></select>
+                    </div>
+                </div>
+                <div class="setup-grid" style="display: grid; grid-template-columns: 7.5fr 4.5fr; gap: 20px; margin-bottom: 0;">
+                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 350px;">
+                        <div class="panel-title" style="margin-bottom: 12px;">Chi tiết nghiệp vụ</div>
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasDetTable" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
+                                    <tr>
+                                        <th style="text-align:left;">Chỉ tiêu</th>
+                                        <th>DIRECT</th>
+                                        <th>RECOVERY</th>
+                                        <th>INWARD</th>
+                                        <th>RETROCESSION</th>
+                                        <th>NET</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vasDetTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="panel glass-panel" style="padding: 20px; display: flex; flex-direction: column;">
+                        <div class="panel-title" style="margin-bottom: 16px;">Nhận xét tính hợp lý Direct vs Recovery</div>
+                        <div id="vasDetComments" style="flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.6;"></div>
+                    </div>
+                </div>
+                <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 250px; gap: 20px;">
+                    <div>
+                        <div class="panel-title" style="margin-bottom: 12px;">Loss Ratio - NET (9 Quý gần nhất)</div>
+                        <div class="table-container hover-scroll" style="background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasDetLossNetTable" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasDetLossNetHead"></thead>
+                                <tbody id="vasDetLossNetBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="panel-title" style="margin-bottom: 12px;">Loss Ratio - DIRECT (9 Quý gần nhất)</div>
+                        <div class="table-container hover-scroll" style="background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                            <table id="vasDetLossDirectTable" style="border-spacing:0; width:100%;">
+                                <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasDetLossDirectHead"></thead>
+                                <tbody id="vasDetLossDirectBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
+
 
     <!-- Sheet Selection Modal -->
     <div class="modal-overlay" id="sheetSelectionModal">
@@ -2902,6 +3307,7 @@
         function switchView(viewId) {
             document.getElementById('upr-calculation-view').style.display = 'none';
             document.getElementById('exchange-rates-view').style.display = 'none';
+            document.getElementById('vas-analysis-view').style.display = 'none';
             
             const view = document.getElementById(viewId);
             if (view) {
@@ -2930,7 +3336,7 @@
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', function() {
                 const tooltip = this.getAttribute('data-tooltip');
-                if (tooltip === 'Exchange Rates') return;
+                if (tooltip === 'Exchange Rates' || tooltip === 'VAS Analysis') return;
                 if (tooltip === 'Reports' || tooltip === 'UPR Calculation') return;
                 
                 switchView('upr-calculation-view');
@@ -3086,7 +3492,1367 @@
 
         document.getElementById('fxYear').addEventListener('change', loadFxRates);
         document.getElementById('fxQuarter').addEventListener('change', loadFxRates);
+        
         document.getElementById('btnSaveFxRates').addEventListener('click', saveFxRates);
+
+        // ==========================================
+        // VAS ANALYSIS JS LOGIC (ACTUARIAL PORTING)
+        // ==========================================
+        let vasCurrentCalculatedData = null;
+        let vasHistoryData = [];
+        let vasSelectedFile = null;
+        
+        function switchVasTab(tabId) {
+            document.querySelectorAll('.vas-tab-link').forEach(link => link.classList.remove('active'));
+            document.querySelectorAll('.vas-tab-content').forEach(content => content.style.display = 'none');
+            
+            // Map tab link IDs
+            const linkMap = {
+                'vas-input-tab': 'tabLinkInput',
+                'vas-overview-tab': 'tabLinkOverview',
+                'vas-compare-tab': 'tabLinkCompare',
+                'vas-history-tab': 'tabLinkHistory',
+                'vas-detail-tab': 'tabLinkDetail'
+            };
+            
+            const activeLink = document.getElementById(linkMap[tabId]);
+            if (activeLink) activeLink.classList.add('active');
+            
+            const activeTab = document.getElementById(tabId);
+            if (activeTab) activeTab.style.display = 'flex';
+            
+            // Load appropriate data on tab click
+            if (tabId === 'vas-overview-tab') {
+                loadVasOverviewTab();
+            } else if (tabId === 'vas-compare-tab') {
+                loadVasCompareTab();
+            } else if (tabId === 'vas-history-tab') {
+                loadVasHistoryTab();
+            } else if (tabId === 'vas-detail-tab') {
+                loadVasDetailTab();
+            }
+        }
+
+        // Initialize VAS Nav Item Click
+        document.getElementById('vasAnalysisNavItem').addEventListener('click', function() {
+            switchView('vas-analysis-view');
+            this.classList.add('active');
+            switchVasTab('vas-input-tab');
+            
+            // Sync year/quarter inputs from main view to VAS inputs
+            const mainYear = document.getElementById('calcYear').value;
+            const mainMonth = parseInt(document.getElementById('calcMonth').value) || 1;
+            const mainQuarter = `Q${Math.ceil(mainMonth / 3)}`;
+            
+            document.getElementById('vasYear').value = mainYear;
+            document.getElementById('vasQuarter').value = mainQuarter;
+            
+            loadVasHistory(); // Fetch database records on tab open
+        });
+        
+        // Fetch historical data
+        async function loadVasHistory() {
+            try {
+                const response = await fetch('/api/vas/history');
+                if (response.ok) {
+                    vasHistoryData = await response.json();
+                }
+            } catch (err) {
+                console.error("Failed to load VAS history:", err);
+            }
+        }
+
+        // Drag and Drop File Upload for VAS Analysis
+        const vasZone = document.getElementById('vasUploadZone');
+        const vasInput = document.getElementById('vasFileInput');
+        
+        vasZone.addEventListener('click', () => vasInput.click());
+        vasZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            vasZone.style.borderColor = 'var(--bv-blue)';
+            vasZone.style.backgroundColor = 'rgba(0, 86, 163, 0.08)';
+        });
+        vasZone.addEventListener('dragleave', () => {
+            vasZone.style.borderColor = 'rgba(0, 86, 163, 0.2)';
+            vasZone.style.backgroundColor = 'rgba(0, 86, 163, 0.02)';
+        });
+        vasZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            vasZone.style.borderColor = 'rgba(0, 86, 163, 0.2)';
+            vasZone.style.backgroundColor = 'rgba(0, 86, 163, 0.02)';
+            if (e.dataTransfer.files.length > 0) {
+                vasInput.files = e.dataTransfer.files;
+                handleVasFileUpload(e.dataTransfer.files[0]);
+            }
+        });
+        vasInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleVasFileUpload(e.target.files[0]);
+            }
+        });
+        
+        async function handleVasFileUpload(file) {
+            const y = document.getElementById('vasYear').value;
+            const q = document.getElementById('vasQuarter').value;
+            const quarterId = `${y}${q}`;
+            
+            document.getElementById('vasUploadText').innerText = `Uploading ${file.name}...`;
+            
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("quarter_id", quarterId);
+            
+            try {
+                const res = await fetch('/api/vas/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    vasSelectedFile = data;
+                    document.getElementById('vasUploadText').innerText = file.name;
+                    showToast("Tải file thành công!");
+                    
+                    // Populate sheet selectors
+                    const sheetRes = document.getElementById('vasSheetResult');
+                    const sheetDtbt = document.getElementById('vasSheetDtbt');
+                    
+                    sheetRes.innerHTML = '';
+                    sheetDtbt.innerHTML = '';
+                    
+                    data.sheets.forEach(sh => {
+                        sheetRes.add(new Option(sh, sh));
+                        sheetDtbt.add(new Option(sh, sh));
+                    });
+                    
+                    // Select default sheets if they exist
+                    const resultSheet = data.sheets.find(s => s.toLowerCase().includes('result'));
+                    const dtbtSheet = data.sheets.find(s => s.toLowerCase().includes('doanh thu') || s.toLowerCase().includes('dt'));
+                    
+                    if (resultSheet) sheetRes.value = resultSheet;
+                    if (dtbtSheet) sheetDtbt.value = dtbtSheet;
+                    
+                    document.getElementById('vasSheetsContainer').style.display = 'block';
+                    document.getElementById('btnVasCheck').disabled = false;
+                } else {
+                    const err = await res.json();
+                    showToast(err.detail || "Upload thất bại", "error");
+                    document.getElementById('vasUploadText').innerText = "Drag & Drop file...";
+                }
+            } catch (err) {
+                showToast("Lỗi kết nối upload", "error");
+                document.getElementById('vasUploadText').innerText = "Drag & Drop file...";
+            }
+        }
+        
+        // Button Check
+        document.getElementById('btnVasCheck').addEventListener('click', async () => {
+            if (!vasSelectedFile) return;
+            
+            const sheet1 = document.getElementById('vasSheetResult').value;
+            const sheet2 = document.getElementById('vasSheetDtbt').value;
+            
+            document.getElementById('btnVasCheck').innerHTML = 'Checking...';
+            
+            try {
+                const res = await fetch('/api/vas/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: vasSelectedFile.file_path,
+                        sheet_result: sheet1,
+                        sheet_dtbt: sheet2
+                    })
+                });
+                
+                if (res.ok) {
+                    const checkRes = await res.json();
+                    if (checkRes.ok) {
+                        showToast("Dữ liệu đúng định dạng!");
+                        document.getElementById('btnVasMerge').disabled = false;
+                    } else {
+                        alert(`Sai định dạng dữ liệu: ${checkRes.detail}`);
+                        document.getElementById('btnVasMerge').disabled = true;
+                    }
+                } else {
+                    alert("Kiểm tra thất bại.");
+                }
+            } catch (err) {
+                alert("Lỗi kiểm tra.");
+            } finally {
+                document.getElementById('btnVasCheck').innerHTML = 'Kiểm tra';
+            }
+        });
+        
+        // Button Merge / Calculate
+        document.getElementById('btnVasMerge').addEventListener('click', async () => {
+            if (!vasSelectedFile) return;
+            
+            const sheet1 = document.getElementById('vasSheetResult').value;
+            const sheet2 = document.getElementById('vasSheetDtbt').value;
+            const y = document.getElementById('vasYear').value;
+            const q = document.getElementById('vasQuarter').value;
+            const quarterId = `${y}${q}`;
+            
+            document.getElementById('btnVasMerge').innerHTML = 'Calculating...';
+            
+            try {
+                const res = await fetch('/api/vas/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: vasSelectedFile.file_path,
+                        sheet_result: sheet1,
+                        sheet_dtbt: sheet2,
+                        quarter_id: quarterId
+                    })
+                });
+                
+                if (res.ok) {
+                    vasCurrentCalculatedData = await res.json();
+                    showToast("Tính toán kết quả hoàn tất!");
+                    renderVasCalcTable(vasCurrentCalculatedData);
+                    
+                    // Enable & Show update button
+                    document.getElementById('btnVasUpdate').style.display = 'block';
+                    
+                    // Render details panel (cards & Plotly charts)
+                    renderVasCalcDetailPanel();
+                } else {
+                    const err = await res.json();
+                    alert(`Lỗi tính toán: ${err.detail}`);
+                }
+            } catch (err) {
+                alert("Lỗi kết nối tính toán.");
+            } finally {
+                document.getElementById('btnVasMerge').innerHTML = 'Ghép dữ liệu';
+            }
+        });
+        
+        // Render immediate calculation output table
+        function renderVasCalcTable(data) {
+            // Filter only 'Theo quý' rows to display in the main summary table
+            const quarterlyRows = data.filter(r => r.quy_luy_ke === 'Theo quý' && r.Type === 'NET');
+            const tbody = document.getElementById('vasCalcTableBody');
+            tbody.innerHTML = '';
+            
+            document.getElementById('vasCalcTableTitle').innerText = `KẾT QUẢ TỔNG HỢP ${document.getElementById('vasQuarter').value}/${document.getElementById('vasYear').value}`;
+            
+            if (quarterlyRows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">Không tìm thấy dữ liệu.</td></tr>';
+                return;
+            }
+            
+            // Sort Total LOB to bottom, others by line_order
+            const line_order = [
+                "Healthcare", "Travel", "Healthcare + Travel", "Personal Accident", "HC & PA & Travel",
+                "Motor Vehicles", "Engineering", "Fire and Misc.", "General Liability",
+                "Cargo in transit", "Hull & PI", "Aviation & Oil", "Agriculture", "Total"
+            ];
+            
+            quarterlyRows.sort((a, b) => line_order.indexOf(a.Line) - line_order.indexOf(b.Line));
+            
+            quarterlyRows.forEach(r => {
+                const written = Number(r.written || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const paid = Number(r.paid || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const reserve_upr = Number(r.reserve_upr || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const reserve_osc = Number(r.reserve_osc || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const upr = Number(r.upr || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const osc = Number(r.osc || 0).toLocaleString('en-US', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+                const loss = (Number(r.incurred_earned || 0) * 100).toFixed(1) + '%';
+                
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr>
+                        <td style="font-weight: 600; text-align: left;">${r.Line}</td>
+                        <td style="text-align: center;">${r.Type}</td>
+                        <td style="text-align: right;">${written}</td>
+                        <td style="text-align: right;">${paid}</td>
+                        <td style="text-align: right;">${reserve_upr}</td>
+                        <td style="text-align: right;">${reserve_osc}</td>
+                        <td style="text-align: right;">${upr}</td>
+                        <td style="text-align: right;">${osc}</td>
+                        <td style="text-align: right; font-weight:700;">${loss}</td>
+                    </tr>
+                `);
+            });
+        }
+        
+        // Button Update (Save calculations to history)
+        document.getElementById('btnVasUpdate').addEventListener('click', () => runVasUpdate(false));
+        
+        async function runVasUpdate(confirmReplace = false) {
+            const y = document.getElementById('vasYear').value;
+            const q = document.getElementById('vasQuarter').value;
+            const quarterId = `${y}${q}`;
+            
+            try {
+                const res = await fetch('/api/vas/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quarter_id: quarterId,
+                        confirm_replace: confirmReplace
+                    })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'duplicate') {
+                        if (confirm(data.message)) {
+                            runVasUpdate(true); // Retry with override confirm
+                        }
+                    } else {
+                        showToast(data.message);
+                        loadVasHistory(); // Reload history
+                        document.getElementById('btnVasUpdate').style.display = 'none';
+                    }
+                } else {
+                    alert("Lưu trữ thất bại.");
+                }
+            } catch (err) {
+                alert("Lỗi kết nối.");
+            }
+        }
+        
+        // Render details panel in Tab 1 (KPI grid & Outlier charts)
+        function renderVasCalcDetailPanel() {
+            const panel = document.getElementById('vasCalcDetailPanel');
+            panel.style.display = 'block';
+            
+            const types = [...new Set(vasCurrentCalculatedData.map(r => r.Type))];
+            const qlks = [...new Set(vasCurrentCalculatedData.map(r => r.quy_luy_ke))];
+            
+            const typeSel = document.getElementById('vasCalcDetailType');
+            const qlkSel = document.getElementById('vasCalcDetailQlk');
+            
+            typeSel.innerHTML = '';
+            qlkSel.innerHTML = '';
+            
+            types.forEach(t => typeSel.add(new Option(t, t)));
+            qlks.forEach(q => qlkSel.add(new Option(q, q)));
+            
+            typeSel.value = "NET";
+            qlkSel.value = "Theo quý";
+            
+            // Re-render sub-components on filter change
+            typeSel.onchange = renderVasCalcKpisAndCharts;
+            qlkSel.onchange = renderVasCalcKpisAndCharts;
+            
+            renderVasCalcKpisAndCharts();
+        }
+        
+        function renderVasCalcKpisAndCharts() {
+            const type_sel = document.getElementById('vasCalcDetailType').value;
+            const qlk_sel = document.getElementById('vasCalcDetailQlk').value;
+            const y = document.getElementById('vasYear').value;
+            const q = document.getElementById('vasQuarter').value;
+            
+            // Filter current run
+            const currentRun = vasCurrentCalculatedData.filter(r => r.Type === type_sel && r.quy_luy_ke === qlk_sel);
+            
+            // Filter previous year same quarter from database history
+            const prevYear = String(Number(y) - 1);
+            const prevRun = vasHistoryData.filter(r => r.type === type_sel && r.quy_luy_ke === qlk_sel && r.nam_lk === prevYear && r.quy === q);
+            
+            const kpiGrid = document.getElementById('vasCalcKpiGrid');
+            kpiGrid.innerHTML = '';
+            
+            // Order lines
+            const line_order = [
+                "Total", "Healthcare", "Travel", "Healthcare + Travel", "Personal Accident", "HC & PA & Travel",
+                "Motor Vehicles", "Engineering", "Fire and Misc.", "General Liability",
+                "Cargo in transit", "Hull & PI", "Aviation & Oil", "Agriculture"
+            ];
+            
+            // Map lines
+            const lines = line_order.filter(l => currentRun.some(r => r.Line === l));
+            
+            lines.forEach(l => {
+                const curr = currentRun.find(r => r.Line === l) || {};
+                const prev = prevRun.find(r => r.line === l) || {};
+                
+                const wp = curr.written || 0;
+                const wp_prev = prev.written || 0;
+                
+                let yoyText = "NA NA%";
+                let yoyClass = "";
+                if (wp_prev > 0) {
+                    const yoyVal = ((wp - wp_prev) / wp_prev * 100).toFixed(1);
+                    const yoyIcon = yoyVal >= 0 ? "▲" : "▼";
+                    yoyText = `${yoyIcon} ${Math.abs(yoyVal)}%`;
+                    yoyClass = yoyVal >= 0 ? "kpi-green" : "kpi-red";
+                }
+                
+                const paidRatio = ((curr.paid_written || 0) * 100).toFixed(1) + '%';
+                const lossRatio = ((curr.incurred_earned || 0) * 100).toFixed(1) + '%';
+                
+                kpiGrid.insertAdjacentHTML('beforeend', `
+                    <div class="kpi-card">
+                        <div class="kpi-title">📊 ${l}</div>
+                        <div class="kpi-row"><span>WP</span><strong>${wp.toLocaleString('en-US', {maximumFractionDigits:1})}</strong></div>
+                        <div class="kpi-row"><span>YoY %</span><span class="${yoyClass}">${yoyText}</span></div>
+                        <div class="kpi-row"><span>Paid ratio</span><strong>${paidRatio}</strong></div>
+                        <div class="kpi-row"><span>Loss ratio</span><strong>${lossRatio}</strong></div>
+                    </div>
+                `);
+            });
+            
+            // Outliers & Ratios Line charts for LOBs (rolling average 4Q, mean +- 2SD, flags)
+            const chartsGrid = document.getElementById('vasCalcChartsGrid');
+            chartsGrid.innerHTML = '';
+            
+            lines.forEach(l => {
+                if (l === "Total") return; // Skip Total chart in grid cards
+                
+                const divId = `vasCalcChart_${l.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                const card = document.createElement('div');
+                card.className = 'panel glass-panel';
+                card.style.padding = '12px';
+                card.innerHTML = `
+                    <div style="font-weight:700; color:var(--bv-blue); font-size:13px; margin-bottom:8px;">${l}</div>
+                    <div id="${divId}" style="height: 220px; width: 100%;"></div>
+                `;
+                chartsGrid.appendChild(card);
+                
+                // Build history array for this LOB from database + current calculated value
+                // First filter history
+                let lobHist = vasHistoryData.filter(r => r.line === l && r.type === type_sel && r.quy_luy_ke === qlk_sel);
+                // Convert back column keys
+                lobHist = lobHist.map(r => ({
+                    nam: r.nam,
+                    paid_written: r.paid_written,
+                    incurred_earned: r.incurred_earned
+                }));
+                
+                // Add current calculated
+                const currVal = currentRun.find(r => r.Line === l);
+                if (currVal) {
+                    lobHist.push({
+                        nam: `${y}${q}`,
+                        paid_written: currVal.paid_written,
+                        incurred_earned: currVal.incurred_earned
+                    });
+                }
+                
+                // Sort by Quarter code
+                lobHist.sort((a, b) => String(a.nam).localeCompare(String(b.nam)));
+                
+                if (lobHist.length < 2) {
+                    document.getElementById(divId).innerHTML = '<div style="text-align:center; padding: 40px; color: gray;">Thiếu dữ liệu vẽ chart.</div>';
+                    return;
+                }
+                
+                const quarters = lobHist.map(r => r.nam);
+                const paid_written = lobHist.map(r => r.paid_written);
+                const incurred_earned = lobHist.map(r => r.incurred_earned);
+                
+                // Calculate rollmean k=4
+                const roll_avg = rollMean(incurred_earned, 4);
+                
+                // Calculate mean and sd
+                const mean_val = incurred_earned.reduce((a,b)=>a+b, 0) / incurred_earned.length;
+                const sq_diff = incurred_earned.map(v => Math.pow(v - mean_val, 2));
+                const sd_val = Math.sqrt(sq_diff.reduce((a,b)=>a+b, 0) / incurred_earned.length);
+                const upper = mean_val + 2 * sd_val;
+                const lower = mean_val - 2 * sd_val;
+                
+                // Detect outlier indices
+                const outlier_x = [];
+                const outlier_y = [];
+                for (let i = 0; i < incurred_earned.length; i++) {
+                    const val = incurred_earned[i];
+                    if (val > upper || val < lower) {
+                        outlier_x.push(quarters[i]);
+                        outlier_y.push(val);
+                    }
+                }
+                
+                // Plotly.js line plot
+                const trace1 = {
+                    x: quarters,
+                    y: paid_written,
+                    name: 'Paid/Written',
+                    mode: 'lines',
+                    line: { color: 'darkgreen', width: 2 }
+                };
+                
+                const trace2 = {
+                    x: quarters,
+                    y: incurred_earned,
+                    name: 'Incurred/Earned',
+                    mode: 'lines',
+                    line: { color: 'skyblue', width: 2 }
+                };
+                
+                const trace3 = {
+                    x: quarters,
+                    y: roll_avg,
+                    name: 'Rolling Avg (4Q)',
+                    mode: 'lines',
+                    line: { color: 'red', dash: 'dash', width: 1.5 }
+                };
+                
+                const traceMean = {
+                    x: quarters,
+                    y: Array(quarters.length).fill(mean_val),
+                    name: `Mean (${(mean_val*100).toFixed(1)}%)`,
+                    mode: 'lines',
+                    line: { color: 'orange', dash: 'dot', width: 1.5 }
+                };
+                
+                const traceUpper = {
+                    x: quarters,
+                    y: Array(quarters.length).fill(upper),
+                    name: 'Mean + 2SD',
+                    mode: 'lines',
+                    line: { color: 'gray', dash: 'dot', width: 1 },
+                    showlegend: false
+                };
+                
+                const traceLower = {
+                    x: quarters,
+                    y: Array(quarters.length).fill(lower),
+                    name: 'Mean - 2SD',
+                    mode: 'lines',
+                    line: { color: 'gray', dash: 'dot', width: 1 },
+                    showlegend: false
+                };
+                
+                const traceOutlier = {
+                    x: outlier_x,
+                    y: outlier_y,
+                    name: 'Outlier',
+                    mode: 'markers',
+                    marker: { color: 'red', size: 6, symbol: 'circle' }
+                };
+                
+                const dataPlot = [trace1, trace2, trace3, traceMean, traceUpper, traceLower];
+                if (outlier_x.length > 0) dataPlot.push(traceOutlier);
+                
+                const layout = {
+                    margin: { t: 10, b: 20, l: 30, r: 10 },
+                    xaxis: { showgrid: false },
+                    yaxis: { tickformat: '.0%' },
+                    legend: {
+                        orientation: 'h',
+                        y: 1.15,
+                        font: { size: 9 }
+                    }
+                };
+                
+                Plotly.newPlot(divId, dataPlot, layout, { displayModeBar: false });
+            });
+        }
+        
+        // Helper: rollmean k=4
+        function rollMean(values, k) {
+            let res = [];
+            for (let i = 0; i < values.length; i++) {
+                if (i < k - 1) {
+                    res.push(null);
+                } else {
+                    let sum = 0;
+                    for (let j = 0; j < k; j++) {
+                        sum += values[i - j];
+                    }
+                    res.push(sum / k);
+                }
+            }
+            return res;
+        }
+
+        // ==========================================
+        // TAB 2: OVERVIEW
+        // ==========================================
+        function loadVasOverviewTab() {
+            if (vasHistoryData.length === 0) return;
+            
+            // Populate filters
+            const qlks = [...new Set(vasHistoryData.map(r => r.quy_luy_ke))];
+            const years = [...new Set(vasHistoryData.map(r => r.nam_lk))].sort();
+            const quarters = [...new Set(vasHistoryData.map(r => r.quy))].sort();
+            const types = [...new Set(vasHistoryData.map(r => r.type))];
+            
+            const qlkSel = document.getElementById('vasOvrQlk');
+            const yearSel = document.getElementById('vasOvrYear');
+            const quarterSel = document.getElementById('vasOvrQuarter');
+            const typeSel = document.getElementById('vasOvrType');
+            
+            // Store current selected values to preserve them
+            const currentQlk = qlkSel.value || "Theo quý";
+            const currentYear = yearSel.value || years[years.length - 1];
+            const currentQuarter = quarterSel.value || quarters[quarters.length - 1];
+            const currentType = typeSel.value || "NET";
+            
+            qlkSel.innerHTML = '';
+            yearSel.innerHTML = '';
+            quarterSel.innerHTML = '';
+            typeSel.innerHTML = '';
+            
+            qlks.forEach(q => qlkSel.add(new Option(q, q)));
+            years.forEach(y => yearSel.add(new Option(y, y)));
+            quarters.forEach(q => quarterSel.add(new Option(q, q)));
+            types.forEach(t => typeSel.add(new Option(t, t)));
+            
+            qlkSel.value = currentQlk;
+            yearSel.value = currentYear;
+            quarterSel.value = currentQuarter;
+            typeSel.value = currentType;
+            
+            // Preserved onChange hooks
+            qlkSel.onchange = renderVasOverviewKpisAndTable;
+            yearSel.onchange = renderVasOverviewKpisAndTable;
+            quarterSel.onchange = renderVasOverviewKpisAndTable;
+            typeSel.onchange = renderVasOverviewKpisAndTable;
+            
+            renderVasOverviewKpisAndTable();
+        }
+        
+        function renderVasOverviewKpisAndTable() {
+            const qlk = document.getElementById('vasOvrQlk').value;
+            const year = document.getElementById('vasOvrYear').value;
+            const quarter = document.getElementById('vasOvrQuarter').value;
+            const type = document.getElementById('vasOvrType').value;
+            
+            // Filter current
+            const currPeriod = `${year}${quarter}`;
+            const current = vasHistoryData.filter(r => r.quy_luy_ke === qlk && r.nam === currPeriod && r.type === type);
+            
+            // Filter prev same quarter
+            const prevYear = String(Number(year) - 1);
+            const prevPeriod = `${prevYear}${quarter}`;
+            const previous = vasHistoryData.filter(r => r.quy_luy_ke === qlk && r.nam === prevPeriod && r.type === type);
+            
+            // Render Card summary
+            const kpiGrid = document.getElementById('vasOvrKpiGrid');
+            kpiGrid.innerHTML = '';
+            
+            const line_order = [
+                "Total", "Healthcare", "Travel", "Healthcare + Travel", "Personal Accident", "HC & PA & Travel",
+                "Motor Vehicles", "Engineering", "Fire and Misc.", "General Liability",
+                "Cargo in transit", "Hull & PI", "Aviation & Oil", "Agriculture"
+            ];
+            
+            const lines = line_order.filter(l => current.some(r => r.line === l));
+            
+            lines.forEach(l => {
+                const curr = current.find(r => r.line === l) || {};
+                const prev = previous.find(r => r.line === l) || {};
+                
+                const wp = curr.written || 0;
+                const wp_prev = prev.written || 0;
+                
+                let yoyText = "NA NA%";
+                let yoyClass = "";
+                if (wp_prev > 0) {
+                    const yoyVal = ((wp - wp_prev) / wp_prev * 100).toFixed(1);
+                    const yoyIcon = yoyVal >= 0 ? "▲" : "▼";
+                    yoyText = `${yoyIcon} ${Math.abs(yoyVal)}%`;
+                    yoyClass = yoyVal >= 0 ? "kpi-green" : "kpi-red";
+                }
+                
+                const paidRatio = ((curr.paid_written || 0) * 100).toFixed(1) + '%';
+                const lossRatio = ((curr.incurred_earned || 0) * 100).toFixed(1) + '%';
+                
+                kpiGrid.insertAdjacentHTML('beforeend', `
+                    <div class="kpi-card">
+                        <div class="kpi-title">📊 ${l}</div>
+                        <div class="kpi-row"><span>WP</span><strong>${wp.toLocaleString('en-US', {maximumFractionDigits:1})}</strong></div>
+                        <div class="kpi-row"><span>YoY %</span><span class="${yoyClass}">${yoyText}</span></div>
+                        <div class="kpi-row"><span>Paid ratio</span><strong>${paidRatio}</strong></div>
+                        <div class="kpi-row"><span>Loss ratio</span><strong>${lossRatio}</strong></div>
+                    </div>
+                `);
+            });
+            
+            // Build Written Premium growth table (historically pivoted years as columns)
+            // Filter all data for this Qlk, Quarter, Type
+            const hist_wp = vasHistoryData.filter(r => r.quy_luy_ke === qlk && r.quy === quarter && r.type === type);
+            
+            // Find unique years
+            const yrs = [...new Set(hist_wp.map(r => r.nam_lk))].sort();
+            
+            // Render Table Head
+            const thead = document.getElementById('vasOvrTableHead');
+            let headHtml = '<tr><th style="text-align: left;">Line</th>';
+            yrs.forEach(y => {
+                headHtml += `<th>${y} WP</th>`;
+                if (yrs.indexOf(y) > 0) {
+                    headHtml += `<th>YoY %</th>`;
+                }
+            });
+            headHtml += '</tr>';
+            thead.innerHTML = headHtml;
+            
+            // Render Table Body
+            const tbody = document.getElementById('vasOvrTableBody');
+            tbody.innerHTML = '';
+            
+            // custom LOB sort order matching line_order2 in R
+            const lob_order = [
+                "Motor Vehicles", "Healthcare + Travel", "Travel", "Healthcare", "Personal Accident",
+                "HC & PA & Travel", "Cargo in transit", "Hull & PI", "Aviation & Oil", "Fire and Misc.",
+                "Engineering", "General Liability", "Agriculture", "Total"
+            ];
+            
+            lob_order.forEach(l => {
+                let rowHtml = `<tr><td style="font-weight:600; text-align: left;">${l}</td>`;
+                let prevVal = null;
+                
+                yrs.forEach(y => {
+                    const row_data = hist_wp.find(r => r.line === l && r.nam_lk === y) || {};
+                    const wp = row_data.written || 0;
+                    
+                    rowHtml += `<td style="text-align: right;">${wp.toLocaleString('en-US', {maximumFractionDigits:1})}</td>`;
+                    
+                    if (yrs.indexOf(y) > 0) {
+                        let yoyTxt = "NA";
+                        let yoyClass = "";
+                        if (prevVal > 0) {
+                            const yoy = ((wp - prevVal) / prevVal * 100).toFixed(1);
+                            if (yoy >= 0) {
+                                yoyTxt = `▲ ${yoy}%`;
+                                yoyClass = 'kpi-green';
+                            } else {
+                                yoyTxt = `▼ ${Math.abs(yoy)}%`;
+                                yoyClass = 'kpi-red';
+                            }
+                        }
+                        rowHtml += `<td style="text-align: right; font-weight: 600;" class="${yoyClass}">${yoyTxt}</td>`;
+                    }
+                    prevVal = wp;
+                });
+                
+                rowHtml += '</tr>';
+                tbody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+            
+            // Chart Selection dropdown
+            const chartLobSel = document.getElementById('vasOvrChartLob');
+            const currChartLob = chartLobSel.value || "Motor Vehicles";
+            chartLobSel.innerHTML = '';
+            lob_order.forEach(l => {
+                chartLobSel.add(new Option(l, l));
+            });
+            chartLobSel.value = currChartLob;
+            chartLobSel.onchange = renderVasOvrCharts;
+            
+            renderVasOvrCharts();
+        }
+        
+        function renderVasOvrCharts() {
+            const qlk = document.getElementById('vasOvrQlk').value;
+            const type = document.getElementById('vasOvrType').value;
+            const line = document.getElementById('vasOvrChartLob').value;
+            
+            const lobData = vasHistoryData.filter(r => r.line === line && r.type === type && r.quy_luy_ke === qlk);
+            // Sort by period code
+            lobData.sort((a, b) => String(a.nam).localeCompare(String(b.nam)));
+            
+            if (lobData.length === 0) {
+                document.getElementById('vasOvrChartBar').innerHTML = '<div style="text-align:center; padding: 40px;">No chart data</div>';
+                document.getElementById('vasOvrChartLine').innerHTML = '';
+                return;
+            }
+            
+            const periods = lobData.map(r => r.nam);
+            const paid = lobData.map(r => r.paid);
+            const incurred = lobData.map(r => r.sub_total_incurred);
+            const written = lobData.map(r => r.written);
+            const earned = lobData.map(r => r.sub_total_earned);
+            
+            const paid_written = lobData.map(r => r.paid_written);
+            const incurred_earned = lobData.map(r => r.incurred_earned);
+            
+            // Bar chart: Written, Earned, Paid, Incurred
+            const traceW = { x: periods, y: written, name: 'Written', type: 'bar', marker: { color: 'darkorange' } };
+            const traceE = { x: periods, y: earned, name: 'Earned', type: 'bar', marker: { color: 'darkgreen' } };
+            const traceP = { x: periods, y: paid, name: 'Paid', type: 'bar', marker: { color: 'blue' } };
+            const traceI = { x: periods, y: incurred, name: 'Incurred', type: 'bar', marker: { color: 'yellow' } };
+            
+            const layoutBar = {
+                barmode: 'group',
+                margin: { t: 20, b: 30, l: 40, r: 10 },
+                title: { text: `Premium & Loss - ${line}`, font: { size: 13, weight: 'bold' } },
+                legend: { orientation: 'h', y: 1.15 }
+            };
+            Plotly.newPlot('vasOvrChartBar', [traceP, traceI, traceW, traceE], layoutBar, { displayModeBar: false });
+            
+            // Line chart: Paid/Written & Incurred/Earned
+            const traceL1 = { x: periods, y: paid_written, name: 'Paid/Written', mode: 'lines+markers', line: { color: 'darkgreen' } };
+            const traceL2 = { x: periods, y: incurred_earned, name: 'Incurred/Earned', mode: 'lines+markers', line: { color: 'skyblue' } };
+            
+            const layoutLine = {
+                margin: { t: 20, b: 30, l: 40, r: 10 },
+                title: { text: `Ratios - ${line}`, font: { size: 13, weight: 'bold' } },
+                yaxis: { tickformat: '.0%' },
+                legend: { orientation: 'h', y: 1.15 }
+            };
+            Plotly.newPlot('vasOvrChartLine', [traceL1, traceL2], layoutLine, { displayModeBar: false });
+        }
+
+        // ==========================================
+        // TAB 3: COMPARISON
+        // ==========================================
+        function loadVasCompareTab() {
+            if (vasHistoryData.length === 0) return;
+            
+            // Populate filters
+            const qlks = [...new Set(vasHistoryData.map(r => r.quy_luy_ke))];
+            const types = [...new Set(vasHistoryData.map(r => r.type))];
+            
+            const qlkSel = document.getElementById('vasCmpQlk');
+            const typeSel = document.getElementById('vasCmpType');
+            
+            const currentQlk = qlkSel.value || "Theo quý";
+            const currentType = typeSel.value || "NET";
+            
+            qlkSel.innerHTML = '';
+            typeSel.innerHTML = '';
+            
+            qlks.forEach(q => qlkSel.add(new Option(q, q)));
+            types.forEach(t => typeSel.add(new Option(t, t)));
+            
+            qlkSel.value = currentQlk;
+            typeSel.value = currentType;
+            
+            qlkSel.onchange = renderVasCompareData;
+            typeSel.onchange = renderVasCompareData;
+            document.getElementById('vasCmpMetric').onchange = renderVasCompareData;
+            document.getElementById('vasCmpStartYear').onchange = renderVasCompareData;
+            
+            renderVasCompareData();
+        }
+        
+        async function renderVasCompareData() {
+            const qlk = document.getElementById('vasCmpQlk').value;
+            const type = document.getElementById('vasCmpType').value;
+            const metric = document.getElementById('vasCmpMetric').value;
+            const startYear = document.getElementById('vasCmpStartYear').value;
+            
+            try {
+                const url = `/api/vas/compare?quy_luy_ke=${encodeURIComponent(qlk)}&type_sel=${encodeURIComponent(type)}&metric=${encodeURIComponent(metric)}&start_year=${startYear}`;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                
+                const res = await response.json();
+                
+                // 1. Render Table 1: Quarterly comparison
+                const t1head = document.getElementById('vasCmp1TableHead');
+                const t1body = document.getElementById('vasCmp1TableBody');
+                
+                t1head.innerHTML = '';
+                t1body.innerHTML = '';
+                
+                if (res.table_data.length === 0) {
+                    t1body.innerHTML = '<tr><td colspan="10" style="text-align:center;">Không tìm thấy dữ liệu.</td></tr>';
+                    return;
+                }
+                
+                // Generate table headers from columns
+                const cols = Object.keys(res.table_data[0]);
+                let headHtml = '<tr><th style="text-align: left;">Line</th>';
+                cols.forEach(c => {
+                    if (c !== 'Line') {
+                        headHtml += `<th>${c}</th>`;
+                    }
+                });
+                headHtml += '</tr>';
+                t1head.innerHTML = headHtml;
+                
+                const is_ratio = metric.includes('/');
+                
+                res.table_data.forEach(r => {
+                    let rowHtml = `<tr><td style="font-weight:600; text-align: left;">${r.Line}</td>`;
+                    cols.forEach(c => {
+                        if (c !== 'Line') {
+                            const val = r[c];
+                            let formatted = '';
+                            if (val === null || val === undefined) {
+                                formatted = 'NA';
+                            } else if (is_ratio) {
+                                formatted = Number(val).toFixed(1) + '%';
+                            } else {
+                                formatted = Number(val).toLocaleString('en-US', {maximumFractionDigits: 0});
+                            }
+                            rowHtml += `<td style="text-align: right;">${formatted}</td>`;
+                        }
+                    });
+                    rowHtml += '</tr>';
+                    t1body.insertAdjacentHTML('beforeend', rowHtml);
+                });
+                
+                // Render Table 1 comments (Anomalies)
+                const commentsDiv = document.getElementById('vasCmp1Comments');
+                commentsDiv.innerHTML = '';
+                
+                const anomalies = res.anomalies || {};
+                const anomalyKeys = Object.keys(anomalies);
+                
+                if (anomalyKeys.length === 0) {
+                    commentsDiv.innerHTML = `<div style="color:#2c7a7b;">✅ Quý ${res.last_col} không phát hiện biến động bất thường.</div>`;
+                } else {
+                    let commHtml = `<div style="color:#c53030; font-weight:600; margin-bottom:6px;">🚨 Biến động bất thường tại ${res.last_col}:</div><ul style="padding-left:16px;">`;
+                    anomalyKeys.forEach(k => {
+                        const growth = (anomalies[k] * 100).toFixed(1) + '%';
+                        commHtml += `<li>⚠️ <strong>${k}</strong> biến động mạnh (YoY ${growth})</li>`;
+                    });
+                    commHtml += '</ul>';
+                    commentsDiv.innerHTML = commHtml;
+                }
+                
+                // 2. Render Table 2: Type comparison
+                document.getElementById('vasCmp2Title').innerHTML = `📊 So sánh <strong>${metric}</strong> ${res.latest_period} ${qlk} giữa các Type`;
+                const t2body = document.getElementById('vasCmp2TableBody');
+                t2body.innerHTML = '';
+                
+                const t2data = res.type_comparison_table || [];
+                t2data.forEach(r => {
+                    const dir = r.DIRECT !== null && r.DIRECT !== undefined ? (is_ratio ? Number(r.DIRECT).toFixed(1) + '%' : Number(r.DIRECT).toLocaleString('en-US', {maximumFractionDigits:0})) : 'NA';
+                    const rec = r.RECOVERY !== null && r.RECOVERY !== undefined ? (is_ratio ? Number(r.RECOVERY).toFixed(1) + '%' : Number(r.RECOVERY).toLocaleString('en-US', {maximumFractionDigits:0})) : 'NA';
+                    const inw = r.INWARD !== null && r.INWARD !== undefined ? (is_ratio ? Number(r.INWARD).toFixed(1) + '%' : Number(r.INWARD).toLocaleString('en-US', {maximumFractionDigits:0})) : 'NA';
+                    const ret = r.RETROCESSION !== null && r.RETROCESSION !== undefined ? (is_ratio ? Number(r.RETROCESSION).toFixed(1) + '%' : Number(r.RETROCESSION).toLocaleString('en-US', {maximumFractionDigits:0})) : 'NA';
+                    const net = r.NET !== null && r.NET !== undefined ? (is_ratio ? Number(r.NET).toFixed(1) + '%' : Number(r.NET).toLocaleString('en-US', {maximumFractionDigits:0})) : 'NA';
+                    
+                    t2body.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td style="font-weight: 600; text-align: left;">${r.Line}</td>
+                            <td style="text-align: right;">${dir}</td>
+                            <td style="text-align: right;">${rec}</td>
+                            <td style="text-align: right;">${inw}</td>
+                            <td style="text-align: right;">${ret}</td>
+                            <td style="text-align: right; font-weight:700;">${net}</td>
+                        </tr>
+                    `);
+                });
+                
+                // Render Table 2 comments (Reinsurance Limits Check)
+                const comments2Div = document.getElementById('vasCmp2Comments');
+                comments2Div.innerHTML = '';
+                
+                const rules = res.type_rules || {};
+                const rec_issues = rules.recovery_issue || [];
+                const ret_issues = rules.retro_issue || [];
+                
+                if (rec_issues.length === 0 && ret_issues.length === 0) {
+                    comments2Div.innerHTML = `<div style="color:#2c7a7b;">✅ ${res.latest_period}: Không phát hiện bất thường cấu trúc.</div>`;
+                } else {
+                    let commHtml2 = '';
+                    if (rec_issues.length > 0) {
+                        commHtml2 += '<div style="color:#c53030; font-weight:600;">🚨 Vi phạm rule Recovery < Direct:</div><ul style="padding-left:16px; margin-bottom:10px;">';
+                        rec_issues.forEach(line_err => {
+                            commHtml2 += `<li>⚠️ ${line_err}: Recovery lớn hơn Direct</li>`;
+                        });
+                        commHtml2 += '</ul>';
+                    }
+                    if (ret_issues.length > 0) {
+                        commHtml2 += '<div style="color:#c53030; font-weight:600;">🚨 Vi phạm rule Retrocession < Inward:</div><ul style="padding-left:16px;">';
+                        ret_issues.forEach(line_err => {
+                            commHtml2 += `<li>⚠️ ${line_err}: Retrocession lớn hơn Inward</li>`;
+                        });
+                        commHtml2 += '</ul>';
+                    }
+                    comments2Div.innerHTML = commHtml2;
+                }
+                
+                // 3. Render Compare Bar charts over years for LOBs
+                const cmpChartsGrid = document.getElementById('vasCmpChartsGrid');
+                cmpChartsGrid.innerHTML = '';
+                
+                res.table_data.forEach(r => {
+                    if (r.Line === "Total") return; // Skip Total chart in comparison grid
+                    
+                    const divId = `vasCmpChart_${r.Line.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                    const card = document.createElement('div');
+                    card.className = 'panel glass-panel';
+                    card.style.padding = '12px';
+                    card.innerHTML = `
+                        <div style="font-weight:700; color:var(--bv-blue); font-size:13px; margin-bottom:8px;">${r.Line}</div>
+                        <div id="${divId}" style="height: 200px; width:100%;"></div>
+                    `;
+                    cmpChartsGrid.appendChild(card);
+                    
+                    const years = cols.filter(c => c !== 'Line');
+                    const values = years.map(y => r[y]);
+                    
+                    const trace = {
+                        x: years,
+                        y: values,
+                        type: 'bar',
+                        text: values.map(v => v === null ? 'NA' : (is_ratio ? Number(v).toFixed(1) + '%' : Number(v).toLocaleString('en-US', {maximumFractionDigits:0}))),
+                        textposition: 'auto',
+                        marker: { color: 'blue' }
+                    };
+                    
+                    const layout = {
+                        margin: { t: 10, b: 20, l: 30, r: 10 },
+                        xaxis: { title: 'Năm' },
+                        yaxis: { tickformat: is_ratio ? '.0%' : undefined }
+                    };
+                    
+                    Plotly.newPlot(divId, [trace], layout, { displayModeBar: false });
+                });
+                
+            } catch (err) {
+                console.error("Failed to load compare tab details:", err);
+            }
+        }
+        
+        // Excel download handlers
+        document.getElementById('btnVasDownloadAllData').addEventListener('click', () => {
+            window.open('/api/vas/download-all-data', '_blank');
+        });
+        
+        document.getElementById('btnVasDownloadCmp1').addEventListener('click', () => {
+            const qlk = document.getElementById('vasCmpQlk').value;
+            const type = document.getElementById('vasCmpType').value;
+            const metric = document.getElementById('vasCmpMetric').value;
+            const startYear = document.getElementById('vasCmpStartYear').value;
+            window.open(`/api/vas/compare/download?quy_luy_ke=${encodeURIComponent(qlk)}&type_sel=${encodeURIComponent(type)}&metric=${encodeURIComponent(metric)}&start_year=${startYear}&table_num=1`, '_blank');
+        });
+        
+        document.getElementById('btnVasDownloadCmp2').addEventListener('click', () => {
+            const qlk = document.getElementById('vasCmpQlk').value;
+            const metric = document.getElementById('vasCmpMetric').value;
+            window.open(`/api/vas/compare/download?quy_luy_ke=${encodeURIComponent(qlk)}&metric=${encodeURIComponent(metric)}&table_num=2`, '_blank');
+        });
+
+        // ==========================================
+        // TAB 4: HISTORICAL DATA (EXCEL VIEW WITH FILTERS)
+        // ==========================================
+        function loadVasHistoryTab() {
+            const thead = document.getElementById('vasHistoryTableHead');
+            const tbody = document.getElementById('vasHistoryTableBody');
+            
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            
+            if (vasHistoryData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" style="text-align:center; padding: 40px;">Không tìm thấy dữ liệu.</td></tr>';
+                return;
+            }
+            
+            // Build headers with local filters
+            const db_cols = ["quy_luy_ke", "nam", "type", "line", "written", "paid", "upr", "osc",
+                             "sub_total_earned", "sub_total_incurred", "paid_written", "incurred_earned", "reserve_osc", "reserve_upr"];
+            
+            const display_headers = ["Quý/Lũy kế", "Quý-Năm", "Type", "Line", "Written", "Paid", "UPR", "OsC",
+                                     "Sub total(earned)", "Sub total(incurred)", "Paid/Written", "Incurred/Earned", "@OsC", "@UPR"];
+            
+            let headHtml = '<tr>';
+            display_headers.forEach((h, idx) => {
+                headHtml += `
+                    <th style="text-align: ${idx > 3 ? 'right' : 'left'}; min-width: 100px;">
+                        ${h}
+                        <span class="filter-icon" onclick="toggleVasHistoryFilter(${idx})">▼</span>
+                        <div class="filter-dropdown" id="vas-hist-filter-${idx}" style="text-align: left;"></div>
+                    </th>`;
+            });
+            headHtml += '</tr>';
+            thead.innerHTML = headHtml;
+            
+            renderVasHistoryRows(vasHistoryData);
+        }
+        
+        // Local Filter state for Tab 4
+        let vasHistFilters = {};
+        
+        function renderVasHistoryRows(dataRows) {
+            const tbody = document.getElementById('vasHistoryTableBody');
+            tbody.innerHTML = '';
+            
+            const db_cols = ["quy_luy_ke", "nam", "type", "line", "written", "paid", "upr", "osc",
+                             "sub_total_earned", "sub_total_incurred", "paid_written", "incurred_earned", "reserve_osc", "reserve_upr"];
+            
+            dataRows.forEach(r => {
+                let rowHtml = '<tr>';
+                db_cols.forEach((c, idx) => {
+                    const val = r[c];
+                    let formatted = '';
+                    if (val === null || val === undefined) {
+                        formatted = 'NA';
+                    } else if (idx === 10 || idx === 11) {
+                        formatted = (Number(val) * 100).toFixed(1) + '%';
+                    } else if (idx > 3) {
+                        // Formatting negatives as brackets (accounting style)
+                        const num = Number(val) * 1e6; // show original values
+                        if (num < 0) {
+                            formatted = `(${Math.abs(num).toLocaleString('en-US', {maximumFractionDigits:0})})`;
+                        } else {
+                            formatted = num.toLocaleString('en-US', {maximumFractionDigits:0});
+                        }
+                    } else {
+                        formatted = String(val);
+                    }
+                    rowHtml += `<td style="text-align: ${idx > 3 ? 'right' : 'left'};">${formatted}</td>`;
+                });
+                rowHtml += '</tr>';
+                tbody.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+        
+        function toggleVasHistoryFilter(colIdx) {
+            // Close all other filters
+            document.querySelectorAll('.filter-dropdown').forEach(el => {
+                if (el.id !== `vas-hist-filter-${colIdx}`) el.style.display = 'none';
+            });
+            
+            const dropdown = document.getElementById(`vas-hist-filter-${colIdx}`);
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Get unique values for this column
+            const db_cols = ["quy_luy_ke", "nam", "type", "line", "written", "paid", "upr", "osc",
+                             "sub_total_earned", "sub_total_incurred", "paid_written", "incurred_earned", "reserve_osc", "reserve_upr"];
+            const colName = db_cols[colIdx];
+            
+            const values = [...new Set(vasHistoryData.map(r => r[colName]))].sort();
+            
+            dropdown.innerHTML = '';
+            
+            // Search Input
+            const search = document.createElement('input');
+            search.className = 'form-control';
+            search.placeholder = 'Search...';
+            search.style.height = '28px';
+            search.style.fontSize = '12px';
+            search.style.marginBottom = '6px';
+            dropdown.appendChild(search);
+            
+            const listDiv = document.createElement('div');
+            listDiv.style.maxHeight = '200px';
+            listDiv.style.overflowY = 'auto';
+            dropdown.appendChild(listDiv);
+            
+            const checkedVals = vasHistFilters[colIdx] || [];
+            
+            values.forEach(v => {
+                const label = document.createElement('label');
+                const chk = document.createElement('input');
+                chk.type = 'checkbox';
+                chk.checked = checkedVals.includes(v) || checkedVals.length === 0;
+                chk.value = v;
+                
+                chk.addEventListener('change', () => {
+                    let checked = Array.from(listDiv.querySelectorAll('input:checked')).map(c => c.value);
+                    if (checked.length === values.length) {
+                        vasHistFilters[colIdx] = []; // Reset if all checked
+                    } else {
+                        vasHistFilters[colIdx] = checked;
+                    }
+                    applyVasHistoryFilters();
+                });
+                
+                label.appendChild(chk);
+                label.appendChild(document.createTextNode(` ${v}`));
+                listDiv.appendChild(label);
+            });
+            
+            search.addEventListener('input', (e) => {
+                const q = e.target.value.toLowerCase();
+                listDiv.querySelectorAll('label').forEach(lbl => {
+                    const text = lbl.innerText.toLowerCase();
+                    lbl.style.display = text.includes(q) ? 'flex' : 'none';
+                });
+            });
+            
+            dropdown.style.display = 'block';
+            
+            // Stop propagation
+            event.stopPropagation();
+        }
+        
+        function applyVasHistoryFilters() {
+            let filtered = [...vasHistoryData];
+            const db_cols = ["quy_luy_ke", "nam", "type", "line", "written", "paid", "upr", "osc",
+                             "sub_total_earned", "sub_total_incurred", "paid_written", "incurred_earned", "reserve_osc", "reserve_upr"];
+            
+            Object.keys(vasHistFilters).forEach(colIdx => {
+                const checked = vasHistFilters[colIdx];
+                if (checked && checked.length > 0) {
+                    const colName = db_cols[colIdx];
+                    filtered = filtered.filter(r => checked.includes(r[colName]));
+                }
+            });
+            
+            renderVasHistoryRows(filtered);
+        }
+        
+        // Close filters on document click
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.filter-dropdown').forEach(el => {
+                if (el.id.startsWith('vas-hist-filter-')) el.style.display = 'none';
+            });
+        });
+        
+        document.getElementById('btnVasDownloadAllHistory').addEventListener('click', () => {
+            window.open('/api/vas/download-all-data', '_blank');
+        });
+
+        // ==========================================
+        // TAB 5: PROFESSIONAL DETAIL (CHI TIẾT IN R)
+        // ==========================================
+        function loadVasDetailTab() {
+            if (vasHistoryData.length === 0) return;
+            
+            // Populate filters
+            const lines = [...new Set(vasHistoryData.map(r => r.line))];
+            const periods = [...new Set(vasHistoryData.map(r => r.nam))].sort();
+            const qlks = [...new Set(vasHistoryData.map(r => r.quy_luy_ke))];
+            
+            const lineSel = document.getElementById('vasDetLine');
+            const periodSel = document.getElementById('vasDetPeriod');
+            const qlkSel = document.getElementById('vasDetQlk');
+            
+            const currentLine = lineSel.value || "Motor Vehicles";
+            const currentPeriod = periodSel.value || periods[periods.length - 1];
+            const currentQlk = qlkSel.value || "Theo quý";
+            
+            lineSel.innerHTML = '';
+            periodSel.innerHTML = '';
+            qlkSel.innerHTML = '';
+            
+            lines.forEach(l => lineSel.add(new Option(l, l)));
+            periods.forEach(p => periodSel.add(new Option(p, p)));
+            qlks.forEach(q => qlkSel.add(new Option(q, q)));
+            
+            lineSel.value = currentLine;
+            periodSel.value = currentPeriod;
+            qlkSel.value = currentQlk;
+            
+            lineSel.onchange = renderVasDetailData;
+            periodSel.onchange = renderVasDetailData;
+            qlkSel.onchange = renderVasDetailData;
+            
+            renderVasDetailData();
+        }
+        
+        async function renderVasDetailData() {
+            const line = document.getElementById('vasDetLine').value;
+            const period = document.getElementById('vasDetPeriod').value;
+            const qlk = document.getElementById('vasDetQlk').value;
+            
+            try {
+                const url = `/api/vas/detail?line=${encodeURIComponent(line)}&year_quarter=${period}&quy_luy_ke=${encodeURIComponent(qlk)}`;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                
+                // 1. Render Table Detail LOB
+                const tbody = document.getElementById('vasDetTableBody');
+                tbody.innerHTML = '';
+                
+                const tdata = data.detail_table || [];
+                tdata.forEach(r => {
+                    const row_idx = tdata.indexOf(r);
+                    const is_ratio = r["Chỉ tiêu"] === "Incurred/Earned";
+                    
+                    const formatVal = (v) => {
+                        if (v === null || v === undefined) return 'NA';
+                        if (is_ratio) return Number(v).toFixed(1) + '%';
+                        return Number(v).toLocaleString('en-US', {maximumFractionDigits:0});
+                    };
+                    
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr>
+                            <td style="font-weight: 600; text-align: left;">${r["Chỉ tiêu"]}</td>
+                            <td style="text-align: right;">${formatVal(r.DIRECT)}</td>
+                            <td style="text-align: right;">${formatVal(r.RECOVERY)}</td>
+                            <td style="text-align: right;">${formatVal(r.INWARD)}</td>
+                            <td style="text-align: right;">${formatVal(r.RETROCESSION)}</td>
+                            <td style="text-align: right; font-weight:700;">${formatVal(r.NET)}</td>
+                        </tr>
+                    `);
+                });
+                
+                // Consistency Comments (Direct vs Recovery)
+                const commentsDiv = document.getElementById('vasDetComments');
+                commentsDiv.innerHTML = '';
+                
+                const checks = data.consistency_checks || {};
+                const abs_viol = checks.abs_violation || [];
+                const sign_viol = checks.sign_violation || [];
+                const wr_ratio = (checks.written_ratio * 100).toFixed(1) + '%';
+                const pd_ratio = (checks.paid_ratio * 100).toFixed(1) + '%';
+                
+                let commHtml = '<h4 style="margin-bottom:10px; font-weight:700;">Kiểm tra tính hợp lý Direct vs Recovery</h4>';
+                
+                if (abs_viol.length === 0) {
+                    commHtml += '<p style="color:#047857; margin-bottom:6px;">✔ Ở tất cả các chỉ tiêu: |Direct| luôn lớn hơn |Recovery|.</p>';
+                } else {
+                    commHtml += `<p style="color:#991b1b; margin-bottom:6px;">⚠ Các chỉ tiêu có |Recovery| ≥ |Direct|: ${abs_viol.join(', ')}</p>`;
+                }
+                
+                if (sign_viol.length === 0) {
+                    commHtml += '<p style="color:#047857; margin-bottom:12px;">✔ Direct và Recovery luôn cùng dấu.</p>';
+                } else {
+                    commHtml += `<p style="color:#991b1b; margin-bottom:12px;">⚠ Các chỉ tiêu có lệch dấu: ${sign_viol.join(', ')}</p>`;
+                }
+                
+                commHtml += `<p>Tỷ lệ Recovery/Direct (Written): <strong>${wr_ratio}</strong></p>`;
+                commHtml += `<p>Tỷ lệ Recovery/Direct (Paid): <strong>${pd_ratio}</strong></p>`;
+                
+                commentsDiv.innerHTML = commHtml;
+                
+                // 2. Render Loss Ratio Net Table
+                renderLossRatioSubTable('vasDetLossNetHead', 'vasDetLossNetBody', data.history_net);
+                
+                // 3. Render Loss Ratio Direct Table
+                renderLossRatioSubTable('vasDetLossDirectHead', 'vasDetLossDirectBody', data.history_direct);
+                
+            } catch (err) {
+                console.error("Failed to load LOB detail tab details:", err);
+            }
+        }
+        
+        function renderLossRatioSubTable(headId, bodyId, records) {
+            const head = document.getElementById(headId);
+            const body = document.getElementById(bodyId);
+            
+            head.innerHTML = '';
+            body.innerHTML = '';
+            
+            if (!records || records.length === 0) {
+                body.innerHTML = '<tr><td colspan="10" style="text-align:center;">Không tìm thấy dữ liệu.</td></tr>';
+                return;
+            }
+            
+            const cols = Object.keys(records[0]).filter(c => c !== 'Chỉ tiêu');
+            
+            let headHtml = '<tr><th style="text-align: left;">Chỉ tiêu</th>';
+            cols.forEach(c => {
+                headHtml += `<th>${c}</th>`;
+            });
+            headHtml += '</tr>';
+            head.innerHTML = headHtml;
+            
+            records.forEach(r => {
+                const is_ratio = r["Chỉ tiêu"] === "Loss_ratio";
+                let rowHtml = `<tr><td style="font-weight:600; text-align: left;">${r["Chỉ tiêu"]}</td>`;
+                
+                cols.forEach(c => {
+                    const val = r[c];
+                    let formatted = '';
+                    if (val === null || val === undefined) {
+                        formatted = 'NA';
+                    } else if (is_ratio) {
+                        formatted = (Number(val) * 100).toFixed(1) + '%';
+                    } else {
+                        formatted = Number(val).toLocaleString('en-US', {maximumFractionDigits:0});
+                    }
+                    rowHtml += `<td style="text-align: right;">${formatted}</td>`;
+                });
+                rowHtml += '</tr>';
+                body.insertAdjacentHTML('beforeend', rowHtml);
+            });
+        }
+        
+        // End of VAS JS logic
+
 
 
     </script>
