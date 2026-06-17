@@ -67,7 +67,7 @@ def sync_fx_rates_from_rds(quarter_id: str, db: Session = Depends(get_db)):
         import os
         import rdata
         import pandas as pd
-        rds_path = "d:/upr_calculation_tool/r_code/ty_gia.rds"
+        rds_path = "d:/bv_intelligence_tool/r_code_upr/ty_gia.rds"
         if not os.path.exists(rds_path):
             raise HTTPException(status_code=404, detail="RDS file not found")
         parsed = rdata.parser.parse_file(rds_path)

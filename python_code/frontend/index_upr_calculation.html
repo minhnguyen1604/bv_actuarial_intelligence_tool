@@ -1623,50 +1623,82 @@
             <!-- Tab 1: Upload & Input -->
             <div id="vas-input-tab" class="vas-tab-content" style="display: flex; flex-direction: column; gap: 20px; flex: 1;">
                 <div class="setup-grid" style="display: grid; grid-template-columns: 3.5fr 8.5fr; gap: 20px; margin-bottom: 0;">
-                    <!-- Left Side: upload & settings -->
-                    <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; gap: 16px;">
-                        <div>
-                            <label class="form-label">Year</label>
-                            <input type="number" id="vasYear" class="form-control" value="2025" style="text-align: center;">
+                    <!-- Left Column: Settings, Upload & Management -->
+                    <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <!-- Left Side: upload & settings -->
+                        <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; gap: 16px;">
+                            <div>
+                                <label class="form-label">Year</label>
+                                <input type="number" id="vasYear" class="form-control" value="2025" style="text-align: center;">
+                            </div>
+                            <div>
+                                <label class="form-label">Quarter</label>
+                                <select id="vasQuarter" class="form-control">
+                                    <option value="Q1">Q1</option>
+                                    <option value="Q2">Q2</option>
+                                    <option value="Q3">Q3</option>
+                                    <option value="Q4">Q4</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Select VAS full Excel</label>
+                                <div class="upload-zone" id="vasUploadZone" style="padding: 20px 10px; margin-bottom: 10px;">
+                                    <div class="upload-icon" style="font-size: 24px; margin-bottom: 6px;">⏏</div>
+                                    <div style="font-size: 12px; font-weight: 600;" id="vasUploadText">Choose file...</div>
+                                    <input type="file" id="vasFileInput" style="display: none;" accept=".xlsx, .xlsm">
+                                </div>
+                            </div>
+                            <div style="display: none;" id="vasSheetsContainer">
+                                <div style="margin-bottom: 10px;">
+                                    <label class="form-label">Sheet Result</label>
+                                    <select id="vasSheetResult" class="form-control"></select>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <label class="form-label">Sheet Doanh thu bồi thường</label>
+                                    <select id="vasSheetDtbt" class="form-control"></select>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline" id="btnVasCheck" style="flex: 1; height: 38px; padding: 0;">Kiểm tra</button>
+                                <button class="btn btn-accent" id="btnVasMerge" style="flex: 1; height: 38px; padding: 0;" disabled>Ghép dữ liệu</button>
+                            </div>
+                            <button class="btn btn-primary" id="btnVasUpdate" style="width: 100%; height: 38px; display: none;">Update DATA hiện có</button>
                         </div>
-                        <div>
-                            <label class="form-label">Quarter</label>
-                            <select id="vasQuarter" class="form-control">
-                                <option value="Q1">Q1</option>
-                                <option value="Q2">Q2</option>
-                                <option value="Q3">Q3</option>
-                                <option value="Q4">Q4</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label">Select VAS full Excel</label>
-                            <div class="upload-zone" id="vasUploadZone" style="padding: 20px 10px; margin-bottom: 10px;">
-                                <div class="upload-icon" style="font-size: 24px; margin-bottom: 6px;">⏏</div>
-                                <div style="font-size: 12px; font-weight: 600;" id="vasUploadText">Choose file...</div>
-                                <input type="file" id="vasFileInput" style="display: none;" accept=".xlsx, .xlsm">
+                        
+                        <!-- Management Panel -->
+                        <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; gap: 12px;">
+                            <div class="panel-title" style="font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--bv-blue);">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                Quản lý Dữ liệu Lịch sử
+                            </div>
+                            <div>
+                                <label class="form-label">Chọn kỳ dữ liệu</label>
+                                <select id="vasManageQuarters" class="form-control" style="width: 100%;"></select>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-outline" id="btnDownloadArchive" style="flex: 1; height: 36px; padding: 0; font-size: 12px; font-weight: 600;" title="Tải lại file Excel nguồn đã lưu của kỳ này">
+                                    Tải file gốc
+                                </button>
+                                <button class="btn btn-outline-danger" id="btnDeleteQuarter" style="flex: 1; height: 36px; padding: 0; font-size: 12px; color: #dc2626; border-color: rgba(220, 38, 38, 0.2); font-weight: 600;" onmouseover="this.style.backgroundColor='rgba(220, 38, 38, 0.05)'" onmouseout="this.style.backgroundColor='transparent'" title="Xóa toàn bộ dữ liệu kỳ này khỏi hệ thống">
+                                    Xóa kỳ này
+                                </button>
                             </div>
                         </div>
-                        <div style="display: none;" id="vasSheetsContainer">
-                            <div style="margin-bottom: 10px;">
-                                <label class="form-label">Sheet Result</label>
-                                <select id="vasSheetResult" class="form-control"></select>
-                            </div>
-                            <div style="margin-bottom: 10px;">
-                                <label class="form-label">Sheet Doanh thu bồi thường</label>
-                                <select id="vasSheetDtbt" class="form-control"></select>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="btn btn-outline" id="btnVasCheck" style="flex: 1; height: 38px; padding: 0;">Kiểm tra</button>
-                            <button class="btn btn-accent" id="btnVasMerge" style="flex: 1; height: 38px; padding: 0;" disabled>Ghép dữ liệu</button>
-                        </div>
-                        <button class="btn btn-primary" id="btnVasUpdate" style="width: 100%; height: 38px; display: none;">Update DATA hiện có</button>
                     </div>
                     <!-- Right Side: calculation output table -->
                     <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 400px;">
                         <div class="panel-header" style="margin-bottom: 12px;">
                             <div class="panel-title" id="vasCalcTableTitle">KẾT QUẢ TỔNG HỢP</div>
                         </div>
+                        
+                        <!-- Progress Bar Container -->
+                        <div id="vasCalcProgressContainer" style="display: none; padding: 30px 20px; background: rgba(0, 86, 163, 0.03); border: 1px solid rgba(0, 86, 163, 0.08); border-radius: 12px; margin-bottom: 20px; text-align: center; backdrop-filter: blur(8px);">
+                            <div style="font-size: 14px; font-weight: 700; color: var(--bv-blue); margin-bottom: 12px;" id="vasCalcProgressText">Đang khởi chạy... 0%</div>
+                            <div style="background: rgba(0, 0, 0, 0.06); height: 10px; border-radius: 5px; overflow: hidden; width: 100%;">
+                                <div id="vasCalcProgressBar" style="width: 0%; height: 100%; background: var(--bv-blue); transition: width 0.2s ease-in-out;"></div>
+                            </div>
+                        </div>
+
                         <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasCalcTable" style="border-spacing: 0; width: 100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
@@ -3438,6 +3470,7 @@
             generateFxGrid();
             syncUprTicker();
             loadFxRates();
+            loadManageQuarters();
         });
 
         document.getElementById('calcMonth').addEventListener('change', checkClosedQuarterAndLoad);
@@ -3556,6 +3589,7 @@
                 const response = await fetch('/api/vas/history');
                 if (response.ok) {
                     vasHistoryData = await response.json();
+                    loadManageQuarters(); // Refresh management dropdown
                 }
             } catch (err) {
                 console.error("Failed to load VAS history:", err);
@@ -3626,12 +3660,13 @@
                         sheetDtbt.add(new Option(sh, sh));
                     });
                     
-                    // Select default sheets if they exist
-                    const resultSheet = data.sheets.find(s => s.toLowerCase().includes('result'));
-                    const dtbtSheet = data.sheets.find(s => s.toLowerCase().includes('doanh thu') || s.toLowerCase().includes('dt'));
-                    
-                    if (resultSheet) sheetRes.value = resultSheet;
-                    if (dtbtSheet) sheetDtbt.value = dtbtSheet;
+                    // Select recommended sheets using fuzzy logic from backend
+                    if (data.recommended_result_sheet) {
+                        sheetRes.value = data.recommended_result_sheet;
+                    }
+                    if (data.recommended_dtbt_sheet) {
+                        sheetDtbt.value = data.recommended_dtbt_sheet;
+                    }
                     
                     document.getElementById('vasSheetsContainer').style.display = 'block';
                     document.getElementById('btnVasCheck').disabled = false;
@@ -3685,6 +3720,60 @@
             }
         });
         
+        function pollVasTaskStatus(taskId) {
+            const interval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/vas/task-status/${taskId}`);
+                    if (!response.ok) {
+                        clearInterval(interval);
+                        alert("Không thể tải trạng thái công việc.");
+                        resetProgressUI();
+                        return;
+                    }
+                    const data = await response.json();
+                    
+                    if (data.status === "running") {
+                        document.getElementById('vasCalcProgressBar').style.width = `${data.progress}%`;
+                        document.getElementById('vasCalcProgressText').innerText = `${data.message} ${data.progress}%`;
+                    } else if (data.status === "success") {
+                        clearInterval(interval);
+                        document.getElementById('vasCalcProgressBar').style.width = '100%';
+                        document.getElementById('vasCalcProgressText').innerText = 'Hoàn thành 100%';
+                        
+                        setTimeout(() => {
+                            resetProgressUI();
+                            showToast("Tính toán kết quả hoàn tất!");
+                            
+                            vasCurrentCalculatedData = data.result;
+                            renderVasCalcTable(vasCurrentCalculatedData);
+                            
+                            // Enable & Show update button
+                            document.getElementById('btnVasUpdate').style.display = 'block';
+                            
+                            // Render details panel (cards & Plotly charts)
+                            renderVasCalcDetailPanel();
+                        }, 500);
+                        
+                    } else if (data.status === "failed") {
+                        clearInterval(interval);
+                        alert(`Lỗi tính toán: ${data.error || 'Lỗi không xác định'}`);
+                        resetProgressUI();
+                    }
+                } catch (err) {
+                    clearInterval(interval);
+                    alert(`Lỗi khi thăm dò trạng thái: ${err}`);
+                    resetProgressUI();
+                }
+            }, 500);
+        }
+        
+        function resetProgressUI() {
+            document.getElementById('vasCalcProgressContainer').style.display = 'none';
+            document.getElementById('vasCalcTable').closest('.table-container').style.display = 'block';
+            document.getElementById('btnVasMerge').innerHTML = 'Ghép dữ liệu';
+            document.getElementById('btnVasMerge').disabled = false;
+        }
+
         // Button Merge / Calculate
         document.getElementById('btnVasMerge').addEventListener('click', async () => {
             if (!vasSelectedFile) return;
@@ -3695,7 +3784,13 @@
             const q = document.getElementById('vasQuarter').value;
             const quarterId = `${y}${q}`;
             
-            document.getElementById('btnVasMerge').innerHTML = 'Calculating...';
+            // Set UI to running status
+            document.getElementById('btnVasMerge').innerHTML = 'Processing...';
+            document.getElementById('btnVasMerge').disabled = true;
+            document.getElementById('vasCalcProgressContainer').style.display = 'block';
+            document.getElementById('vasCalcProgressBar').style.width = '0%';
+            document.getElementById('vasCalcProgressText').innerText = 'Đang gửi yêu cầu khởi tạo... 0%';
+            document.getElementById('vasCalcTable').closest('.table-container').style.display = 'none';
             
             try {
                 const res = await fetch('/api/vas/calculate', {
@@ -3710,23 +3805,16 @@
                 });
                 
                 if (res.ok) {
-                    vasCurrentCalculatedData = await res.json();
-                    showToast("Tính toán kết quả hoàn tất!");
-                    renderVasCalcTable(vasCurrentCalculatedData);
-                    
-                    // Enable & Show update button
-                    document.getElementById('btnVasUpdate').style.display = 'block';
-                    
-                    // Render details panel (cards & Plotly charts)
-                    renderVasCalcDetailPanel();
+                    const taskData = await res.json();
+                    pollVasTaskStatus(taskData.task_id);
                 } else {
                     const err = await res.json();
-                    alert(`Lỗi tính toán: ${err.detail}`);
+                    alert(`Không thể khởi chạy tính toán: ${err.detail || 'Lỗi không xác định'}`);
+                    resetProgressUI();
                 }
             } catch (err) {
-                alert("Lỗi kết nối tính toán.");
-            } finally {
-                document.getElementById('btnVasMerge').innerHTML = 'Ghép dữ liệu';
+                alert("Lỗi kết nối khi khởi chạy tính toán.");
+                resetProgressUI();
             }
         });
         
@@ -4850,7 +4938,66 @@
                 body.insertAdjacentHTML('beforeend', rowHtml);
             });
         }
-        
+        async function loadManageQuarters() {
+            try {
+                const response = await fetch('/api/vas/quarters');
+                if (response.ok) {
+                    const quarters = await response.json();
+                    const selectEl = document.getElementById('vasManageQuarters');
+                    selectEl.innerHTML = '';
+                    if (quarters.length === 0) {
+                        selectEl.add(new Option("Chưa có dữ liệu", ""));
+                        document.getElementById('btnDownloadArchive').disabled = true;
+                        document.getElementById('btnDeleteQuarter').disabled = true;
+                    } else {
+                        quarters.forEach(q => {
+                            selectEl.add(new Option(q, q));
+                        });
+                        document.getElementById('btnDownloadArchive').disabled = false;
+                        document.getElementById('btnDeleteQuarter').disabled = false;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load quarters list:", err);
+            }
+        }
+
+        document.getElementById('btnDownloadArchive').addEventListener('click', function() {
+            const q = document.getElementById('vasManageQuarters').value;
+            if (!q) return;
+            window.open(`/api/vas/download-archive/${q}`, '_blank');
+        });
+
+        document.getElementById('btnDeleteQuarter').addEventListener('click', async function() {
+            const q = document.getElementById('vasManageQuarters').value;
+            if (!q) return;
+            
+            const password = prompt(`Bạn có chắc chắn muốn XÓA TOÀN BỘ số liệu và tệp Excel nguồn của kỳ ${q} khỏi hệ thống không?\nNhập mật khẩu bảo vệ để xác nhận:`);
+            if (password === null) return; // Cancelled
+            
+            try {
+                const response = await fetch('/api/vas/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quarter_id: q,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message);
+                    // Reload data
+                    await loadVasHistory();
+                } else {
+                    alert(`Không thể xóa dữ liệu: ${data.detail || 'Lỗi không xác định'}`);
+                }
+            } catch (err) {
+                alert("Lỗi kết nối khi gửi yêu cầu xóa.");
+            }
+        });
+
         // End of VAS JS logic
 
 

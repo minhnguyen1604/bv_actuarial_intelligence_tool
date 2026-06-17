@@ -368,9 +368,9 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
                 
                 # Phi_bao_hiem_goc
                 ws_kp.cell(row=row, column=col_out_goc).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 2, 0)), '
+                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
                     f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
                 # Ty_le_giu_lai_BHBV
@@ -659,9 +659,9 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
                 
                 # Phi_bao_hiem_sau_dong
                 ws_kp.cell(row=row, column=col_out_phi_sau_dong).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 2, 0)), '
+                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
                     f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
                 # Phi_bao_hiem_giu_lai
@@ -817,9 +817,9 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
                 
                 # Phi_bao_hiem_goc
                 ws_kp.cell(row=row, column=col_out_goc).value = (
-                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 2, 0)), '
+                    f'=VALUE({col_vnd}{row}) + VALUE({col_usd}{row}) * IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 2, 0)), '
                     f'VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 2, 0))) + VALUE({col_eur}{row}) * '
-                    f'IFERROR(VALUE(VLOOKUP({col_out_quynam}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
+                    f'IFERROR(VALUE(VLOOKUP({int2col(col_out_quynam)}{row}, {vlookup_range}, 3, 0)), VALUE(VLOOKUP({fallback_cell}, {vlookup_range}, 3, 0)))'
                 )
                 
                 # Ty_le_giu_lai_BHBV
