@@ -160,6 +160,9 @@ def _to_numeric(series: pd.Series) -> pd.Series:
 
 def _get_schema_cols(group_code: str) -> List[str]:
     gc = group_code or ""
+    # Hardcoded fallback exception for Fire_ST to match R's !grepl("fire_st", code1) logic
+    if gc.lower() == "fire_st":
+        return _schemas.get("Eng_LT_Pre", [])
     # Direct key
     for suffix in ("_Pre", "_LT_Pre", "_ST_Pre"):
         key = gc + suffix

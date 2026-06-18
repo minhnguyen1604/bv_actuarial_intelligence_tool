@@ -78,7 +78,9 @@ def load_ty_gia() -> pd.DataFrame:
     for r in rows:
         del r["_sort_key"]
 
-    return pd.DataFrame(rows, columns=cols)
+    df_res = pd.DataFrame(rows, columns=cols)
+    df_res = df_res.ffill().bfill().fillna(1.0)
+    return df_res
 
 def recalculate_excel_file(file_path: str):
     """No-op. Excel COM recalculation has been deprecated for performance."""
@@ -469,7 +471,7 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
     
     # Determine type of UPR calculation
     is_vietjet = "vietjet" in file_name.lower()
-    is_tttbvv = "tttbvv" in file_name.lower()
+    is_tttbvv = "tttbvv" in group_code.lower() or "tttbvv" in file_name.lower()
     is_lt = group_code.upper().endswith("_LT")
     
     # Create workbook in write-only mode to prevent massive memory usage (8M+ cells for PA_ST LOB)
