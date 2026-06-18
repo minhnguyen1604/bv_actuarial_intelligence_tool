@@ -78,9 +78,7 @@ def load_ty_gia() -> pd.DataFrame:
     for r in rows:
         del r["_sort_key"]
 
-    df_res = pd.DataFrame(rows, columns=cols)
-    df_res = df_res.ffill().bfill().fillna(1.0)
-    return df_res
+    return pd.DataFrame(rows, columns=cols)
 
 def recalculate_excel_file(file_path: str):
     """No-op. Excel COM recalculation has been deprecated for performance."""
