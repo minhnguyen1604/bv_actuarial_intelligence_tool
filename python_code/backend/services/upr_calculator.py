@@ -132,8 +132,8 @@ def calculate_st_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: p
                     m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
                     d_val.fillna(1).astype(int).astype(str).str.zfill(2)
             parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
-            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
-            return pd.Series(parsed)
+            parsed = parsed.where(d_val.notna() & m_val.notna() & y_val.notna(), pd.NaT)
+            return parsed
             
         tu_date = parse_date_series("Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam")
         den_date = parse_date_series("Thoi_han_bao_hiem_Den_Ngay", "Thoi_han_bao_hiem_Den_Thang", "Thoi_han_bao_hiem_Den_Nam")
@@ -254,8 +254,8 @@ def calculate_tttbvv_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gi
                     m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
                     d_val.fillna(1).astype(int).astype(str).str.zfill(2)
             parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
-            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
-            return pd.Series(parsed)
+            parsed = parsed.where(d_val.notna() & m_val.notna() & y_val.notna(), pd.NaT)
+            return parsed
             
         tu_date = parse_date_series(f"Ky_phi_{ky}_Tu_Ngay", f"Ky_phi_{ky}_Tu_Thang", f"Ky_phi_{ky}_Tu_Nam")
         den_date = parse_date_series(f"Ky_phi_{ky}_Den_Ngay", f"Ky_phi_{ky}_Den_Thang", f"Ky_phi_{ky}_Den_Nam")
@@ -350,8 +350,8 @@ def calculate_lt_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: p
                     m_val.fillna(1).astype(int).astype(str).str.zfill(2) + '-' + \
                     d_val.fillna(1).astype(int).astype(str).str.zfill(2)
             parsed = pd.to_datetime(d_str, format='%Y-%m-%d', errors='coerce')
-            parsed = np.where(d_val.isna() | m_val.isna() | y_val.isna(), pd.NaT, parsed)
-            return pd.Series(parsed)
+            parsed = parsed.where(d_val.notna() & m_val.notna() & y_val.notna(), pd.NaT)
+            return parsed
             
         tu_date = parse_date_series("Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam")
         den_date = parse_date_series("Thoi_han_bao_hiem_Den_Ngay", "Thoi_han_bao_hiem_Den_Thang", "Thoi_han_bao_hiem_Den_Nam")
