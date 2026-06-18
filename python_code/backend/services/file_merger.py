@@ -295,6 +295,11 @@ def merge_file(
     output_path = _cur_data_path(quarter_id, group_code)
     prev_qid = _prev_quarter_id(quarter_id)
 
+    # Check if this LOB should be merged (R only merges if {group_code}_Pre.rds template exists in pre_data)
+    r_pre_data_dir = os.path.abspath(os.path.join(_BASE_DIR, "..", "..", "r_code_upr", "pre_data"))
+    rds_path = os.path.join(r_pre_data_dir, f"{group_code}_Pre.rds")
+    should_merge = os.path.exists(rds_path) or any(f"{group_code}{suffix}" in _schemas for suffix in ("_Pre", "_LT_Pre", "_ST_Pre"))
+
     if prev_qid and gc not in ("Vietjet",):
         prev_df = None
         db_file = _prev_quarter_db_path(prev_qid)
@@ -327,7 +332,12 @@ def merge_file(
                         print(f"Error loading fallback parquet file: {e}")
 
         if prev_df is not None:
-            df, changes = _merge_with_prev(df, prev_df, dpnv_date)
+            merged_df, changes = _merge_with_prev(df, prev_df, dpnv_date)
+            if should_merge:
+                df = merged_df
+                print(f"Merged {group_code} with previous quarter data. Total rows: {len(df)}")
+            else:
+                print(f"Compared {group_code} with previous quarter data for audit check, but did not merge it. Kept only current quarter rows: {len(df)}")
 
     # 4. Save merged data
     df.to_parquet(output_path, index=False)
