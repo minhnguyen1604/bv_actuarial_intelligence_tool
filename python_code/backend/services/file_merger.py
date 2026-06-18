@@ -171,7 +171,7 @@ def _get_schema_cols(group_code: str) -> List[str]:
     return _schemas.get("Eng_LT_Pre", [])
 
 
-def _find_data_start(df: pd.DataFrame):
+def _find_data_start(df: pd.DataFrame) -> tuple[Optional[int], pd.DataFrame]:
     """Find the row index where real data starts (header row + 1)."""
     work = df.copy()
 
@@ -192,10 +192,10 @@ def _find_data_start(df: pd.DataFrame):
         col12 = work.iloc[:, 11].astype(str)
         mask = col12.str.match(r"^Ng[aà]y", case=False)
         if mask.any():
-            return int(mask.idxmax())
+            return int(mask.idxmax()), work
         work = work.iloc[:, 1:]
         work.columns = range(work.shape[1])
-    return None
+    return None, work
 
 
 def get_quarter_dir(quarter_id: str) -> str:
@@ -419,11 +419,11 @@ def _process_general(raw: pd.DataFrame, group_code: str) -> Optional[pd.DataFram
         schema_cols = schema_cols[:36]  # CTTV/BHTT uses only first 36 cols of 7_term
 
     # Find real data start row
-    header_idx = _find_data_start(df)
+    header_idx, work = _find_data_start(df)
     if header_idx is None:
         return None
 
-    data = df.iloc[header_idx + 1 :].reset_index(drop=True)
+    data = work.iloc[header_idx + 1 :].reset_index(drop=True)
 
     # Pad / trim
     n_data, n_schema = data.shape[1], len(schema_cols)
