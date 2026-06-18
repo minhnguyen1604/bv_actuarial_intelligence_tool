@@ -80,7 +80,7 @@ def read_task_status(task_id: str) -> dict:
 def async_calculate_upr(task_id: str, quarter_id: str, file_ids: list[int]):
     db = SessionLocal()
     try:
-        write_task_status(task_id, "running", 10, "Khởi động tác vụ tính toán UPR...")
+        write_task_status(task_id, "running", 10, "Starting UPR calculation task...")
         
         # Fetch files to calculate
         query = db.query(models.FileQueue).filter(models.FileQueue.quarter_id == quarter_id)
@@ -93,7 +93,7 @@ def async_calculate_upr(task_id: str, quarter_id: str, file_ids: list[int]):
         total_files = len(files_to_calc)
         
         if total_files == 0:
-            write_task_status(task_id, "success", 100, "Không có file nào cần tính toán.", result={"calculated": []})
+            write_task_status(task_id, "success", 100, "No files to calculate.", result={"calculated": []})
             return
 
         # Fetch calculations date
@@ -122,7 +122,7 @@ def async_calculate_upr(task_id: str, quarter_id: str, file_ids: list[int]):
             db.commit()
             
             progress = int(10 + (idx / total_files) * 80)
-            write_task_status(task_id, "running", progress, f"Đang tính UPR cho nghiệp vụ {f.group_code} ({idx+1}/{total_files})...")
+            write_task_status(task_id, "running", progress, f"Calculating UPR for LOB {f.group_code} ({idx+1}/{total_files})...")
             
             try:
                 out_path = upr_calculator.calculate_upr_for_file(
@@ -139,18 +139,18 @@ def async_calculate_upr(task_id: str, quarter_id: str, file_ids: list[int]):
                 db.commit()
                 results.append({"file_id": f.id, "file_name": f.file_name, "status": "Error", "error": str(e)})
 
-        write_task_status(task_id, "success", 100, "Tính toán hoàn thành!", result={"calculated": results})
+        write_task_status(task_id, "success", 100, "Calculation completed successfully!", result={"calculated": results})
     except Exception as e:
         import traceback
         traceback.print_exc()
-        write_task_status(task_id, "failed", 100, f"Lỗi tính toán: {str(e)}", error=str(e))
+        write_task_status(task_id, "failed", 100, f"Calculation failed: {str(e)}", error=str(e))
     finally:
         db.close()
 
 def async_summarize_upr(task_id: str, quarter_id: str, file_ids: list[int]):
     db = SessionLocal()
     try:
-        write_task_status(task_id, "running", 20, "Khởi chạy tác vụ tổng hợp UPR...")
+        write_task_status(task_id, "running", 20, "Starting UPR reports summarization...")
         
         res = upr_calculator.summarize_reports(
             db=db,
@@ -158,18 +158,18 @@ def async_summarize_upr(task_id: str, quarter_id: str, file_ids: list[int]):
             file_ids=file_ids
         )
         
-        write_task_status(task_id, "success", 100, "Tổng hợp hoàn thành!", result=res)
+        write_task_status(task_id, "success", 100, "Summarization completed successfully!", result=res)
     except Exception as e:
         import traceback
         traceback.print_exc()
-        write_task_status(task_id, "failed", 100, f"Lỗi tổng hợp: {str(e)}", error=str(e))
+        write_task_status(task_id, "failed", 100, f"Summarization failed: {str(e)}", error=str(e))
     finally:
         db.close()
 
 @router.post("/calculate")
 def calculate_upr(req: UPRCalculationRequest):
     task_id = str(uuid.uuid4())
-    write_task_status(task_id, "running", 0, "Đang khởi chạy tác vụ tính toán UPR...")
+    write_task_status(task_id, "running", 0, "Starting UPR calculation task...")
     p = multiprocessing.Process(
         target=async_calculate_upr,
         args=(task_id, req.quarter_id, req.file_ids)
@@ -180,7 +180,7 @@ def calculate_upr(req: UPRCalculationRequest):
 @router.post("/summarize")
 def summarize_upr(req: UPRSummaryRequest):
     task_id = str(uuid.uuid4())
-    write_task_status(task_id, "running", 0, "Đang khởi chạy tác vụ tổng hợp UPR...")
+    write_task_status(task_id, "running", 0, "Starting UPR reports summarization...")
     p = multiprocessing.Process(
         target=async_summarize_upr,
         args=(task_id, req.quarter_id, req.file_ids)
