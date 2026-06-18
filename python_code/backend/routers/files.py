@@ -489,12 +489,50 @@ def delete_file(file_id: int, db: Session = Depends(get_db)):
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found")
     
+    # 1. Delete uploaded Excel file
     if file_record.file_path and os.path.exists(file_record.file_path):
         try:
             os.remove(file_record.file_path)
         except Exception:
             pass
             
+    # 2. Delete merged parquet files
+    from services.file_merger import DATA_ROOT
+    dot_qid = file_record.quarter_id.replace("_", ".")
+    
+    parquet_path = os.path.join(DATA_ROOT, dot_qid, f"{file_record.group_code}.parquet")
+    ketqua_path = os.path.join(DATA_ROOT, dot_qid, f"{file_record.group_code}_ketqua.parquet")
+    
+    for path in (parquet_path, ketqua_path):
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+                
+    # Fallback to underscore path check
+    alt_parquet_path = os.path.join(DATA_ROOT, file_record.quarter_id, f"{file_record.group_code}.parquet")
+    alt_ketqua_path = os.path.join(DATA_ROOT, file_record.quarter_id, f"{file_record.group_code}_ketqua.parquet")
+    for path in (alt_parquet_path, alt_ketqua_path):
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+                
+    # 3. Drop SQLite database table
+    db_path = os.path.join(DATA_ROOT, f"{dot_qid}.db")
+    if os.path.exists(db_path):
+        try:
+            import sqlite3
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(f'DROP TABLE IF EXISTS "{file_record.group_code}"')
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+            
     db.delete(file_record)
     db.commit()
-    return {"ok": True, "message": "File deleted from queue."}
+    return {"ok": True, "message": "File and its merged data deleted."}
