@@ -724,6 +724,7 @@
             border: 1px solid rgba(255, 255, 255, 0.8);
             border-radius: 12px;
             overflow-y: auto;
+            overflow-y: overlay;
             overflow-x: hidden;
             background: rgba(255, 255, 255, 0.4);
             box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
@@ -897,6 +898,7 @@
         
         .hover-scroll {
             overflow-y: auto;
+            overflow-y: overlay;
         }
         .hover-scroll::-webkit-scrollbar {
             width: 6px;
@@ -905,7 +907,7 @@
             background: transparent;
         }
         .hover-scroll::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.08);
+            background: transparent;
             border-radius: 10px;
         }
         .hover-scroll:hover::-webkit-scrollbar-thumb {
@@ -1453,7 +1455,7 @@
                             <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1); margin-left: 12px;"></div>
                         </div>
 
-                        <div class="table-container hover-scroll" style="flex: 1; min-height: 0; overflow-y: auto;">
+                        <div class="table-container hover-scroll" style="flex: 1; min-height: 0; overflow-y: overlay;">
                             <table>
                                 <thead>
                                     <tr>
@@ -1529,7 +1531,7 @@
                             </div>
                         </div>
 
-                        <div class="table-container" style="flex: 1; min-height: 0; overflow-y: auto;">
+                        <div class="table-container" style="flex: 1; min-height: 0; overflow-y: overlay;">
                             <table>
                                 <thead>
                                     <tr>
@@ -1701,7 +1703,7 @@
                             </div>
                         </div>
 
-                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasCalcTable" style="border-spacing: 0; width: 100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
                                     <tr>
@@ -1773,7 +1775,7 @@
                     <!-- Written premium growth table -->
                     <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 400px;">
                         <div class="panel-title" style="margin-bottom: 12px;">Written Premium History & YoY Growth</div>
-                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasOvrTable" style="border-spacing:0; width:100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasOvrTableHead"></thead>
                                 <tbody id="vasOvrTableBody"></tbody>
@@ -1844,7 +1846,7 @@
                             <div class="panel-title">So sánh chỉ tiêu giữa các quý (Triệu VND / %)</div>
                             <button class="btn btn-outline btn-icon-sm" id="btnVasDownloadCmp1" title="Download Excel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
                         </div>
-                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasCmp1Table" style="border-spacing:0; width:100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasCmp1TableHead"></thead>
                                 <tbody id="vasCmp1TableBody"></tbody>
@@ -1864,7 +1866,7 @@
                             <div class="panel-title" id="vasCmp2Title">So sánh giữa các Type</div>
                             <button class="btn btn-outline btn-icon-sm" id="btnVasDownloadCmp2" title="Download Excel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
                         </div>
-                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasCmp2Table" style="border-spacing:0; width:100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
                                     <tr>
@@ -1899,7 +1901,7 @@
                         <div class="panel-title">Xem dữ liệu kiểu Excel</div>
                         <button class="btn btn-outline" id="btnVasDownloadAllHistory">Tải về Excel</button>
                     </div>
-                    <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                    <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                         <table id="vasHistoryTable" style="border-spacing:0; width:100%;">
                             <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;" id="vasHistoryTableHead"></thead>
                             <tbody id="vasHistoryTableBody"></tbody>
@@ -1927,7 +1929,7 @@
                 <div class="setup-grid" style="display: grid; grid-template-columns: 7.5fr 4.5fr; gap: 20px; margin-bottom: 0;">
                     <div class="panel glass-panel" style="display: flex; flex-direction: column; padding: 20px; min-height: 350px;">
                         <div class="panel-title" style="margin-bottom: 12px;">Chi tiết nghiệp vụ</div>
-                        <div class="table-container hover-scroll" style="flex: 1; overflow: auto; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <div class="table-container hover-scroll" style="flex: 1; overflow: overlay; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                             <table id="vasDetTable" style="border-spacing:0; width:100%;">
                                 <thead style="background: #f9fafb; position: sticky; top: 0; z-index: 2;">
                                     <tr>
@@ -2055,7 +2057,7 @@
             </p>
             
             <!-- Table Container with custom scroll -->
-            <div class="hover-scroll" style="margin-bottom: 24px; max-height: 350px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
+            <div class="hover-scroll" style="margin-bottom: 24px; max-height: 350px; overflow-y: overlay; border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
