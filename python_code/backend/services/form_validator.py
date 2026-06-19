@@ -191,7 +191,7 @@ def validate_form(file_path: str, sheet_name: str, group_code: str) -> Dict[str,
 
     if gc == "Vietjet":
         return _validate_vietjet(raw)
-    elif re.search(r"XCG|PA_NNTX", gc, re.IGNORECASE):
+    elif re.search(r"XCG_LT|XCG_ST|PA_NNTX", gc, re.IGNORECASE):
         return _validate_xcg(raw, gc)
     else:
         return _validate_general(raw, gc)

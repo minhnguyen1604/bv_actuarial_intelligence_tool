@@ -285,7 +285,7 @@ def merge_file(
     gc = group_code or ""
     if gc == "Vietjet":
         df = _process_vietjet(raw)
-    elif re.search(r"XCG|PA_NNTX", gc, re.IGNORECASE):
+    elif re.search(r"XCG_LT|XCG_ST|PA_NNTX", gc, re.IGNORECASE):
         df = _process_xcg(raw, gc)
     else:
         df = _process_general(raw, gc)
