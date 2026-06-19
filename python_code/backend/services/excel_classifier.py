@@ -10,7 +10,7 @@ GROUP_MAPPING = {
     "PA_TTTBVV": ["chet", "tpd"],
     "Vietjet": ["vietjet"],
     "PA": ["bhcn", "pa"],
-    "XCG": ["xcg"],
+    "XCG": ["xcg", "motor", "car", "auto", "vehicle"],
     "PA_NNTX": ["ntx"],
     "XCG_CWVN": ["cwvn"],
     "Travel_BHTT": ["bhtt"],
