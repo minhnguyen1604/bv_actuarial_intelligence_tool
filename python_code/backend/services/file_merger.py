@@ -508,7 +508,7 @@ def _process_xcg(raw: pd.DataFrame, group_code: str) -> Optional[pd.DataFrame]:
 
     # Find retention/giữ lại column
     retention_col = next(
-        (c for c in df.columns if re.search(r"gi[uữ].{0,3}l[aạ]i|Retention", c, re.IGNORECASE)),
+        (c for c in df.columns if re.search(r"gi[uữ].{0,3}l[aạ]i|Retention", str(c), re.IGNORECASE)),
         None
     )
     if retention_col:
