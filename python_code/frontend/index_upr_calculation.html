@@ -1602,16 +1602,12 @@
                 
                 <!-- Main Content -->
                 <div class="luxury-coming-soon-content">
-                    <div class="coming-soon-badge" style="background: rgba(0, 86, 163, 0.08); color: var(--bv-blue); border: 1px solid rgba(0, 86, 163, 0.15); padding: 6px 16px; border-radius: 99px; font-weight: 700; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; animation: cs-pulse 2s infinite ease-in-out;">
-                        Module Under Development
-                    </div>
-                    <h1 class="luxury-cs-heading" id="comingSoonTitle"></h1>
+                    <h1 class="luxury-cs-heading" id="comingSoonTitle">
+                        <span class="cs-letter" style="--i:0">C</span><span class="cs-letter" style="--i:1">O</span><span class="cs-letter" style="--i:2">M</span><span class="cs-letter" style="--i:3">I</span><span class="cs-letter" style="--i:4">N</span><span class="cs-letter" style="--i:5">G</span><span class="cs-letter cs-space" style="--i:6"> </span><span class="cs-letter" style="--i:7">S</span><span class="cs-letter" style="--i:8">O</span><span class="cs-letter" style="--i:9">O</span><span class="cs-letter" style="--i:10">N</span>
+                    </h1>
                     <div class="cs-line-divider">
                         <div class="cs-line-glow"></div>
                     </div>
-                    <p class="coming-soon-subtitle" id="comingSoonSubtitle" style="color: var(--text-secondary); font-size: 14px; font-weight: 500; text-align: center; max-width: 450px; line-height: 1.6; margin-top: 10px;">
-                        We are currently building this module to ensure it meets our actuarial excellence standards. Stay tuned for advanced analytical features.
-                    </p>
                 </div>
             </div>
         </div>
@@ -3719,29 +3715,18 @@
         }
 
         // Show animated Coming Soon page dynamically
-        function showComingSoon(title, description = "We are currently building this module to ensure it meets our actuarial excellence standards. Stay tuned for advanced analytical features.") {
+        function showComingSoon() {
             switchView('coming-soon-view');
             
-            document.getElementById('comingSoonSubtitle').innerText = description;
-            
-            const titleContainer = document.getElementById('comingSoonTitle');
-            titleContainer.innerHTML = '';
-            
-            let letterIndex = 0;
-            for (let char of title) {
-                if (char === ' ') {
-                    const spaceSpan = document.createElement('span');
-                    spaceSpan.className = 'cs-space';
-                    titleContainer.appendChild(spaceSpan);
-                } else {
-                    const letterSpan = document.createElement('span');
-                    letterSpan.className = 'cs-letter';
-                    letterSpan.style.setProperty('--i', letterIndex);
-                    letterSpan.innerText = char.toUpperCase();
-                    titleContainer.appendChild(letterSpan);
-                    letterIndex++;
-                }
-            }
+            // Re-trigger letter animations
+            const letters = document.querySelectorAll('.cs-letter');
+            letters.forEach(letter => {
+                letter.style.animation = 'none';
+                void letter.offsetHeight; // Trigger reflow
+                const delay = letter.style.getPropertyValue('--i');
+                letter.style.animation = `cs-letter-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards, cs-letter-shimmer 4s ease-in-out infinite`;
+                letter.style.animationDelay = `${0.04 * delay}s, ${0.6 + 0.04 * delay}s`;
+            });
         }
 
         // Setup Sidebar Clicks
@@ -3760,43 +3745,43 @@
 
         // Setup Undeveloped Modules Clicks (Coming Soon / Waiting Screens)
         document.getElementById('uprPremiumAnalysisSubItem').addEventListener('click', function() {
-            showComingSoon("PREMIUM ANALYTICS", "Advanced UPR Premium Analysis, breakdown dashboards, and seasonal risk reports will be integrated here.");
+            showComingSoon();
             this.classList.add('active');
             const parent = document.querySelector('[data-tooltip="UPR Calculation"]');
             if (parent) parent.classList.add('active');
         });
 
         document.getElementById('oscCalcNavItem').addEventListener('click', function() {
-            showComingSoon("OSC CALCULATION", "Outstanding Claims (OSC) Calculation module is under development. It will support automated outstanding claim reserves estimation, chain-ladder, and run-off analysis.");
+            showComingSoon();
             this.classList.add('active');
         });
 
         document.getElementById('reports5ASubItem').addEventListener('click', function() {
-            showComingSoon("REPORTS 5A - 5B", "Consolidated 5A & 5B regulatory reporting forms generation is under development.");
+            showComingSoon();
             this.classList.add('active');
             const parent = document.querySelector('[data-tooltip="Reports"]');
             if (parent) parent.classList.add('active');
         });
 
         document.getElementById('reports7SubItem').addEventListener('click', function() {
-            showComingSoon("REPORT 7", "Actuarial Report Form 7 breakdown and dynamic exporting is coming soon.");
+            showComingSoon();
             this.classList.add('active');
             const parent = document.querySelector('[data-tooltip="Reports"]');
             if (parent) parent.classList.add('active');
         });
 
         document.getElementById('amBestRatingNavItem').addEventListener('click', function() {
-            showComingSoon("AM.BEST RATING", "AM.Best Rating simulation, stress-testing, and historical tracking dashboard will be integrated here.");
+            showComingSoon();
             this.classList.add('active');
         });
 
         document.getElementById('dataRepositoryNavItem').addEventListener('click', function() {
-            showComingSoon("DATA REPOSITORY", "Historical actuarial data repository, automated backup registers, and search indexes are under construction.");
+            showComingSoon();
             this.classList.add('active');
         });
 
         document.getElementById('settingsNavItem').addEventListener('click', function() {
-            showComingSoon("SETTINGS", "System configuration, model parameter adjustments, user access management, and actuarial baseline configurations.");
+            showComingSoon();
             this.classList.add('active');
         });
 
