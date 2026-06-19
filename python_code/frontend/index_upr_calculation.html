@@ -285,6 +285,9 @@
             font-size: 18px;
             opacity: 0.8;
             transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .sidebar.collapsed .nav-icon {
@@ -1306,7 +1309,16 @@
 
         <div class="nav-label">Modules</div>
         <div class="nav-item" onclick="toggleSubmenu('upr-submenu', this)" data-tooltip="UPR Calculation">
-            <span class="nav-icon">◱</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"></path>
+                    <path d="M16 2v4"></path>
+                    <path d="M8 2v4"></path>
+                    <path d="M3 10h18"></path>
+                    <circle cx="16" cy="16" r="4"></circle>
+                    <path d="M16 14v2l1 1"></path>
+                </svg>
+            </span>
             <span class="nav-text">UPR Calculation</span>
             
         </div>
@@ -1321,15 +1333,33 @@
             </div>
         </div>
         <div class="nav-item" data-tooltip="OSC Calculation">
-            <span class="nav-icon">◐</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="12" x2="12" y2="16"></line>
+                    <line x1="12" y1="9" x2="12" y2="9.01"></line>
+                </svg>
+            </span>
             <span class="nav-text">OSC Calculation</span>
         </div>
         <div class="nav-item" data-tooltip="VAS Analysis" id="vasAnalysisNavItem">
-            <span class="nav-icon">◰</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                    <polyline points="17 6 23 6 23 12"></polyline>
+                </svg>
+            </span>
             <span class="nav-text">VAS Analysis</span>
         </div>
         <div class="nav-item" onclick="toggleSubmenu('reports-submenu', this)" data-tooltip="Reports">
-            <span class="nav-icon">◫</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V6.5L15.5 2z"></path>
+                    <path d="M3 7.6v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8"></path>
+                    <polyline points="15 2 15 7 20 7"></polyline>
+                </svg>
+            </span>
             <span class="nav-text">Reports</span>
             
         </div>
@@ -1344,21 +1374,44 @@
             </div>
         </div>
         <div class="nav-item" data-tooltip="AM.Best Rating">
-            <span class="nav-icon">★</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polygon points="12 11 13.5 14 16.5 14.5 14 16.5 15 19.5 12 18 9 19.5 10 16.5 7.5 14.5 10.5 14"></polygon>
+                </svg>
+            </span>
             <span class="nav-text">AM.Best Rating</span>
         </div>
 
         <div class="nav-label" style="margin-top: 30px;">Management</div>
         <div class="nav-item" data-tooltip="Data Repository">
-            <span class="nav-icon">▤</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+                    <path d="M3 12A9 3 0 0 0 21 12"></path>
+                </svg>
+            </span>
             <span class="nav-text">Data Repository</span>
         </div>
         <div class="nav-item" data-tooltip="Exchange Rates" id="exchangeRatesNavItem">
-            <span class="nav-icon">◧</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m17 2 4 4-4 4"></path>
+                    <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
+                    <path d="m7 22-4-4 4-4"></path>
+                    <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </span>
             <span class="nav-text">Exchange Rates</span>
         </div>
         <div class="nav-item" data-tooltip="Settings">
-            <span class="nav-icon">⚙</span>
+            <span class="nav-icon">
+                <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </span>
             <span class="nav-text">Settings</span>
         </div>
         <div class="user-profile">
