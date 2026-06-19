@@ -1286,6 +1286,174 @@
             font-weight: 600;
         }
 
+        /* ===== LUXURY COMING SOON - Adapted for BVGI Theme ===== */
+        .luxury-coming-soon-scene {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            min-height: 70vh;
+            overflow: hidden;
+        }
+
+        /* Floating ambient particles */
+        .cs-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            animation: cs-particle-float 8s ease-in-out infinite;
+        }
+
+        .cs-p1 {
+            width: 6px; height: 6px;
+            background: rgba(0, 86, 163, 0.4);
+            top: 20%; left: 15%;
+            animation-delay: 0s;
+            animation-duration: 9s;
+        }
+        .cs-p2 {
+            width: 4px; height: 4px;
+            background: rgba(217, 119, 6, 0.3);
+            top: 65%; left: 25%;
+            animation-delay: 1.5s;
+            animation-duration: 11s;
+        }
+        .cs-p3 {
+            width: 8px; height: 8px;
+            background: rgba(0, 86, 163, 0.2);
+            top: 30%; right: 20%;
+            animation-delay: 3s;
+            animation-duration: 10s;
+        }
+        .cs-p4 {
+            width: 5px; height: 5px;
+            background: rgba(217, 119, 6, 0.25);
+            top: 70%; right: 15%;
+            animation-delay: 0.8s;
+            animation-duration: 12s;
+        }
+        .cs-p5 {
+            width: 3px; height: 3px;
+            background: rgba(0, 86, 163, 0.5);
+            top: 45%; left: 50%;
+            animation-delay: 5s;
+            animation-duration: 8s;
+        }
+
+        @keyframes cs-particle-float {
+            0% { opacity: 0; transform: translateY(0px) scale(1); }
+            20% { opacity: 1; }
+            50% { transform: translateY(-40px) scale(1.2); opacity: 0.6; }
+            80% { opacity: 0.2; }
+            100% { opacity: 0; transform: translateY(-80px) scale(0.6); }
+        }
+
+        /* Main content block */
+        .luxury-coming-soon-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            animation: cs-content-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes cs-content-rise {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Individual animated letters */
+        .luxury-cs-heading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: clamp(2.4rem, 5vw, 4.2rem);
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            line-height: 1.1;
+            user-select: none;
+            margin: 10px 0;
+        }
+
+        .cs-space {
+            width: 0.35em;
+            display: inline-block;
+        }
+
+        .cs-letter {
+            display: inline-block;
+            background: linear-gradient(135deg, #0056A3 0%, #0076de 50%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: cs-letter-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+                       cs-letter-shimmer 4s ease-in-out infinite;
+            animation-delay: calc(0.04s * var(--i, 0)), calc(0.6s + 0.04s * var(--i, 0));
+            filter: drop-shadow(0 2px 8px rgba(0, 86, 163, 0.15));
+            transition: filter 0.3s ease;
+            position: relative;
+        }
+
+        .cs-letter:hover {
+            filter: drop-shadow(0 2px 20px rgba(0, 86, 163, 0.45));
+            animation-play-state: paused;
+            transform: translateY(-4px) !important;
+        }
+
+        @keyframes cs-letter-in {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes cs-letter-shimmer {
+            0%, 100% { filter: drop-shadow(0 2px 8px rgba(0, 86, 163, 0.15)); }
+            50% { filter: drop-shadow(0 2px 18px rgba(0, 86, 163, 0.35)); }
+        }
+
+        /* Glowing line divider */
+        .cs-line-divider {
+            width: 100%;
+            min-width: 320px;
+            max-width: 450px;
+            height: 2px;
+            background: rgba(0, 86, 163, 0.08);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .cs-line-glow {
+            position: absolute;
+            top: 0; left: -60%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(0, 86, 163, 0.4) 40%,
+                rgba(217, 119, 6, 0.8) 50%,
+                rgba(0, 86, 163, 0.4) 60%,
+                transparent 100%
+            );
+            animation: cs-line-sweep 2.8s ease-in-out 1s infinite;
+            border-radius: 2px;
+        }
+
+        @keyframes cs-line-sweep {
+            0%   { left: -60%; }
+            100% { left: 110%; }
+        }
+
+        @keyframes cs-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.03); opacity: 0.95; }
+        }
+
     </style>
 </head>
 
@@ -1327,12 +1495,12 @@
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
                 Calculation
             </div>
-            <div class="nav-sub-item">
+            <div class="nav-sub-item" id="uprPremiumAnalysisSubItem">
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
                 Premium Analysis
             </div>
         </div>
-        <div class="nav-item" data-tooltip="OSC Calculation">
+        <div class="nav-item" data-tooltip="OSC Calculation" id="oscCalcNavItem">
             <span class="nav-icon">
                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -1364,16 +1532,16 @@
             
         </div>
         <div id="reports-submenu" class="submenu-container">
-            <div class="nav-sub-item">
+            <div class="nav-sub-item" id="reports5ASubItem">
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
                 5A - 5B
             </div>
-            <div class="nav-sub-item">
+            <div class="nav-sub-item" id="reports7SubItem">
                 <span style="margin-right: 10px; font-size: 12px; opacity: 0.5;">↳</span>
                 7
             </div>
         </div>
-        <div class="nav-item" data-tooltip="AM.Best Rating">
+        <div class="nav-item" data-tooltip="AM.Best Rating" id="amBestRatingNavItem">
             <span class="nav-icon">
                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -1384,7 +1552,7 @@
         </div>
 
         <div class="nav-label" style="margin-top: 30px;">Management</div>
-        <div class="nav-item" data-tooltip="Data Repository">
+        <div class="nav-item" data-tooltip="Data Repository" id="dataRepositoryNavItem">
             <span class="nav-icon">
                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
@@ -1405,7 +1573,7 @@
             </span>
             <span class="nav-text">Exchange Rates</span>
         </div>
-        <div class="nav-item" data-tooltip="Settings">
+        <div class="nav-item" data-tooltip="Settings" id="settingsNavItem">
             <span class="nav-icon">
                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3"></circle>
@@ -1422,6 +1590,32 @@
 
     <!-- Main Workspace -->
     <main class="workspace">
+        <!-- Coming Soon / Under Construction View -->
+        <div id="coming-soon-view" class="content" style="display: none; flex-direction: column; height: 100%; justify-content: center; align-items: center; overflow: hidden; position: relative;">
+            <div class="luxury-coming-soon-scene">
+                <!-- Floating ambient particles -->
+                <div class="cs-particle cs-p1"></div>
+                <div class="cs-particle cs-p2"></div>
+                <div class="cs-particle cs-p3"></div>
+                <div class="cs-particle cs-p4"></div>
+                <div class="cs-particle cs-p5"></div>
+                
+                <!-- Main Content -->
+                <div class="luxury-coming-soon-content">
+                    <div class="coming-soon-badge" style="background: rgba(0, 86, 163, 0.08); color: var(--bv-blue); border: 1px solid rgba(0, 86, 163, 0.15); padding: 6px 16px; border-radius: 99px; font-weight: 700; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 8px; animation: cs-pulse 2s infinite ease-in-out;">
+                        Module Under Development
+                    </div>
+                    <h1 class="luxury-cs-heading" id="comingSoonTitle"></h1>
+                    <div class="cs-line-divider">
+                        <div class="cs-line-glow"></div>
+                    </div>
+                    <p class="coming-soon-subtitle" id="comingSoonSubtitle" style="color: var(--text-secondary); font-size: 14px; font-weight: 500; text-align: center; max-width: 450px; line-height: 1.6; margin-top: 10px;">
+                        We are currently building this module to ensure it meets our actuarial excellence standards. Stay tuned for advanced analytical features.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div id="upr-calculation-view" class="content" style="display: flex; flex-direction: column; height: 100%;">
 
             <!-- Setup & Configuration Section -->
@@ -3511,6 +3705,9 @@
             document.getElementById('upr-calculation-view').style.display = 'none';
             document.getElementById('exchange-rates-view').style.display = 'none';
             document.getElementById('vas-analysis-view').style.display = 'none';
+            if (document.getElementById('coming-soon-view')) {
+                document.getElementById('coming-soon-view').style.display = 'none';
+            }
             
             const view = document.getElementById(viewId);
             if (view) {
@@ -3519,6 +3716,32 @@
             
             document.querySelectorAll('.nav-sub-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        }
+
+        // Show animated Coming Soon page dynamically
+        function showComingSoon(title, description = "We are currently building this module to ensure it meets our actuarial excellence standards. Stay tuned for advanced analytical features.") {
+            switchView('coming-soon-view');
+            
+            document.getElementById('comingSoonSubtitle').innerText = description;
+            
+            const titleContainer = document.getElementById('comingSoonTitle');
+            titleContainer.innerHTML = '';
+            
+            let letterIndex = 0;
+            for (let char of title) {
+                if (char === ' ') {
+                    const spaceSpan = document.createElement('span');
+                    spaceSpan.className = 'cs-space';
+                    titleContainer.appendChild(spaceSpan);
+                } else {
+                    const letterSpan = document.createElement('span');
+                    letterSpan.className = 'cs-letter';
+                    letterSpan.style.setProperty('--i', letterIndex);
+                    letterSpan.innerText = char.toUpperCase();
+                    titleContainer.appendChild(letterSpan);
+                    letterIndex++;
+                }
+            }
         }
 
         // Setup Sidebar Clicks
@@ -3535,17 +3758,46 @@
             if (parent) parent.classList.add('active');
         });
 
-        // Setup generic nav item click override to reset other views
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const tooltip = this.getAttribute('data-tooltip');
-                if (tooltip === 'Exchange Rates' || tooltip === 'VAS Analysis') return;
-                if (tooltip === 'Reports' || tooltip === 'UPR Calculation') return;
-                
-                switchView('upr-calculation-view');
-                document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-                this.classList.add('active');
-            });
+        // Setup Undeveloped Modules Clicks (Coming Soon / Waiting Screens)
+        document.getElementById('uprPremiumAnalysisSubItem').addEventListener('click', function() {
+            showComingSoon("PREMIUM ANALYTICS", "Advanced UPR Premium Analysis, breakdown dashboards, and seasonal risk reports will be integrated here.");
+            this.classList.add('active');
+            const parent = document.querySelector('[data-tooltip="UPR Calculation"]');
+            if (parent) parent.classList.add('active');
+        });
+
+        document.getElementById('oscCalcNavItem').addEventListener('click', function() {
+            showComingSoon("OSC CALCULATION", "Outstanding Claims (OSC) Calculation module is under development. It will support automated outstanding claim reserves estimation, chain-ladder, and run-off analysis.");
+            this.classList.add('active');
+        });
+
+        document.getElementById('reports5ASubItem').addEventListener('click', function() {
+            showComingSoon("REPORTS 5A - 5B", "Consolidated 5A & 5B regulatory reporting forms generation is under development.");
+            this.classList.add('active');
+            const parent = document.querySelector('[data-tooltip="Reports"]');
+            if (parent) parent.classList.add('active');
+        });
+
+        document.getElementById('reports7SubItem').addEventListener('click', function() {
+            showComingSoon("REPORT 7", "Actuarial Report Form 7 breakdown and dynamic exporting is coming soon.");
+            this.classList.add('active');
+            const parent = document.querySelector('[data-tooltip="Reports"]');
+            if (parent) parent.classList.add('active');
+        });
+
+        document.getElementById('amBestRatingNavItem').addEventListener('click', function() {
+            showComingSoon("AM.BEST RATING", "AM.Best Rating simulation, stress-testing, and historical tracking dashboard will be integrated here.");
+            this.classList.add('active');
+        });
+
+        document.getElementById('dataRepositoryNavItem').addEventListener('click', function() {
+            showComingSoon("DATA REPOSITORY", "Historical actuarial data repository, automated backup registers, and search indexes are under construction.");
+            this.classList.add('active');
+        });
+
+        document.getElementById('settingsNavItem').addEventListener('click', function() {
+            showComingSoon("SETTINGS", "System configuration, model parameter adjustments, user access management, and actuarial baseline configurations.");
+            this.classList.add('active');
         });
 
         // Session variables for calculation date confirmation
