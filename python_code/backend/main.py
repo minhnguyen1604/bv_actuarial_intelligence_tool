@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 import models
 from database import engine
-from routers import parameters, files, upr, vas_analysis
+from routers import parameters, files, upr, vas_analysis, premium_analysis
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -18,6 +18,7 @@ app.include_router(parameters.router)
 app.include_router(files.router)
 app.include_router(upr.router)
 app.include_router(vas_analysis.router)
+app.include_router(premium_analysis.router)
 
 @app.get("/")
 async def root():

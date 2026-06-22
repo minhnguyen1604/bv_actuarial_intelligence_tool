@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="BVH.VN-4893b119.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- SheetJS for local Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Plotly.js for charts -->
@@ -26,6 +26,10 @@
             margin: 0;
             padding: 0;
             font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        h1, h2, h3, h4, h5, h6, .panel-title, .nav-text, .nav-label, .pa-date-pill-bar-label {
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
         }
 
         body {
@@ -1458,6 +1462,308 @@
             50% { transform: scale(1.03); opacity: 0.95; }
         }
 
+        .custom-scroll {
+            scrollbar-width: none;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .pa-premium-input {
+            background: #ffffff;
+            border: 1px solid rgba(0, 86, 163, 0.12);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02), 0 4px 12px rgba(0,86,163,0.03);
+            border-radius: 12px;
+            height: 46px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--bv-blue);
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+            width: 100%;
+        }
+        .pa-premium-input:hover {
+            border-color: rgba(0, 86, 163, 0.3);
+            background: rgba(255, 255, 255, 0.98);
+        }
+        .pa-premium-input:focus {
+            outline: none;
+            border-color: var(--bv-blue);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01), 0 0 0 3px rgba(0, 86, 163, 0.15);
+            background: #ffffff;
+        }
+
+        .pa-date-pill-bar {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 86, 163, 0.12);
+            border-radius: 99px;
+            padding: 6px 18px;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0, 86, 163, 0.04);
+            margin: 0 auto;
+            width: fit-content;
+            transition: all 0.3s ease;
+        }
+        .pa-date-pill-bar:hover {
+            border-color: rgba(0, 86, 163, 0.25);
+            box-shadow: 0 6px 24px rgba(0, 86, 163, 0.08);
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .pa-date-pill-bar-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--bv-blue);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding-right: 12px;
+            border-right: 1px solid rgba(0, 86, 163, 0.15);
+            user-select: none;
+        }
+        .pa-date-pill-bar-inputs {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .pa-date-pill-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--bv-blue);
+            text-align: center;
+            padding: 2px 4px;
+            transition: all 0.2s ease-in-out;
+            width: 38px;
+            border-radius: 6px;
+        }
+        .pa-date-pill-input::placeholder {
+            color: rgba(0, 86, 163, 0.3);
+        }
+        .pa-date-pill-input:focus {
+            color: #111827;
+            background: rgba(0, 86, 163, 0.08);
+        }
+        .pa-date-pill-input::-webkit-outer-spin-button,
+        .pa-date-pill-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .pa-date-pill-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Premium Analysis custom table styles */
+        .pa-table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .pa-table th {
+            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.08em !important;
+            color: var(--text-secondary) !important;
+            background: rgba(255, 255, 255, 0.45) !important;
+            padding: 12px 10px !important;
+            border-bottom: 2px solid rgba(0, 86, 163, 0.12) !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            position: static !important; /* Reset sticky headers from general tables */
+            z-index: auto !important;
+        }
+        .pa-table td {
+            font-family: 'Inter', -apple-system, sans-serif;
+            padding: 12px 10px !important;
+            font-size: 13px !important;
+            border-bottom: 1px solid rgba(0, 86, 163, 0.06) !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            background: transparent !important;
+            color: var(--text-primary) !important;
+            vertical-align: middle !important;
+            white-space: nowrap;
+        }
+        .pa-table tbody tr {
+            transition: background-color 0.2s ease, transform 0.15s ease !important;
+        }
+        .pa-table tbody tr:hover td {
+            background-color: rgba(0, 86, 163, 0.03) !important;
+        }
+        .pa-table tbody tr.pa-total-row {
+            font-weight: 700;
+            background: transparent !important;
+            border-top: 1.5px solid #111827 !important;
+            border-bottom: 1.5px double #111827 !important;
+        }
+        .pa-table tbody tr.pa-total-row td {
+            color: #111827 !important;
+            background: transparent !important;
+            padding: 14px 10px !important;
+        }
+
+        /* Sorting Styles */
+        .pa-sortable-th {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease;
+        }
+        .pa-sortable-th:hover {
+            background-color: rgba(0, 86, 163, 0.06) !important;
+        }
+        .sort-icon {
+            font-size: 10px;
+            margin-left: 4px;
+            opacity: 0.3;
+            transition: opacity 0.15s ease, color 0.15s ease;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .pa-sortable-th:hover .sort-icon {
+            opacity: 0.8;
+        }
+
+        .pa-date-picker-native {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--bv-blue);
+            cursor: pointer;
+            padding: 2px 4px;
+            transition: all 0.2s ease-in-out;
+        }
+        .pa-date-picker-native::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(24%) sepia(87%) saturate(1637%) hue-rotate(189deg) brightness(91%) contrast(101%);
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+        }
+        .pa-date-picker-native::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Premium Analysis Modern Modal Styles */
+        .pa-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: paFadeIn 0.3s ease-out;
+        }
+        .pa-modal-content {
+            width: 100%;
+            max-width: 400px;
+            padding: 32px 24px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transform: scale(0.95);
+            animation: paScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .pa-modal-icon-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pa-spinner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3.5px solid rgba(0, 86, 163, 0.08);
+            border-top-color: var(--bv-blue);
+            animation: paSpin 1s linear infinite;
+        }
+        .pa-modal-icon-inner {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.9);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 86, 163, 0.08);
+        }
+        .pa-modal-title {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #111827;
+            margin: 0 0 8px 0;
+        }
+        .pa-modal-desc {
+            font-size: 13.5px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0 0 24px 0;
+        }
+        .pa-timer-container {
+            background: rgba(0, 86, 163, 0.04);
+            border: 1px solid rgba(0, 86, 163, 0.08);
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-family: 'Inter', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--bv-blue);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            min-width: 120px;
+        }
+        .pa-modal-actions button {
+            transition: all 0.2s ease-in-out;
+        }
+        .pa-modal-actions button:hover {
+            transform: translateY(-1px);
+        }
+        .pa-modal-actions button:active {
+            transform: translateY(0);
+        }
+        
+        @keyframes paFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes paScaleIn {
+            from { transform: scale(0.92); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        @keyframes paSpin {
+            to { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 
@@ -1527,9 +1833,18 @@
         <div class="nav-item" onclick="toggleSubmenu('reports-submenu', this)" data-tooltip="Reports">
             <span class="nav-icon">
                 <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V6.5L15.5 2z"></path>
-                    <path d="M3 7.6v12.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h9.8"></path>
-                    <polyline points="15 2 15 7 20 7"></polyline>
+                    <!-- Background Page -->
+                    <path d="M4 6H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h11"></path>
+                    <!-- Main Page -->
+                    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h8"></path>
+                    <!-- Folder Corner -->
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <!-- Bar Chart lines -->
+                    <line x1="8" y1="13" x2="8" y2="17"></line>
+                    <line x1="11" y1="10" x2="11" y2="17"></line>
+                    <!-- Badge Checkmark circle -->
+                    <circle cx="18" cy="18" r="4"></circle>
+                    <path d="M16 18l1.5 1.5 2.5-2.5"></path>
                 </svg>
             </span>
             <span class="nav-text">Reports</span>
@@ -1791,6 +2106,194 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- Premium Analysis View -->
+        <div id="premium-analysis-view" class="content" style="display: none; flex-direction: column; height: 100%; overflow-y: auto;">
+            
+            <!-- Overview Analysis Section Title with Inline Date Selection Pill Bar -->
+            <div class="pa-section-header" style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 20px 0; width: 100%; flex-shrink: 0; gap: 16px;">
+                <h2 style="font-size: 16px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.08em; margin: 0; white-space: nowrap; user-select: none;">Overview Analysis</h2>
+                <div style="flex: 1; height: 1px; background: linear-gradient(to right, rgba(0, 86, 163, 0.15), rgba(0, 86, 163, 0.03));"></div>
+                <div style="flex-shrink: 0;">
+                    <div class="pa-date-pill-bar" style="margin: 0; padding: 5px 14px; gap: 8px;">
+                        <div class="pa-date-pill-bar-label" style="gap: 4px; padding-right: 8px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--bv-blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <span>Date</span>
+                        </div>
+                        <div class="pa-date-pill-bar-inputs">
+                            <input type="date" id="paDate" class="pa-date-picker-native" value="2025-06-30">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overview Tables (Stacked) -->
+            <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 28px; width: 100%;">
+                <!-- Short-Term Panel -->
+                <div class="panel glass-panel" style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                    <div class="panel-header" style="justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0, 86, 163, 0.08);">
+                        <div class="panel-title" style="font-size: 15px; font-weight: 600; color: #1f2937;">
+                            Short-term
+                        </div>
+                        <button class="btn btn-outline btn-icon-sm" id="btnDownloadSTExcel" title="Download Excel" style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(0, 86, 163, 0.15); color: var(--bv-blue); background: rgba(0, 86, 163, 0.02); transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 86, 163, 0.08)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(0, 86, 163, 0.02)'; this.style.transform='scale(1)';">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </button>
+                    </div>
+                    <div style="flex: 1; overflow-x: auto; max-height: 500px;" class="custom-scroll">
+                        <table class="table pa-table">
+                            <thead>
+                                <tr>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 16%;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
+                                    <th id="stPrevPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_premium')" style="text-align: right; width: 14%;">Premium Prev <span class="sort-icon" id="st_sort_prev_premium"> ↕</span></th>
+                                    <th id="stCurrPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_premium')" style="text-align: right; width: 14%;">Premium Curr <span class="sort-icon" id="st_sort_curr_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_change')" style="text-align: center; width: 14%;">% Change in Premium <span class="sort-icon" id="st_sort_pct_change"> ↕</span></th>
+                                    <th id="stPrevUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_upr')" style="text-align: right; width: 14%;">UPR Prev <span class="sort-icon" id="st_sort_prev_upr"> ↕</span></th>
+                                    <th id="stCurrUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_upr')" style="text-align: right; width: 14%;">UPR Curr <span class="sort-icon" id="st_sort_curr_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_upr')" style="text-align: center; width: 14%;">% Change in UPR <span class="sort-icon" id="st_sort_pct_upr"> ↕</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="stOverviewBody">
+                                <!-- Dynamically populated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Long-Term Panel -->
+                <div class="panel glass-panel" style="display: flex; flex-direction: column; overflow: hidden; width: 100%;">
+                    <div class="panel-header" style="justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(0, 86, 163, 0.08);">
+                        <div class="panel-title" style="font-size: 15px; font-weight: 600; color: #1f2937;">
+                            Long-term
+                        </div>
+                        <button class="btn btn-outline btn-icon-sm" id="btnDownloadLTExcel" title="Download Excel" style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 8px; border: 1px solid rgba(0, 86, 163, 0.15); color: var(--bv-blue); background: rgba(0, 86, 163, 0.02); transition: all 0.2s;" onmouseover="this.style.background='rgba(0, 86, 163, 0.08)'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='rgba(0, 86, 163, 0.02)'; this.style.transform='scale(1)';">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        </button>
+                    </div>
+                    <div style="flex: 1; overflow-x: auto; max-height: 500px;" class="custom-scroll">
+                        <table class="table pa-table">
+                            <thead>
+                                <tr>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 16%;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
+                                    <th id="ltPrevPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_premium')" style="text-align: right; width: 14%;">Premium Prev <span class="sort-icon" id="lt_sort_prev_premium"> ↕</span></th>
+                                    <th id="ltCurrPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_premium')" style="text-align: right; width: 14%;">Premium Curr <span class="sort-icon" id="lt_sort_curr_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_change')" style="text-align: center; width: 14%;">% Change in Premium <span class="sort-icon" id="lt_sort_pct_change"> ↕</span></th>
+                                    <th id="ltPrevUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_upr')" style="text-align: right; width: 14%;">UPR Prev <span class="sort-icon" id="lt_sort_prev_upr"> ↕</span></th>
+                                    <th id="ltCurrUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_upr')" style="text-align: right; width: 14%;">UPR Curr <span class="sort-icon" id="lt_sort_curr_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_upr')" style="text-align: center; width: 14%;">% Change in UPR <span class="sort-icon" id="lt_sort_pct_upr"> ↕</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="ltOverviewBody">
+                                <!-- Dynamically populated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Analysis Section Title with Inline LOB Selection Pill Bar -->
+            <div class="pa-section-header" style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0 20px 0; width: 100%; flex-shrink: 0; gap: 16px;">
+                <h2 style="font-size: 16px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.08em; margin: 0; white-space: nowrap; user-select: none;">Detailed Analysis</h2>
+                <div style="flex: 1; height: 1px; background: linear-gradient(to right, rgba(0, 86, 163, 0.15), rgba(0, 86, 163, 0.03));"></div>
+                <div style="flex-shrink: 0;">
+                    <div class="pa-date-pill-bar" style="margin: 0; padding: 5px 14px; gap: 8px;">
+                        <div class="pa-date-pill-bar-label" style="gap: 4px; padding-right: 8px;">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--bv-blue);"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            <span>LOB</span>
+                        </div>
+                        <div class="pa-date-pill-bar-inputs">
+                            <select id="paLobSelect" style="background: transparent; border: none; outline: none; font-size: 14px; font-weight: 600; color: var(--bv-blue); padding: 2px 20px 2px 4px; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%230056A3%22 stroke-width=%222.5%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><polyline points=%226 9 12 15 18 9%22></polyline></svg>'); background-repeat: no-repeat; background-position: right 2px center; background-size: 11px;">
+                                <optgroup label="Short-term LOBs">
+                                    <option value="Eng_ST">Eng_ST</option>
+                                    <option value="Fire_ST" selected>Fire_ST</option>
+                                    <option value="Marine_ST">Marine_ST</option>
+                                    <option value="Misc_ST">Misc_ST</option>
+                                    <option value="PA_ST">PA_ST</option>
+                                    <option value="Travel_BHTT">Travel_BHTT</option>
+                                    <option value="Travel_CTTV">Travel_CTTV</option>
+                                    <option value="XCG_ST">XCG_ST</option>
+                                </optgroup>
+                                <optgroup label="Long-term LOBs">
+                                    <option value="Eng_LT">Eng_LT</option>
+                                    <option value="Fire_LT">Fire_LT</option>
+                                    <option value="Marine_LT">Marine_LT</option>
+                                    <option value="Misc_LT">Misc_LT</option>
+                                    <option value="PA_LT">PA_LT</option>
+                                    <option value="PA_TTTBVV">PA_TTTBVV</option>
+                                    <option value="XCG_LT">XCG_LT</option>
+                                    <option value="XCG_CWVN_LT">XCG_CWVN_LT</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Panel (Glass card) -->
+            <div class="panel glass-panel" style="display: flex; flex-direction: column; width: 100%; padding: 24px; margin-bottom: 24px;">
+                <div class="panel-header" style="margin-bottom: 20px; border-bottom: 1px solid rgba(0, 86, 163, 0.08); padding-bottom: 12px; width: 100%;">
+                    <div class="panel-title" style="font-size: 15px; font-weight: 600; color: #1f2937;">
+                        Structure Composition
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%;">
+                    <div style="text-align: center; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 16px; border: 1px solid rgba(0, 86, 163, 0.04);">
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Premium Structure</h4>
+                        <div id="chartPaPremium" style="height: 300px; width: 100%;"></div>
+                    </div>
+                    <div style="text-align: center; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 16px; border: 1px solid rgba(0, 86, 163, 0.04);">
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">UPR Structure</h4>
+                        <div id="chartPaUpr" style="height: 300px; width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Tables Panel (Glass card) -->
+            <div class="panel glass-panel" style="display: flex; flex-direction: column; width: 100%; padding: 24px; margin-bottom: 24px;">
+                <div class="panel-header" style="margin-bottom: 20px; border-bottom: 1px solid rgba(0, 86, 163, 0.08); padding-bottom: 12px; width: 100%;">
+                    <div class="panel-title" style="font-size: 15px; font-weight: 600; color: #1f2937;">
+                        Detailed Metrics Breakdown
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%;">
+                    <!-- Premium Stats Table -->
+                    <div>
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Premium Detailed Metrics</h4>
+                        <div style="overflow-x: auto; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll">
+                            <table class="table pa-table">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
+                                        <th style="text-align: left; padding: 10px 8px;">LOB</th>
+                                        <th style="text-align: left; padding: 10px 8px;">Classification</th>
+                                        <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablePaPremiumStatsBody">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- UPR Stats Table -->
+                    <div>
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">UPR Detailed Metrics</h4>
+                        <div style="overflow-x: auto; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll">
+                            <table class="table pa-table">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
+                                        <th style="text-align: left; padding: 10px 8px;">LOB</th>
+                                        <th style="text-align: left; padding: 10px 8px;">Classification</th>
+                                        <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablePaUprStatsBody">
+                                    <!-- Filled dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -3705,6 +4208,9 @@
             if (document.getElementById('coming-soon-view')) {
                 document.getElementById('coming-soon-view').style.display = 'none';
             }
+            if (document.getElementById('premium-analysis-view')) {
+                document.getElementById('premium-analysis-view').style.display = 'none';
+            }
             
             const view = document.getElementById(viewId);
             if (view) {
@@ -3744,12 +4250,15 @@
             if (parent) parent.classList.add('active');
         });
 
-        // Setup Undeveloped Modules Clicks (Coming Soon / Waiting Screens)
+        // Setup Premium Analysis Clicks
         document.getElementById('uprPremiumAnalysisSubItem').addEventListener('click', function() {
-            showComingSoon();
+            switchView('premium-analysis-view');
             this.classList.add('active');
             const parent = document.querySelector('[data-tooltip="UPR Calculation"]');
             if (parent) parent.classList.add('active');
+            
+            // Load using the date currently selected inside the Premium Analysis view
+            loadPremiumAnalysisOverview();
         });
 
         document.getElementById('oscCalcNavItem').addEventListener('click', function() {
@@ -3784,6 +4293,571 @@
         document.getElementById('settingsNavItem').addEventListener('click', function() {
             showComingSoon();
             this.classList.add('active');
+        });
+
+        // --- Premium Analysis Dashboard Logic ---
+        function formatPaNumber(val, isPercentage = false) {
+            if (val === null || val === undefined || isNaN(val)) return '0';
+            if (isPercentage) {
+                return Number(val).toFixed(2) + '%';
+            }
+            return Number(val).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        }
+
+        function formatPaChange(val) {
+            if (val === null || val === undefined || isNaN(val)) return '0.00%';
+            const sign = val > 0 ? '+' : '';
+            return sign + Number(val).toFixed(2) + '%';
+        }
+
+        // Premium Analysis Sorting state variables
+        let stSortKey = '';
+        let stSortDesc = false;
+        let ltSortKey = '';
+        let ltSortDesc = false;
+        window.paShortTermData = [];
+        window.paLongTermData = [];
+
+        // Modal and loading state variables
+        let paTimerInterval = null;
+        let paStartTime = 0;
+        let pendingOverviewData = null;
+        let pendingDetailData = null;
+        window.paLastValidDate = "2025-06-30";
+
+        function startPremiumAnalysisLoad() {
+            const dateVal = document.getElementById('paDate').value;
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const day = parseInt(parts[2]);
+            const lob = document.getElementById('paLobSelect').value;
+
+            // Show loading modal
+            const modal = document.getElementById('paLoadingModal');
+            const statusText = document.getElementById('paModalStatus');
+            const descText = document.getElementById('paModalDesc');
+            const actionsDiv = document.getElementById('paModalActions');
+            const spinner = document.querySelector('.pa-spinner');
+            const timerVal = document.getElementById('paTimerVal');
+
+            modal.style.display = 'flex';
+            statusText.innerText = 'Analyzing Premium Data';
+            descText.innerText = 'Fetching and computing quarterly policy premium distribution...';
+            actionsDiv.style.display = 'none';
+            spinner.style.animationPlayState = 'running';
+            spinner.style.borderColor = 'rgba(0, 86, 163, 0.08)';
+            spinner.style.borderTopColor = 'var(--bv-blue)';
+
+            // Start stopwatch
+            clearInterval(paTimerInterval);
+            paStartTime = performance.now();
+            timerVal.innerText = '0.00s';
+            paTimerInterval = setInterval(() => {
+                const elapsed = (performance.now() - paStartTime) / 1000;
+                timerVal.innerText = elapsed.toFixed(2) + 's';
+            }, 50);
+
+            pendingOverviewData = null;
+            pendingDetailData = null;
+
+            let overviewOk = false;
+            let detailOk = false;
+            let overallError = null;
+
+            // Parallel fetch calls
+            const overviewPromise = fetch(`/api/premium-analysis/overview?day=${day}&month=${month}&year=${year}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                        pendingOverviewData = data;
+                        overviewOk = true;
+                    } else {
+                        overallError = data.error || 'Failed to load overview data';
+                    }
+                })
+                .catch(err => {
+                    overallError = err.message || 'Fetch overview error';
+                });
+
+            const detailPromise = fetch(`/api/premium-analysis/detail?day=${day}&month=${month}&year=${year}&lob=${lob}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                        pendingDetailData = data;
+                        detailOk = true;
+                    } else {
+                        overallError = data.error || 'Failed to load detail data';
+                    }
+                })
+                .catch(err => {
+                    overallError = err.message || 'Fetch detail error';
+                });
+
+            Promise.all([overviewPromise, detailPromise])
+                .then(() => {
+                    clearInterval(paTimerInterval);
+                    const elapsed = (performance.now() - paStartTime) / 1000;
+                    timerVal.innerText = elapsed.toFixed(2) + 's';
+
+                    if (overviewOk && detailOk) {
+                        // Analysis finished successfully
+                        statusText.innerText = 'Analysis Completed';
+                        descText.innerText = `Premium & UPR datasets loaded successfully in ${elapsed.toFixed(2)}s. Do you want to render the results?`;
+                        spinner.style.animationPlayState = 'paused';
+                        spinner.style.borderColor = '#10B981';
+                        spinner.style.borderTopColor = '#10B981';
+                        actionsDiv.style.display = 'flex';
+                        document.getElementById('btnPaModalContinue').style.display = 'block';
+                    } else {
+                        // Analysis failed
+                        statusText.innerText = 'Analysis Failed';
+                        descText.innerText = overallError || 'An error occurred during calculation.';
+                        spinner.style.animationPlayState = 'paused';
+                        spinner.style.borderColor = '#EF4444';
+                        spinner.style.borderTopColor = '#EF4444';
+                        actionsDiv.style.display = 'flex';
+                        document.getElementById('btnPaModalContinue').style.display = 'none';
+                    }
+                });
+        }
+
+        // Setup popup actions
+        document.addEventListener('DOMContentLoaded', () => {
+            // Revert date picker on Discard
+            document.getElementById('btnPaModalDiscard').addEventListener('click', () => {
+                if (window.paLastValidDate) {
+                    document.getElementById('paDate').value = window.paLastValidDate;
+                }
+                document.getElementById('paLoadingModal').style.display = 'none';
+            });
+
+            // Apply data on Continue
+            document.getElementById('btnPaModalContinue').addEventListener('click', () => {
+                if (pendingOverviewData && pendingDetailData) {
+                    // 1. Render Overview
+                    window.paShortTermData = pendingOverviewData.short_term || [];
+                    window.paLongTermData = pendingOverviewData.long_term || [];
+                    stSortKey = '';
+                    ltSortKey = '';
+                    
+                    updateOverviewTableHeaders(pendingOverviewData.previous_quarter, pendingOverviewData.current_quarter);
+                    populateOverviewTable('stOverviewBody', window.paShortTermData);
+                    populateOverviewTable('ltOverviewBody', window.paLongTermData);
+                    updateSortHeaderIcons('st');
+                    updateSortHeaderIcons('lt');
+
+                    // 2. Render Detail
+                    renderPaPieChart('chartPaPremium', 'Premium Structure', pendingDetailData.pie_premium.new_pct, pendingDetailData.pie_premium.old_pct);
+                    renderPaPieChart('chartPaUpr', 'UPR Structure', pendingDetailData.pie_upr.new_pct, pendingDetailData.pie_upr.old_pct);
+                    
+                    const stats = pendingDetailData.stats;
+                    const lobVal = pendingDetailData.lob;
+                    
+                    const premStats = [
+                        { class: "Total Premium Amount", val: getStatVal(stats, "Premium (Amount)") },
+                        { class: "Existing Policies Premium", val: getStatVal(stats, "Premium - Existing Policies (Amount)") },
+                        { class: "New Policies Premium", val: getStatVal(stats, "Premium - New Policies (Amount)") },
+                        { class: "Existing Policies Count", val: getStatVal(stats, "Premium - Existing Policies (Count)") },
+                        { class: "New Policies Count", val: getStatVal(stats, "Premium - New Policies (Count)") }
+                    ];
+                    
+                    const uprStats = [
+                        { class: "Total UPR Amount", val: getStatVal(stats, "UPR (Amount)") },
+                        { class: "Existing Policies UPR", val: getStatVal(stats, "UPR - Existing Policies (Amount)") },
+                        { class: "New Policies UPR", val: getStatVal(stats, "UPR - New Policies (Amount)") },
+                        { class: "Existing Policies Count", val: getStatVal(stats, "UPR - Existing Policies (Count)") },
+                        { class: "New Policies Count", val: getStatVal(stats, "UPR - New Policies (Count)") }
+                    ];
+                    
+                    let premHtml = '';
+                    premStats.forEach(item => {
+                        premHtml += `
+                            <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                                <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                                <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                                <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                            </tr>
+                        `;
+                    });
+                    document.getElementById('tablePaPremiumStatsBody').innerHTML = premHtml;
+                    
+                    let uprHtml = '';
+                    uprStats.forEach(item => {
+                        uprHtml += `
+                            <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                                <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                                <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                                <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                            </tr>
+                        `;
+                    });
+                    document.getElementById('tablePaUprStatsBody').innerHTML = uprHtml;
+
+                    // 3. Save last successfully loaded date
+                    window.paLastValidDate = document.getElementById('paDate').value;
+                }
+                document.getElementById('paLoadingModal').style.display = 'none';
+            });
+        });
+
+        function updateOverviewTableHeaders(prevQ, currQ) {
+            document.getElementById('stPrevPremiumHeader').innerHTML = `Premium ${prevQ} <span class="sort-icon" id="st_sort_prev_premium"> ↕</span>`;
+            document.getElementById('stCurrPremiumHeader').innerHTML = `Premium ${currQ} <span class="sort-icon" id="st_sort_curr_premium"> ↕</span>`;
+            document.getElementById('stPrevUprHeader').innerHTML = `UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_upr"> ↕</span>`;
+            document.getElementById('stCurrUprHeader').innerHTML = `UPR ${currQ} <span class="sort-icon" id="st_sort_curr_upr"> ↕</span>`;
+
+            document.getElementById('ltPrevPremiumHeader').innerHTML = `Premium ${prevQ} <span class="sort-icon" id="lt_sort_prev_premium"> ↕</span>`;
+            document.getElementById('ltCurrPremiumHeader').innerHTML = `Premium ${currQ} <span class="sort-icon" id="lt_sort_curr_premium"> ↕</span>`;
+            document.getElementById('ltPrevUprHeader').innerHTML = `UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_upr"> ↕</span>`;
+            document.getElementById('ltCurrUprHeader').innerHTML = `UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_upr"> ↕</span>`;
+        }
+
+        function populateOverviewTable(tbodyId, list) {
+            const tbody = document.getElementById(tbodyId);
+            let html = '';
+            
+            let totalPrevPremium = 0;
+            let totalCurrPremium = 0;
+            let totalPrevUpr = 0;
+            let totalCurrUpr = 0;
+            
+            list.forEach(item => {
+                totalPrevPremium += item.prev_premium;
+                totalCurrPremium += item.curr_premium;
+                totalPrevUpr += item.prev_upr;
+                totalCurrUpr += item.curr_upr;
+                
+                let pctHtml = '';
+                if (item.pct_change > 0) {
+                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
+                } else if (item.pct_change < 0) {
+                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
+                } else {
+                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 500; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.15); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
+                }
+
+                let pctUpr = 0;
+                if (item.prev_upr > 0) {
+                    pctUpr = ((item.curr_upr - item.prev_upr) / item.prev_upr) * 100.0;
+                }
+                let pctUprHtml = '';
+                if (pctUpr > 0) {
+                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
+                } else if (pctUpr < 0) {
+                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
+                } else {
+                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 500; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.15); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
+                }
+                
+                html += `
+                    <tr>
+                        <td style="font-weight: 600; color: var(--bv-blue);">${item.lob}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_premium)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_premium)}</td>
+                        <td style="text-align: center;">${pctHtml}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_upr)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_upr)}</td>
+                        <td style="text-align: center;">${pctUprHtml}</td>
+                    </tr>
+                `;
+            });
+            
+            let totalPct = 0;
+            if (totalPrevPremium > 0) {
+                totalPct = ((totalCurrPremium - totalPrevPremium) / totalPrevPremium) * 100.0;
+            }
+            let totalPctHtml = '';
+            if (totalPct > 0) {
+                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
+            } else if (totalPct < 0) {
+                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
+            } else {
+                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.12); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
+            }
+
+            let totalPctUpr = 0;
+            if (totalPrevUpr > 0) {
+                totalPctUpr = ((totalCurrUpr - totalPrevUpr) / totalPrevUpr) * 100.0;
+            }
+            let totalPctUprHtml = '';
+            if (totalPctUpr > 0) {
+                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
+            } else if (totalPctUpr < 0) {
+                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
+            } else {
+                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.12); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
+            }
+            
+            html += `
+                <tr class="pa-total-row">
+                    <td>Total</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevPremium)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrPremium)}</td>
+                    <td style="text-align: center;">${totalPctHtml}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevUpr)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrUpr)}</td>
+                    <td style="text-align: center;">${totalPctUprHtml}</td>
+                </tr>
+            `;
+            
+            tbody.innerHTML = html;
+        }
+
+        function loadPremiumAnalysisOverview() {
+            const dateVal = document.getElementById('paDate').value;
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const day = parseInt(parts[2]);
+            
+            fetch(`/api/premium-analysis/overview?day=${day}&month=${month}&year=${year}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                        window.paShortTermData = data.short_term || [];
+                        window.paLongTermData = data.long_term || [];
+                        
+                        // Reset sorting keys on new date load
+                        stSortKey = '';
+                        ltSortKey = '';
+                        
+                        updateOverviewTableHeaders(data.previous_quarter, data.current_quarter);
+                        populateOverviewTable('stOverviewBody', window.paShortTermData);
+                        populateOverviewTable('ltOverviewBody', window.paLongTermData);
+                        updateSortHeaderIcons('st');
+                        updateSortHeaderIcons('lt');
+                        loadPremiumAnalysisDetail();
+                    } else {
+                        console.error("Error loading overview data:", data);
+                    }
+                })
+                .catch(err => console.error("Fetch overview error:", err));
+        }
+
+        function sortOverviewTable(type, key) {
+            const list = type === 'st' ? window.paShortTermData : window.paLongTermData;
+            if (!list || list.length === 0) return;
+            
+            let isDesc = type === 'st' ? stSortDesc : ltSortDesc;
+            if ((type === 'st' ? stSortKey : ltSortKey) === key) {
+                isDesc = !isDesc;
+            } else {
+                isDesc = true; // Default descending on first click
+            }
+            
+            if (type === 'st') {
+                stSortKey = key;
+                stSortDesc = isDesc;
+            } else {
+                ltSortKey = key;
+                ltSortDesc = isDesc;
+            }
+            
+            list.sort((a, b) => {
+                let valA, valB;
+                if (key === 'lob') {
+                    valA = a.lob || '';
+                    valB = b.lob || '';
+                    return isDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+                } else if (key === 'prev_premium') {
+                    valA = a.prev_premium || 0;
+                    valB = b.prev_premium || 0;
+                } else if (key === 'curr_premium') {
+                    valA = a.curr_premium || 0;
+                    valB = b.curr_premium || 0;
+                } else if (key === 'pct_change') {
+                    valA = a.pct_change || 0;
+                    valB = b.pct_change || 0;
+                } else if (key === 'prev_upr') {
+                    valA = a.prev_upr || 0;
+                    valB = b.prev_upr || 0;
+                } else if (key === 'curr_upr') {
+                    valA = a.curr_upr || 0;
+                    valB = b.curr_upr || 0;
+                } else if (key === 'pct_upr') {
+                    valA = a.prev_upr > 0 ? ((a.curr_upr - a.prev_upr) / a.prev_upr) * 100 : 0;
+                    valB = b.prev_upr > 0 ? ((b.curr_upr - b.prev_upr) / b.prev_upr) * 100 : 0;
+                }
+                return isDesc ? valB - valA : valA - valB;
+            });
+            
+            populateOverviewTable(type === 'st' ? 'stOverviewBody' : 'ltOverviewBody', list);
+            updateSortHeaderIcons(type);
+        }
+
+        function updateSortHeaderIcons(type) {
+            const keys = ['lob', 'prev_premium', 'curr_premium', 'pct_change', 'prev_upr', 'curr_upr', 'pct_upr'];
+            const activeKey = type === 'st' ? stSortKey : ltSortKey;
+            const isDesc = type === 'st' ? stSortDesc : ltSortDesc;
+            
+            keys.forEach(key => {
+                const el = document.getElementById(`${type}_sort_${key}`);
+                if (!el) return;
+                if (key === activeKey) {
+                    el.innerHTML = isDesc ? ' ↓' : ' ↑';
+                    el.style.opacity = '1';
+                    el.style.color = 'var(--bv-blue)';
+                } else {
+                    el.innerHTML = ' ↕';
+                    el.style.opacity = '0.3';
+                    el.style.color = 'inherit';
+                }
+            });
+        }
+
+        function renderPaPieChart(divId, title, newPct, oldPct) {
+            const container = document.getElementById(divId);
+            container.innerHTML = ''; // Clear container before rendering to prevent overlaps
+
+            if (newPct === 0 && oldPct === 0) {
+                container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;">No data available for this LOB/period</div>';
+                return;
+            }
+            
+            const data = [{
+                values: [newPct, oldPct],
+                labels: ['New Policies', 'Existing Policies'],
+                type: 'pie',
+                hole: 0.7,
+                marker: {
+                    colors: ['#0056A3', '#10B981']
+                },
+                textinfo: 'percent',
+                textposition: 'inside',
+                hovertemplate: '<b>%{label}</b><br>Percentage: %{percent:.2%}<extra></extra>'
+            }];
+            
+            const layout = {
+                showlegend: true,
+                legend: {
+                    orientation: 'h',
+                    y: -0.15,
+                    x: 0.5,
+                    xanchor: 'center',
+                    font: {
+                        family: 'Plus Jakarta Sans, Inter, sans-serif',
+                        size: 11,
+                        color: '#4b5563'
+                    }
+                },
+                font: {
+                    family: 'Plus Jakarta Sans, Inter, sans-serif',
+                    size: 12,
+                    color: '#111827'
+                },
+                margin: { t: 10, b: 40, l: 10, r: 10 },
+                height: 280,
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            };
+            
+            Plotly.newPlot(divId, data, layout, { displayModeBar: false });
+        }
+
+        function loadPremiumAnalysisDetail() {
+            const dateVal = document.getElementById('paDate').value;
+            if (!dateVal) return;
+            const parts = dateVal.split('-');
+            const year = parseInt(parts[0]);
+            const month = parseInt(parts[1]);
+            const day = parseInt(parts[2]);
+            const lob = document.getElementById('paLobSelect').value;
+            
+            document.getElementById('chartPaPremium').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;">Loading charts...</div>';
+            document.getElementById('chartPaUpr').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;">Loading charts...</div>';
+            
+            fetch(`/api/premium-analysis/detail?day=${day}&month=${month}&year=${year}&lob=${lob}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                        // Render Pie Charts (which clears the loading innerHTML)
+                        renderPaPieChart('chartPaPremium', 'Premium Structure', data.pie_premium.new_pct, data.pie_premium.old_pct);
+                        renderPaPieChart('chartPaUpr', 'UPR Structure', data.pie_upr.new_pct, data.pie_upr.old_pct);
+                        
+                        const stats = data.stats;
+                        const lobVal = data.lob;
+                        
+                        const premStats = [
+                            { class: "Total Premium Amount", val: getStatVal(stats, "Premium (Amount)") },
+                            { class: "Existing Policies Premium", val: getStatVal(stats, "Premium - Existing Policies (Amount)") },
+                            { class: "New Policies Premium", val: getStatVal(stats, "Premium - New Policies (Amount)") },
+                            { class: "Existing Policies Count", val: getStatVal(stats, "Premium - Existing Policies (Count)") },
+                            { class: "New Policies Count", val: getStatVal(stats, "Premium - New Policies (Count)") }
+                        ];
+                        
+                        const uprStats = [
+                            { class: "Total UPR Amount", val: getStatVal(stats, "UPR (Amount)") },
+                            { class: "Existing Policies UPR", val: getStatVal(stats, "UPR - Existing Policies (Amount)") },
+                            { class: "New Policies UPR", val: getStatVal(stats, "UPR - New Policies (Amount)") },
+                            { class: "Existing Policies Count", val: getStatVal(stats, "UPR - Existing Policies (Count)") },
+                            { class: "New Policies Count", val: getStatVal(stats, "UPR - New Policies (Count)") }
+                        ];
+                        
+                        let premHtml = '';
+                        premStats.forEach(item => {
+                            premHtml += `
+                                <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                                    <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                                    <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                                    <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                                </tr>
+                            `;
+                        });
+                        document.getElementById('tablePaPremiumStatsBody').innerHTML = premHtml;
+                        
+                        let uprHtml = '';
+                        uprStats.forEach(item => {
+                            uprHtml += `
+                                <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                                    <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                                    <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                                    <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                                </tr>
+                            `;
+                        });
+                        document.getElementById('tablePaUprStatsBody').innerHTML = uprHtml;
+                    } else {
+                        console.error("Error loading detail data:", data);
+                    }
+                })
+                .catch(err => {
+                    console.error("Fetch detail error:", err);
+                    document.getElementById('chartPaPremium').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #EF4444; font-size: 14px;">Failed to load data</div>';
+                    document.getElementById('chartPaUpr').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #EF4444; font-size: 14px;">Failed to load data</div>';
+                });
+        }
+
+        function getStatVal(stats, key) {
+            const found = stats.find(s => s.class === key);
+            return found ? found.val : 0;
+        }
+
+        // Attach event listeners for Premium Analysis
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('paDate').addEventListener('change', startPremiumAnalysisLoad);
+            document.getElementById('paLobSelect').addEventListener('change', loadPremiumAnalysisDetail);
+            
+            document.getElementById('btnDownloadSTExcel').addEventListener('click', () => {
+                const dateVal = document.getElementById('paDate').value;
+                if (!dateVal) return;
+                const parts = dateVal.split('-');
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const day = parseInt(parts[2]);
+                window.open(`/api/premium-analysis/download-excel?day=${day}&month=${month}&year=${year}`, '_blank');
+            });
+            document.getElementById('btnDownloadLTExcel').addEventListener('click', () => {
+                const dateVal = document.getElementById('paDate').value;
+                if (!dateVal) return;
+                const parts = dateVal.split('-');
+                const year = parseInt(parts[0]);
+                const month = parseInt(parts[1]);
+                const day = parseInt(parts[2]);
+                window.open(`/api/premium-analysis/download-excel?day=${day}&month=${month}&year=${year}`, '_blank');
+            });
         });
 
         // Session variables for calculation date confirmation
@@ -5412,6 +6486,33 @@
 
 
     </script>
+
+    <!-- Premium Analysis Loading & Approval Modal -->
+    <div id="paLoadingModal" class="pa-modal-overlay" style="display: none;">
+        <div class="pa-modal-content">
+            <!-- Spinner/Icon -->
+            <div class="pa-modal-icon-container">
+                <div class="pa-spinner"></div>
+                <div class="pa-modal-icon-inner">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--bv-blue);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+            </div>
+            
+            <h3 id="paModalStatus" class="pa-modal-title">Analyzing Premium Data</h3>
+            <p id="paModalDesc" class="pa-modal-desc">Fetching and computing quarterly policy premium distribution...</p>
+            
+            <!-- Stopwatch Timer -->
+            <div class="pa-timer-container">
+                <span id="paTimerVal" class="pa-timer-text">0.00s</span>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div id="paModalActions" class="pa-modal-actions" style="display: none; gap: 12px; justify-content: center; width: 100%;">
+                <button id="btnPaModalDiscard" class="btn btn-outline" style="flex: 1; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.15); background: white; color: #374151;">Discard</button>
+                <button id="btnPaModalContinue" class="btn" style="flex: 1; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 10px; background: var(--bv-blue); color: white; border: none; box-shadow: 0 4px 12px rgba(0, 86, 163, 0.2);">Continue</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
