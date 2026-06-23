@@ -107,8 +107,8 @@ def calculate_st_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: p
         quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
         quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
         
-        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
-        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).fillna(0.0).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).fillna(0.0).values
         
         vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
         usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
@@ -229,8 +229,8 @@ def calculate_tttbvv_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gi
         quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
         quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
         
-        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
-        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).fillna(0.0).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).fillna(0.0).values
         
         vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
         usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
@@ -324,8 +324,8 @@ def calculate_lt_summary_df(df: pd.DataFrame, ky_available: list[int], ty_gia: p
         quy_nam = "Q" + pd.Series(quy).astype(str) + "/" + pd.Series(nam).astype(str)
         quy_nam = np.where((quy == 0) | (nam == 0), "", quy_nam)
         
-        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).values
-        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).values
+        rate_usd = pd.Series(quy_nam).map(ty_gia_dict_usd).fillna(fallback_usd).fillna(0.0).values
+        rate_eur = pd.Series(quy_nam).map(ty_gia_dict_eur).fillna(fallback_eur).fillna(0.0).values
         
         vnd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_VND"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
         usd = pd.to_numeric(df[f"Ky_phi_{ky}_So_tien_USD"].astype(str).str.replace(",", "", regex=False), errors='coerce').fillna(0.0).values
@@ -1121,7 +1121,7 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
                 
     wb.save(out_file_path)
     
-    # Calculate the summary DataFrame in Python and save it to parquet
+    # Calculate the summary DataFrame in Python, save to parquet and SQLite DB
     summary_path = out_file_path.replace(".xlsx", "_summary.parquet")
     try:
         if is_vietjet:
@@ -1134,6 +1134,39 @@ def calculate_upr_for_file(quarter_id: str, file_name: str, group_code: str, dpn
             df_summary = calculate_st_summary_df(df, ky_available, ty_gia, dpnv_date, four_last_quarters)
         
         df_summary.to_parquet(summary_path)
+        
+        # Write to SQLite DB (Long_term, Short_term, or PA_TTTBVV)
+        try:
+            import sqlite3
+            db_path = os.path.join(DATA_ROOT, f"{quarter_id.replace('_', '.')}.db")
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            if is_tttbvv:
+                table_name = "PA_TTTBVV_Summary"
+            elif is_lt:
+                table_name = "Long_term"
+            else:
+                table_name = "Short_term"
+                
+            df_summary_db = df_summary.copy()
+            df_summary_db.insert(0, "lob", group_code)
+            
+            # Drop empty columns
+            df_summary_db = df_summary_db.dropna(how='all', axis=1)
+            df_summary_db = df_summary_db.loc[:, [c for c in df_summary_db.columns if c is not None and str(c).strip() != ""]]
+            
+            # Delete existing rows for this LOB to avoid duplicates
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            if cursor.fetchone():
+                cursor.execute(f"DELETE FROM {table_name} WHERE lob = ?", (group_code,))
+                conn.commit()
+                
+            df_summary_db.to_sql(table_name, conn, if_exists="append", index=False)
+            conn.close()
+        except Exception as db_err:
+            print(f"Error writing summary to database for {file_name}: {db_err}")
+            
     except Exception as e:
         print(f"Error pre-calculating summary for {file_name}: {e}")
         raise e
@@ -1197,77 +1230,15 @@ def calculate_upr_for_quarter(db: Session, quarter_id: str, file_ids: list[int] 
 
 def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) -> dict:
     """
-    Consolidate calculated UPR Excel files into a summary workbook.
+    Consolidate calculated UPR from SQLite database tables into a summary workbook.
     """
-    # Fetch calculated files in the quarter
-    query = db.query(models.FileQueue).filter(
-        models.FileQueue.quarter_id == quarter_id,
-        models.FileQueue.status == "Calculated"
-    )
-    if file_ids is not None:
-        query = query.filter(models.FileQueue.id.in_(file_ids))
+    import sqlite3
+    db_path = os.path.join(DATA_ROOT, f"{quarter_id.replace('_', '.')}.db")
+    if not os.path.exists(db_path):
+        raise ValueError(f"Database file for quarter {quarter_id} not found at {db_path}.")
         
-    calculated_files = query.all()
-    if not calculated_files:
-        raise ValueError(f"No calculated files found in quarter {quarter_id} to summarize.")
-        
-    group_data = {
-        "LT": [],
-        "Travel": [],
-        "TTTBVV": {},
-        "ShortTerm": []
-    }
+    conn = sqlite3.connect(db_path)
     
-    # Process each calculated file
-    for f in calculated_files:
-        excel_path = os.path.join(OUTPUT_EXCEL_ROOT, quarter_id, f"{f.group_code}.xlsx")
-        if not os.path.exists(excel_path):
-            continue
-            
-        try:
-            summary_path = excel_path.replace(".xlsx", "_summary.parquet")
-            if not os.path.exists(summary_path):
-                continue
-                
-            data = pd.read_parquet(summary_path)
-            
-            # Remove Ky_phi if present
-            if "Ky_phi" in data.columns:
-                data = data.drop(columns=["Ky_phi"])
-                
-            # Convert numeric columns to float
-            for col in data.columns:
-                if col != "Quy":
-                    data[col] = pd.to_numeric(data[col], errors="coerce").fillna(0.0)
-                    
-            # Group by Quy and sum
-            df_sum = data.groupby("Quy", as_index=False).sum()
-            
-            # Determine group using group_code (LOB), with fallback to file_name
-            group_code_lower = f.group_code.lower() if f.group_code else ""
-            fn_lower = f.file_name.lower()
-            
-            is_lt = group_code_lower.endswith("_lt") or "lt" in fn_lower
-            is_travel_wj = "travel" in group_code_lower or "vietjet" in group_code_lower or "travel" in fn_lower or "vietjet" in fn_lower
-            is_tttbvv = "tttbvv" in group_code_lower or "tttbvv" in fn_lower
-            
-            if is_lt:
-                df_sum.insert(0, "SourceFile", f.group_code)
-                group_data["LT"].append(df_sum)
-            elif is_travel_wj:
-                df_sum.insert(0, "SourceFile", f.group_code)
-                group_data["Travel"].append(df_sum)
-            elif is_tttbvv:
-                # TTTBVV is stored individually in its own sheet, named after the LOB/group code
-                group_data["TTTBVV"][f.group_code] = df_sum
-            else:
-                df_sum.insert(0, "SourceFile", f.group_code)
-                group_data["ShortTerm"].append(df_sum)
-                
-        except Exception as e:
-            print(f"Error reading result sheet from {f.group_code}: {e}")
-            continue
-            
     # Create final summarized workbook
     wb_new = openpyxl.Workbook()
     if "Sheet" in wb_new.sheetnames:
@@ -1275,18 +1246,34 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
         
     accounting_format = "#,##0"
     
-    # Write aggregated sheets (LT, Travel, ShortTerm)
-    for grp in ["LT", "Travel", "ShortTerm"]:
-        list_dfs = group_data[grp]
-        if list_dfs:
-            merged = pd.concat(list_dfs, ignore_index=True)
-            ws = wb_new.create_sheet(grp)
-            write_df_to_sheet(ws, merged, with_filter=True)
+    # We will read and write three groups: LongTerm, ShortTerm, PA_TTTBVV
+    # Map sheet name to DB table name
+    sheet_to_table = {
+        "LongTerm": "Long_term",
+        "ShortTerm": "Short_term",
+        "PA_TTTBVV": "PA_TTTBVV_Summary"
+    }
+    
+    for sheet_name, table_name in sheet_to_table.items():
+        try:
+            # Check if table exists in DB
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
+            if not cursor.fetchone():
+                print(f"Table {table_name} does not exist in DB, skipping.")
+                continue
+                
+            df_sum = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
+            if df_sum.empty:
+                continue
+                
+            ws = wb_new.create_sheet(sheet_name)
+            write_df_to_sheet(ws, df_sum, with_filter=True)
             
             # Apply format to numeric columns
-            n_rows = len(merged)
+            n_rows = len(df_sum)
             for r in range(2, n_rows + 2):
-                for c in range(1, len(merged.columns) + 1):
+                for c in range(1, len(df_sum.columns) + 1):
                     val = ws.cell(row=r, column=c).value
                     if isinstance(val, (int, float)):
                         cell = ws.cell(row=r, column=c)
@@ -1298,26 +1285,12 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
                 col_letter = get_column_letter(col[0].column)
                 ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
                 
-    # Write TTTBVV sheets individually
-    for nm, df_sum in group_data["TTTBVV"].items():
-        ws = wb_new.create_sheet(nm)
-        write_df_to_sheet(ws, df_sum, with_filter=True)
-        
-        # Apply format to numeric columns
-        n_rows = len(df_sum)
-        for r in range(2, n_rows + 2):
-            for c in range(1, len(df_sum.columns) + 1):
-                val = ws.cell(row=r, column=c).value
-                if isinstance(val, (int, float)):
-                    cell = ws.cell(row=r, column=c)
-                    cell.number_format = accounting_format
-                    
-        # Auto-fit columns
-        for col in ws.columns:
-            max_len = max(len(str(cell.value or "")) for cell in col)
-            col_letter = get_column_letter(col[0].column)
-            ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
+        except Exception as e:
+            print(f"Error reading and writing table {table_name} for sheet {sheet_name}: {e}")
+            continue
             
+    conn.close()
+    
     # Save output file with timestamp
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     summary_filename = f"Tong_Hop_Ketqua_{timestamp}.xlsx"
@@ -1325,6 +1298,10 @@ def summarize_reports(db: Session, quarter_id: str, file_ids: list[int] = None) 
     os.makedirs(summary_dir, exist_ok=True)
     summary_path = os.path.join(summary_dir, summary_filename)
     
+    # Check if we wrote at least one sheet
+    if len(wb_new.sheetnames) == 0:
+        wb_new.create_sheet("Empty")
+        
     wb_new.save(summary_path)
     
     return {"file_name": summary_filename, "file_path": summary_path}
