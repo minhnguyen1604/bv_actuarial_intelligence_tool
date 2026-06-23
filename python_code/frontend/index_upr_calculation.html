@@ -1559,6 +1559,35 @@
             -moz-appearance: textfield;
         }
 
+        .pa-table-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            max-height: 252px;
+            scrollbar-width: none; /* Firefox */
+        }
+        .pa-table-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+            display: none; /* Chrome, Safari */
+        }
+        .pa-table-scroll:hover {
+            scrollbar-width: thin; /* Firefox hover */
+        }
+        .pa-table-scroll:hover::-webkit-scrollbar {
+            display: block; /* Chrome, Safari hover */
+        }
+        .pa-table-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .pa-table-scroll::-webkit-scrollbar-thumb {
+            background: rgba(0, 86, 163, 0.15);
+            border-radius: 10px;
+        }
+        .pa-table-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 86, 163, 0.3);
+        }
+
         /* Premium Analysis custom table styles */
         .pa-table {
             table-layout: fixed;
@@ -1572,14 +1601,15 @@
             text-transform: uppercase !important;
             letter-spacing: 0.08em !important;
             color: var(--text-secondary) !important;
-            background: rgba(255, 255, 255, 0.45) !important;
+            background: rgba(255, 255, 255, 0.85) !important;
             padding: 12px 10px !important;
             border-bottom: 2px solid rgba(0, 86, 163, 0.12) !important;
             border-top: none !important;
             border-left: none !important;
             border-right: none !important;
-            position: static !important; /* Reset sticky headers from general tables */
-            z-index: auto !important;
+            position: sticky !important; /* Premium sticky headers */
+            top: 0 !important;
+            z-index: 10 !important;
         }
         .pa-table td {
             font-family: 'Inter', -apple-system, sans-serif;
@@ -2141,7 +2171,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                     </div>
-                    <div style="flex: 1; overflow-x: auto;" class="custom-scroll">
+                    <div class="pa-table-scroll">
                         <table class="table pa-table">
                             <thead>
                                 <tr>
@@ -2171,7 +2201,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                     </div>
-                    <div style="flex: 1; overflow-x: auto;" class="custom-scroll">
+                    <div class="pa-table-scroll">
                         <table class="table pa-table">
                             <thead>
                                 <tr>
