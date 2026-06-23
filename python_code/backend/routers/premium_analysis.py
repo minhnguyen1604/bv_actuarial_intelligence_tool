@@ -453,11 +453,15 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
         "lob": lob,
         "pie_premium": {
             "new_pct": float(premium_new_pct),
-            "old_pct": float(premium_old_pct)
+            "old_pct": float(premium_old_pct),
+            "new_val": float(premium_new_amount),
+            "old_val": float(premium_old_amount)
         },
         "pie_upr": {
             "new_pct": float(upr_new_pct),
-            "old_pct": float(upr_old_pct)
+            "old_pct": float(upr_old_pct),
+            "new_val": float(upr_new_amount),
+            "old_val": float(upr_old_amount)
         },
         "stats": stats_data
     }
@@ -498,29 +502,29 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
         bottom=Side(style='double', color='111827')
     )
 
-    ws.merge_cells("A1:M1")
+    ws.merge_cells("A1:O1")
     ws["A1"] = "Premium & UPR Overview Analysis Report"
     ws["A1"].font = font_title
     
-    ws.merge_cells("A2:M2")
+    ws.merge_cells("A2:O2")
     ws["A2"] = f"Analysis Date: {day:02d}/{month:02d}/{year}  |  Current Quarter: {curr_q} vs Previous Quarter: {prev_q}"
     ws["A2"].font = font_subtitle
     
-    ws.merge_cells("A4:F4")
+    ws.merge_cells("A4:G4")
     ws["A4"] = "SHORT-TERM LINES OF BUSINESS"
     ws["A4"].font = Font(name="Calibri", size=12, bold=True, color="1E3A8A")
     
-    ws.merge_cells("H4:M4")
-    ws["H4"] = "LONG-TERM LINES OF BUSINESS"
-    ws["H4"].font = Font(name="Calibri", size=12, bold=True, color="1E3A8A")
+    ws.merge_cells("I4:O4")
+    ws["I4"] = "LONG-TERM LINES OF BUSINESS"
+    ws["I4"].font = Font(name="Calibri", size=12, bold=True, color="1E3A8A")
 
     headers_st = [
-        "LOB", f"Premium {prev_q}", f"Premium {curr_q}", "% Change",
-        f"UPR {prev_q}", f"UPR {curr_q}"
+        "LOB", f"Premium {prev_q}", f"Premium {curr_q}", "% Change Premium",
+        f"UPR {prev_q}", f"UPR {curr_q}", "% Change UPR"
     ]
     headers_lt = [
-        "LOB", f"Premium {prev_q}", f"Premium {curr_q}", "% Change",
-        f"UPR {prev_q}", f"UPR {curr_q}"
+        "LOB", f"Premium {prev_q}", f"Premium {curr_q}", "% Change Premium",
+        f"UPR {prev_q}", f"UPR {curr_q}", "% Change UPR"
     ]
 
     for col_idx, header in enumerate(headers_st, start=1):
@@ -529,7 +533,7 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
         cell.fill = fill_header
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    for col_idx, header in enumerate(headers_lt, start=8):
+    for col_idx, header in enumerate(headers_lt, start=9):
         cell = ws.cell(row=5, column=col_idx, value=header)
         cell.font = font_header
         cell.fill = fill_header
@@ -551,8 +555,8 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
             c_curr_p.number_format = "#,##0"
             c_curr_p.font = font_data
             
-            c_pct = ws.cell(row=row_idx, column=4, value=item["pct_change"] / 100.0)
-            c_pct.number_format = "0.0%"
+            c_pct = ws.cell(row=row_idx, column=4, value=float(item["pct_change"]) / 100.0)
+            c_pct.number_format = "0.00%"
             c_pct.font = font_data
             if item["pct_change"] > 0:
                 c_pct.fill = fill_green
@@ -567,38 +571,54 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
             c_curr_u.number_format = "#,##0"
             c_curr_u.font = font_data
             
-            for c in range(1, 7):
+            c_pct_upr = ws.cell(row=row_idx, column=7, value=float(item["pct_upr"]) / 100.0)
+            c_pct_upr.number_format = "0.00%"
+            c_pct_upr.font = font_data
+            if item["pct_upr"] > 0:
+                c_pct_upr.fill = fill_green
+            elif item["pct_upr"] < 0:
+                c_pct_upr.fill = fill_red
+            
+            for c in range(1, 8):
                 ws.cell(row=row_idx, column=c).border = border_thin
 
         if i < len(lt_list):
             item = lt_list[i]
-            ws.cell(row=row_idx, column=8, value=item["lob"]).font = font_data
+            ws.cell(row=row_idx, column=9, value=item["lob"]).font = font_data
             
-            c_prev_p = ws.cell(row=row_idx, column=9, value=item["prev_premium"])
+            c_prev_p = ws.cell(row=row_idx, column=10, value=item["prev_premium"])
             c_prev_p.number_format = "#,##0"
             c_prev_p.font = font_data
             
-            c_curr_p = ws.cell(row=row_idx, column=10, value=item["curr_premium"])
+            c_curr_p = ws.cell(row=row_idx, column=11, value=item["curr_premium"])
             c_curr_p.number_format = "#,##0"
             c_curr_p.font = font_data
             
-            c_pct = ws.cell(row=row_idx, column=11, value=item["pct_change"] / 100.0)
-            c_pct.number_format = "0.0%"
+            c_pct = ws.cell(row=row_idx, column=12, value=float(item["pct_change"]) / 100.0)
+            c_pct.number_format = "0.00%"
             c_pct.font = font_data
             if item["pct_change"] > 0:
                 c_pct.fill = fill_green
             elif item["pct_change"] < 0:
                 c_pct.fill = fill_red
                 
-            c_prev_u = ws.cell(row=row_idx, column=12, value=item["prev_upr"])
+            c_prev_u = ws.cell(row=row_idx, column=13, value=item["prev_upr"])
             c_prev_u.number_format = "#,##0"
             c_prev_u.font = font_data
             
-            c_curr_u = ws.cell(row=row_idx, column=13, value=item["curr_upr"])
+            c_curr_u = ws.cell(row=row_idx, column=14, value=item["curr_upr"])
             c_curr_u.number_format = "#,##0"
             c_curr_u.font = font_data
             
-            for c in range(8, 14):
+            c_pct_upr = ws.cell(row=row_idx, column=15, value=float(item["pct_upr"]) / 100.0)
+            c_pct_upr.number_format = "0.00%"
+            c_pct_upr.font = font_data
+            if item["pct_upr"] > 0:
+                c_pct_upr.fill = fill_green
+            elif item["pct_upr"] < 0:
+                c_pct_upr.fill = fill_red
+            
+            for c in range(9, 16):
                 ws.cell(row=row_idx, column=c).border = border_thin
 
     total_row_idx = 6 + max_len
@@ -621,7 +641,7 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
     
     formula_pct = f"=IF(B{total_row_idx}>0,(C{total_row_idx}-B{total_row_idx})/B{total_row_idx},0)"
     c_tot_pct = ws.cell(row=total_row_idx, column=4, value=formula_pct)
-    c_tot_pct.number_format = "0.0%"
+    c_tot_pct.number_format = "0.00%"
     c_tot_pct.font = font_total
     c_tot_pct.fill = fill_total
     
@@ -637,44 +657,56 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
     c_tot_curr_u.font = font_total
     c_tot_curr_u.fill = fill_total
     
-    for c in range(1, 7):
+    formula_pct_upr = f"=IF(E{total_row_idx}>0,(F{total_row_idx}-E{total_row_idx})/E{total_row_idx},0)"
+    c_tot_pct_upr = ws.cell(row=total_row_idx, column=7, value=formula_pct_upr)
+    c_tot_pct_upr.number_format = "0.00%"
+    c_tot_pct_upr.font = font_total
+    c_tot_pct_upr.fill = fill_total
+    
+    for c in range(1, 8):
         ws.cell(row=total_row_idx, column=c).border = border_total
 
     # LT Totals
-    ws.cell(row=total_row_idx, column=8, value="Total").font = font_total
-    ws.cell(row=total_row_idx, column=8).fill = fill_total
+    ws.cell(row=total_row_idx, column=9, value="Total").font = font_total
+    ws.cell(row=total_row_idx, column=9).fill = fill_total
     
-    sum_prev_p_lt = f"=SUM(I6:I{total_row_idx-1})"
-    c_tot_prev_p_lt = ws.cell(row=total_row_idx, column=9, value=sum_prev_p_lt)
+    sum_prev_p_lt = f"=SUM(J6:J{total_row_idx-1})"
+    c_tot_prev_p_lt = ws.cell(row=total_row_idx, column=10, value=sum_prev_p_lt)
     c_tot_prev_p_lt.number_format = "#,##0"
     c_tot_prev_p_lt.font = font_total
     c_tot_prev_p_lt.fill = fill_total
     
-    sum_curr_p_lt = f"=SUM(J6:J{total_row_idx-1})"
-    c_tot_curr_p_lt = ws.cell(row=total_row_idx, column=10, value=sum_curr_p_lt)
+    sum_curr_p_lt = f"=SUM(K6:K{total_row_idx-1})"
+    c_tot_curr_p_lt = ws.cell(row=total_row_idx, column=11, value=sum_curr_p_lt)
     c_tot_curr_p_lt.number_format = "#,##0"
     c_tot_curr_p_lt.font = font_total
     c_tot_curr_p_lt.fill = fill_total
     
-    formula_pct_lt = f"=IF(I{total_row_idx}>0,(J{total_row_idx}-I{total_row_idx})/I{total_row_idx},0)"
-    c_tot_pct_lt = ws.cell(row=total_row_idx, column=11, value=formula_pct_lt)
-    c_tot_pct_lt.number_format = "0.0%"
+    formula_pct_lt = f"=IF(J{total_row_idx}>0,(K{total_row_idx}-J{total_row_idx})/J{total_row_idx},0)"
+    c_tot_pct_lt = ws.cell(row=total_row_idx, column=12, value=formula_pct_lt)
+    c_tot_pct_lt.number_format = "0.00%"
     c_tot_pct_lt.font = font_total
     c_tot_pct_lt.fill = fill_total
     
-    sum_prev_u_lt = f"=SUM(L6:L{total_row_idx-1})"
-    c_tot_prev_u_lt = ws.cell(row=total_row_idx, column=12, value=sum_prev_u_lt)
+    sum_prev_u_lt = f"=SUM(M6:M{total_row_idx-1})"
+    c_tot_prev_u_lt = ws.cell(row=total_row_idx, column=13, value=sum_prev_u_lt)
     c_tot_prev_u_lt.number_format = "#,##0"
     c_tot_prev_u_lt.font = font_total
     c_tot_prev_u_lt.fill = fill_total
     
-    sum_curr_u_lt = f"=SUM(M6:M{total_row_idx-1})"
-    c_tot_curr_u_lt = ws.cell(row=total_row_idx, column=13, value=sum_curr_u_lt)
+    sum_curr_u_lt = f"=SUM(N6:N{total_row_idx-1})"
+    c_tot_curr_u_lt = ws.cell(row=total_row_idx, column=14, value=sum_curr_u_lt)
     c_tot_curr_u_lt.number_format = "#,##0"
     c_tot_curr_u_lt.font = font_total
     c_tot_curr_u_lt.fill = fill_total
     
-    for c in range(8, 14):
+    formula_pct_upr_lt = f"=IF(M{total_row_idx}>0,(N{total_row_idx}-M{total_row_idx})/M{total_row_idx},0)"
+    c_tot_pct_upr_lt = ws.cell(row=total_row_idx, column=15, value=formula_pct_upr_lt)
+    c_tot_pct_upr_lt.number_format = "0.00%"
+    c_tot_pct_upr_lt.font = font_total
+    c_tot_pct_upr_lt.fill = fill_total
+    
+    for c in range(9, 16):
         ws.cell(row=total_row_idx, column=c).border = border_total
 
     for col in ws.columns:
@@ -685,11 +717,13 @@ def download_premium_analysis_excel(day: int, month: int, year: int, db: Session
             val_str = str(cell.value or "")
             if cell.number_format == "#,##0" and isinstance(cell.value, (int, float)):
                 val_str = f"{int(cell.value):,}"
+            elif cell.number_format == "0.00%" and isinstance(cell.value, (int, float)):
+                val_str = f"{cell.value * 100:.2f}%"
             max_len = max(max_len, len(val_str))
         col_letter = get_column_letter(col[0].column)
         ws.column_dimensions[col_letter].width = max(max_len + 3, 12)
         
-    ws.column_dimensions["G"].width = 4
+    ws.column_dimensions["H"].width = 4
 
     buf = io.BytesIO()
     wb.save(buf)

@@ -2141,7 +2141,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                     </div>
-                    <div style="flex: 1; overflow-x: auto; max-height: 500px;" class="custom-scroll">
+                    <div style="flex: 1; overflow-x: auto;" class="custom-scroll">
                         <table class="table pa-table">
                             <thead>
                                 <tr>
@@ -2171,7 +2171,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
                     </div>
-                    <div style="flex: 1; overflow-x: auto; max-height: 500px;" class="custom-scroll">
+                    <div style="flex: 1; overflow-x: auto;" class="custom-scroll">
                         <table class="table pa-table">
                             <thead>
                                 <tr>
@@ -2265,7 +2265,7 @@
                                 <thead>
                                     <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
                                         <th style="text-align: left; padding: 10px 8px;">LOB</th>
-                                        <th style="text-align: left; padding: 10px 8px;">Classification</th>
+                                        <th style="text-align: left; padding: 10px 8px;">Metric</th>
                                         <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
                                     </tr>
                                 </thead>
@@ -2283,7 +2283,7 @@
                                 <thead>
                                     <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
                                         <th style="text-align: left; padding: 10px 8px;">LOB</th>
-                                        <th style="text-align: left; padding: 10px 8px;">Classification</th>
+                                        <th style="text-align: left; padding: 10px 8px;">Metric</th>
                                         <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
                                     </tr>
                                 </thead>
@@ -4449,8 +4449,8 @@
                     updateSortHeaderIcons('lt');
 
                     // 2. Render Detail
-                    renderPaPieChart('chartPaPremium', 'Premium Structure', pendingDetailData.pie_premium.new_pct, pendingDetailData.pie_premium.old_pct);
-                    renderPaPieChart('chartPaUpr', 'UPR Structure', pendingDetailData.pie_upr.new_pct, pendingDetailData.pie_upr.old_pct);
+                    renderPaPieChart('chartPaPremium', 'Premium Structure', pendingDetailData.pie_premium.new_pct, pendingDetailData.pie_premium.old_pct, pendingDetailData.pie_premium.new_val, pendingDetailData.pie_premium.old_val);
+                    renderPaPieChart('chartPaUpr', 'UPR Structure', pendingDetailData.pie_upr.new_pct, pendingDetailData.pie_upr.old_pct, pendingDetailData.pie_upr.new_val, pendingDetailData.pie_upr.old_val);
                     
                     const stats = pendingDetailData.stats;
                     const lobVal = pendingDetailData.lob;
@@ -4708,17 +4708,23 @@
             });
         }
 
-        function renderPaPieChart(divId, title, newPct, oldPct) {
+        function renderPaPieChart(divId, title, newPct, oldPct, newVal, oldVal) {
             const container = document.getElementById(divId);
             container.innerHTML = ''; // Clear container before rendering to prevent overlaps
 
-            if (newPct === 0 && oldPct === 0) {
+            const hasData = (newVal !== undefined && oldVal !== undefined) ? (newVal > 0 || oldVal > 0) : (newPct > 0 || oldPct > 0);
+            if (!hasData) {
                 container.innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 14px;">No data available for this LOB/period</div>';
                 return;
             }
             
+            const chartValues = (newVal !== undefined && oldVal !== undefined) ? [newVal, oldVal] : [newPct, oldPct];
+            const hoverTemp = (newVal !== undefined && oldVal !== undefined) 
+                ? '<b>%{label}</b><br>Value: %{value:,.0f} VND<br>Percentage: %{percent:.2%}<extra></extra>'
+                : '<b>%{label}</b><br>Percentage: %{percent:.2%}<extra></extra>';
+
             const data = [{
-                values: [newPct, oldPct],
+                values: chartValues,
                 labels: ['New Policies', 'Existing Policies'],
                 type: 'pie',
                 hole: 0.7,
@@ -4727,7 +4733,7 @@
                 },
                 textinfo: 'percent',
                 textposition: 'inside',
-                hovertemplate: '<b>%{label}</b><br>Percentage: %{percent:.2%}<extra></extra>'
+                hovertemplate: hoverTemp
             }];
             
             const layout = {
@@ -4774,8 +4780,8 @@
                 .then(data => {
                     if (data.ok) {
                         // Render Pie Charts (which clears the loading innerHTML)
-                        renderPaPieChart('chartPaPremium', 'Premium Structure', data.pie_premium.new_pct, data.pie_premium.old_pct);
-                        renderPaPieChart('chartPaUpr', 'UPR Structure', data.pie_upr.new_pct, data.pie_upr.old_pct);
+                        renderPaPieChart('chartPaPremium', 'Premium Structure', data.pie_premium.new_pct, data.pie_premium.old_pct, data.pie_premium.new_val, data.pie_premium.old_val);
+                        renderPaPieChart('chartPaUpr', 'UPR Structure', data.pie_upr.new_pct, data.pie_upr.old_pct, data.pie_upr.new_val, data.pie_upr.old_val);
                         
                         const stats = data.stats;
                         const lobVal = data.lob;
