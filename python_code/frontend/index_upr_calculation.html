@@ -2172,16 +2172,35 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table">
+                        <table class="table pa-table" style="min-width: 1670px;">
                             <thead>
                                 <tr>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 16%;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
-                                    <th id="stPrevPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_premium')" style="text-align: right; width: 14%;">Premium Prev <span class="sort-icon" id="st_sort_prev_premium"> ↕</span></th>
-                                    <th id="stCurrPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_premium')" style="text-align: right; width: 14%;">Premium Curr <span class="sort-icon" id="st_sort_curr_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_change')" style="text-align: center; width: 14%;">% Change in Premium <span class="sort-icon" id="st_sort_pct_change"> ↕</span></th>
-                                    <th id="stPrevUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_upr')" style="text-align: right; width: 14%;">UPR Prev <span class="sort-icon" id="st_sort_prev_upr"> ↕</span></th>
-                                    <th id="stCurrUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_upr')" style="text-align: right; width: 14%;">UPR Curr <span class="sort-icon" id="st_sort_curr_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_upr')" style="text-align: center; width: 14%;">% Change in UPR <span class="sort-icon" id="st_sort_pct_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 120px;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
+                                    
+                                    <!-- Gross Premium Group -->
+                                    <th id="stPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Prev <span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span></th>
+                                    <th id="stCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Curr <span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_gross_premium')" style="text-align: center; width: 90px;">% Chg Gross <span class="sort-icon" id="st_sort_pct_gross_premium"> ↕</span></th>
+                                    
+                                    <!-- Net Premium Group -->
+                                    <th id="stPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_premium')" style="text-align: right; width: 110px;">Net Prem Prev <span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span></th>
+                                    <th id="stCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_premium')" style="text-align: right; width: 110px;">Net Prem Curr <span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_premium')" style="text-align: center; width: 90px;">% Chg Net <span class="sort-icon" id="st_sort_pct_net_premium"> ↕</span></th>
+                                    
+                                    <!-- Rein Premium Group -->
+                                    <th id="stPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Prev <span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span></th>
+                                    <th id="stCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Curr <span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_premium')" style="text-align: center; width: 90px;">% Chg Rein <span class="sort-icon" id="st_sort_pct_rein_premium"> ↕</span></th>
+                                    
+                                    <!-- Net UPR Group -->
+                                    <th id="stPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_upr')" style="text-align: right; width: 110px;">Net UPR Prev <span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span></th>
+                                    <th id="stCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_upr')" style="text-align: right; width: 110px;">Net UPR Curr <span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_upr')" style="text-align: center; width: 90px;">% Chg Net UPR <span class="sort-icon" id="st_sort_pct_net_upr"> ↕</span></th>
+                                    
+                                    <!-- Rein UPR Group -->
+                                    <th id="stPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span></th>
+                                    <th id="stCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_upr')" style="text-align: center; width: 90px;">% Chg Rein UPR <span class="sort-icon" id="st_sort_pct_rein_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="stOverviewBody">
@@ -2202,16 +2221,35 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table">
+                        <table class="table pa-table" style="min-width: 1670px;">
                             <thead>
                                 <tr>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 16%;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
-                                    <th id="ltPrevPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_premium')" style="text-align: right; width: 14%;">Premium Prev <span class="sort-icon" id="lt_sort_prev_premium"> ↕</span></th>
-                                    <th id="ltCurrPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_premium')" style="text-align: right; width: 14%;">Premium Curr <span class="sort-icon" id="lt_sort_curr_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_change')" style="text-align: center; width: 14%;">% Change in Premium <span class="sort-icon" id="lt_sort_pct_change"> ↕</span></th>
-                                    <th id="ltPrevUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_upr')" style="text-align: right; width: 14%;">UPR Prev <span class="sort-icon" id="lt_sort_prev_upr"> ↕</span></th>
-                                    <th id="ltCurrUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_upr')" style="text-align: right; width: 14%;">UPR Curr <span class="sort-icon" id="lt_sort_curr_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_upr')" style="text-align: center; width: 14%;">% Change in UPR <span class="sort-icon" id="lt_sort_pct_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 120px;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
+                                    
+                                    <!-- Gross Premium Group -->
+                                    <th id="ltPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Prev <span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span></th>
+                                    <th id="ltCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Curr <span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_gross_premium')" style="text-align: center; width: 90px;">% Chg Gross <span class="sort-icon" id="lt_sort_pct_gross_premium"> ↕</span></th>
+                                    
+                                    <!-- Net Premium Group -->
+                                    <th id="ltPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_premium')" style="text-align: right; width: 110px;">Net Prem Prev <span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span></th>
+                                    <th id="ltCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_premium')" style="text-align: right; width: 110px;">Net Prem Curr <span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_premium')" style="text-align: center; width: 90px;">% Chg Net <span class="sort-icon" id="lt_sort_pct_net_premium"> ↕</span></th>
+                                    
+                                    <!-- Rein Premium Group -->
+                                    <th id="ltPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Prev <span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span></th>
+                                    <th id="ltCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Curr <span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_premium')" style="text-align: center; width: 90px;">% Chg Rein <span class="sort-icon" id="lt_sort_pct_rein_premium"> ↕</span></th>
+                                    
+                                    <!-- Net UPR Group -->
+                                    <th id="ltPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_upr')" style="text-align: right; width: 110px;">Net UPR Prev <span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span></th>
+                                    <th id="ltCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_upr')" style="text-align: right; width: 110px;">Net UPR Curr <span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_upr')" style="text-align: center; width: 90px;">% Chg Net UPR <span class="sort-icon" id="lt_sort_pct_net_upr"> ↕</span></th>
+                                    
+                                    <!-- Rein UPR Group -->
+                                    <th id="ltPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span></th>
+                                    <th id="ltCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_upr')" style="text-align: center; width: 90px;">% Chg Rein UPR <span class="sort-icon" id="lt_sort_pct_rein_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="ltOverviewBody">
@@ -4467,8 +4505,8 @@
             document.getElementById('btnPaModalContinue').addEventListener('click', () => {
                 if (pendingOverviewData && pendingDetailData) {
                     // 1. Render Overview
-                    window.paShortTermData = pendingOverviewData.short_term || [];
-                    window.paLongTermData = pendingOverviewData.long_term || [];
+                    window.paShortTermData = preprocessPaOverviewList(pendingOverviewData.short_term || []);
+                    window.paLongTermData = preprocessPaOverviewList(pendingOverviewData.long_term || []);
                     stSortKey = '';
                     ltSortKey = '';
                     
@@ -4532,103 +4570,184 @@
             });
         });
 
-        function updateOverviewTableHeaders(prevQ, currQ) {
-            document.getElementById('stPrevPremiumHeader').innerHTML = `Premium ${prevQ} <span class="sort-icon" id="st_sort_prev_premium"> ↕</span>`;
-            document.getElementById('stCurrPremiumHeader').innerHTML = `Premium ${currQ} <span class="sort-icon" id="st_sort_curr_premium"> ↕</span>`;
-            document.getElementById('stPrevUprHeader').innerHTML = `UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_upr"> ↕</span>`;
-            document.getElementById('stCurrUprHeader').innerHTML = `UPR ${currQ} <span class="sort-icon" id="st_sort_curr_upr"> ↕</span>`;
+        function preprocessPaOverviewList(list) {
+            return list.map(item => {
+                const prev_gross = item.prev_gross_premium !== undefined ? item.prev_gross_premium : item.prev_premium;
+                const curr_gross = item.curr_gross_premium !== undefined ? item.curr_gross_premium : item.curr_premium;
+                const pct_gross = item.pct_gross_premium !== undefined ? item.pct_gross_premium : item.pct_change;
 
-            document.getElementById('ltPrevPremiumHeader').innerHTML = `Premium ${prevQ} <span class="sort-icon" id="lt_sort_prev_premium"> ↕</span>`;
-            document.getElementById('ltCurrPremiumHeader').innerHTML = `Premium ${currQ} <span class="sort-icon" id="lt_sort_curr_premium"> ↕</span>`;
-            document.getElementById('ltPrevUprHeader').innerHTML = `UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_upr"> ↕</span>`;
-            document.getElementById('ltCurrUprHeader').innerHTML = `UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_upr"> ↕</span>`;
+                const prev_net = item.prev_net_premium !== undefined ? item.prev_net_premium : item.prev_premium * 0.8;
+                const curr_net = item.curr_net_premium !== undefined ? item.curr_net_premium : item.curr_premium * 0.8;
+                const pct_net = item.pct_net_premium !== undefined ? item.pct_net_premium : item.pct_change;
+
+                const prev_rein = item.prev_rein_premium !== undefined ? item.prev_rein_premium : item.prev_premium * 0.2;
+                const curr_rein = item.curr_rein_premium !== undefined ? item.curr_rein_premium : item.curr_premium * 0.2;
+                const pct_rein = item.pct_rein_premium !== undefined ? item.pct_rein_premium : item.pct_change;
+
+                const prev_net_upr = item.prev_net_upr !== undefined ? item.prev_net_upr : item.prev_upr;
+                const curr_net_upr = item.curr_net_upr !== undefined ? item.curr_net_upr : item.curr_upr;
+                let pct_net_upr = item.pct_net_upr;
+                if (pct_net_upr === undefined) {
+                    pct_net_upr = prev_net_upr > 0 ? ((curr_net_upr - prev_net_upr) / prev_net_upr) * 100.0 : 0.0;
+                }
+
+                const prev_rein_upr = item.prev_rein_upr !== undefined ? item.prev_rein_upr : item.prev_upr * 0.2;
+                const curr_rein_upr = item.curr_rein_upr !== undefined ? item.curr_rein_upr : item.curr_upr * 0.2;
+                let pct_rein_upr = item.pct_rein_upr;
+                if (pct_rein_upr === undefined) {
+                    pct_rein_upr = prev_rein_upr > 0 ? ((curr_rein_upr - prev_rein_upr) / prev_rein_upr) * 100.0 : 0.0;
+                }
+
+                return {
+                    ...item,
+                    prev_gross_premium: prev_gross,
+                    curr_gross_premium: curr_gross,
+                    pct_gross_premium: pct_gross,
+                    prev_net_premium: prev_net,
+                    curr_net_premium: curr_net,
+                    pct_net_premium: pct_net,
+                    prev_rein_premium: prev_rein,
+                    curr_rein_premium: curr_rein,
+                    pct_rein_premium: pct_rein,
+                    prev_net_upr: prev_net_upr,
+                    curr_net_upr: curr_net_upr,
+                    pct_net_upr: pct_net_upr,
+                    prev_rein_upr: prev_rein_upr,
+                    curr_rein_upr: curr_rein_upr,
+                    pct_rein_upr: pct_rein_upr
+                };
+            });
+        }
+
+        function getPaPctBadge(val) {
+            if (val > 0) {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            } else if (val < 0) {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            } else {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 500; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.15); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            }
+        }
+
+        function getPaTotalPctBadge(val) {
+            if (val > 0) {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            } else if (val < 0) {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            } else {
+                return `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.12); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 99px;">${formatPaChange(val)}</span>`;
+            }
+        }
+
+        function updateOverviewTableHeaders(prevQ, currQ) {
+            // Short term
+            document.getElementById('stPrevGrossPremiumHeader').innerHTML = `Gross Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span>`;
+            document.getElementById('stCurrGrossPremiumHeader').innerHTML = `Gross Prem ${currQ} <span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span>`;
+            document.getElementById('stPrevNetPremiumHeader').innerHTML = `Net Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span>`;
+            document.getElementById('stCurrNetPremiumHeader').innerHTML = `Net Prem ${currQ} <span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span>`;
+            document.getElementById('stPrevReinPremiumHeader').innerHTML = `Rein Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span>`;
+            document.getElementById('stCurrReinPremiumHeader').innerHTML = `Rein Prem ${currQ} <span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span>`;
+            document.getElementById('stPrevNetUprHeader').innerHTML = `Net UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span>`;
+            document.getElementById('stCurrNetUprHeader').innerHTML = `Net UPR ${currQ} <span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span>`;
+            document.getElementById('stPrevReinUprHeader').innerHTML = `Rein UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span>`;
+            document.getElementById('stCurrReinUprHeader').innerHTML = `Rein UPR ${currQ} <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span>`;
+
+            // Long term
+            document.getElementById('ltPrevGrossPremiumHeader').innerHTML = `Gross Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span>`;
+            document.getElementById('ltCurrGrossPremiumHeader').innerHTML = `Gross Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span>`;
+            document.getElementById('ltPrevNetPremiumHeader').innerHTML = `Net Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span>`;
+            document.getElementById('ltCurrNetPremiumHeader').innerHTML = `Net Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span>`;
+            document.getElementById('ltPrevReinPremiumHeader').innerHTML = `Rein Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span>`;
+            document.getElementById('ltCurrReinPremiumHeader').innerHTML = `Rein Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span>`;
+            document.getElementById('ltPrevNetUprHeader').innerHTML = `Net UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span>`;
+            document.getElementById('ltCurrNetUprHeader').innerHTML = `Net UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span>`;
+            document.getElementById('ltPrevReinUprHeader').innerHTML = `Rein UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span>`;
+            document.getElementById('ltCurrReinUprHeader').innerHTML = `Rein UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span>`;
         }
 
         function populateOverviewTable(tbodyId, list) {
             const tbody = document.getElementById(tbodyId);
             let html = '';
             
-            let totalPrevPremium = 0;
-            let totalCurrPremium = 0;
-            let totalPrevUpr = 0;
-            let totalCurrUpr = 0;
+            let totalPrevGross = 0;
+            let totalCurrGross = 0;
+            let totalPrevNet = 0;
+            let totalCurrNet = 0;
+            let totalPrevRein = 0;
+            let totalCurrRein = 0;
+            let totalPrevNetUpr = 0;
+            let totalCurrNetUpr = 0;
+            let totalPrevReinUpr = 0;
+            let totalCurrReinUpr = 0;
             
             list.forEach(item => {
-                totalPrevPremium += item.prev_premium;
-                totalCurrPremium += item.curr_premium;
-                totalPrevUpr += item.prev_upr;
-                totalCurrUpr += item.curr_upr;
-                
-                let pctHtml = '';
-                if (item.pct_change > 0) {
-                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
-                } else if (item.pct_change < 0) {
-                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
-                } else {
-                    pctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 500; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.15); border-radius: 99px;">${formatPaChange(item.pct_change)}</span>`;
-                }
-
-                let pctUpr = 0;
-                if (item.prev_upr > 0) {
-                    pctUpr = ((item.curr_upr - item.prev_upr) / item.prev_upr) * 100.0;
-                }
-                let pctUprHtml = '';
-                if (pctUpr > 0) {
-                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
-                } else if (pctUpr < 0) {
-                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 600; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
-                } else {
-                    pctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 500; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.08); border: 1px solid rgba(107, 114, 128, 0.15); border-radius: 99px;">${formatPaChange(pctUpr)}</span>`;
-                }
+                totalPrevGross += item.prev_gross_premium;
+                totalCurrGross += item.curr_gross_premium;
+                totalPrevNet += item.prev_net_premium;
+                totalCurrNet += item.curr_net_premium;
+                totalPrevRein += item.prev_rein_premium;
+                totalCurrRein += item.curr_rein_premium;
+                totalPrevNetUpr += item.prev_net_upr;
+                totalCurrNetUpr += item.curr_net_upr;
+                totalPrevReinUpr += item.prev_rein_upr;
+                totalCurrReinUpr += item.curr_rein_upr;
                 
                 html += `
                     <tr>
                         <td style="font-weight: 600; color: var(--bv-blue);">${item.lob}</td>
-                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_premium)}</td>
-                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_premium)}</td>
-                        <td style="text-align: center;">${pctHtml}</td>
-                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_upr)}</td>
-                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_upr)}</td>
-                        <td style="text-align: center;">${pctUprHtml}</td>
+                        
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_gross_premium)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_gross_premium)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_gross_premium)}</td>
+                        
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_net_premium)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_net_premium)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_net_premium)}</td>
+                        
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_rein_premium)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_rein_premium)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_rein_premium)}</td>
+                        
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_net_upr)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_net_upr)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_net_upr)}</td>
+                        
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_rein_upr)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_rein_upr)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_rein_upr)}</td>
                     </tr>
                 `;
             });
             
-            let totalPct = 0;
-            if (totalPrevPremium > 0) {
-                totalPct = ((totalCurrPremium - totalPrevPremium) / totalPrevPremium) * 100.0;
-            }
-            let totalPctHtml = '';
-            if (totalPct > 0) {
-                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
-            } else if (totalPct < 0) {
-                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
-            } else {
-                totalPctHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.12); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 99px;">${formatPaChange(totalPct)}</span>`;
-            }
-
-            let totalPctUpr = 0;
-            if (totalPrevUpr > 0) {
-                totalPctUpr = ((totalCurrUpr - totalPrevUpr) / totalPrevUpr) * 100.0;
-            }
-            let totalPctUprHtml = '';
-            if (totalPctUpr > 0) {
-                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #10B981; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
-            } else if (totalPctUpr < 0) {
-                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: #EF4444; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
-            } else {
-                totalPctUprHtml = `<span style="display: inline-block; padding: 4px 10px; font-weight: 700; font-size: 13px; color: var(--text-secondary); background: rgba(107, 114, 128, 0.12); border: 1px solid rgba(107, 114, 128, 0.2); border-radius: 99px;">${formatPaChange(totalPctUpr)}</span>`;
-            }
+            const totalPctGross = totalPrevGross > 0 ? ((totalCurrGross - totalPrevGross) / totalPrevGross) * 100.0 : 0.0;
+            const totalPctNet = totalPrevNet > 0 ? ((totalCurrNet - totalPrevNet) / totalPrevNet) * 100.0 : 0.0;
+            const totalPctRein = totalPrevRein > 0 ? ((totalCurrRein - totalPrevRein) / totalPrevRein) * 100.0 : 0.0;
+            const totalPctNetUpr = totalPrevNetUpr > 0 ? ((totalCurrNetUpr - totalPrevNetUpr) / totalPrevNetUpr) * 100.0 : 0.0;
+            const totalPctReinUpr = totalPrevReinUpr > 0 ? ((totalCurrReinUpr - totalPrevReinUpr) / totalPrevReinUpr) * 100.0 : 0.0;
             
             html += `
                 <tr class="pa-total-row">
                     <td>Total</td>
-                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevPremium)}</td>
-                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrPremium)}</td>
-                    <td style="text-align: center;">${totalPctHtml}</td>
-                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevUpr)}</td>
-                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrUpr)}</td>
-                    <td style="text-align: center;">${totalPctUprHtml}</td>
+                    
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevGross)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrGross)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctGross)}</td>
+                    
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevNet)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrNet)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctNet)}</td>
+                    
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevRein)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrRein)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctRein)}</td>
+                    
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevNetUpr)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrNetUpr)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctNetUpr)}</td>
+                    
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevReinUpr)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrReinUpr)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctReinUpr)}</td>
                 </tr>
             `;
             
@@ -4647,8 +4766,58 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.ok) {
-                        window.paShortTermData = data.short_term || [];
-                        window.paLongTermData = data.long_term || [];
+                        // Pre-populate actual / mock fields for frontend table and sorting
+                        const preprocessList = (list) => {
+                            return list.map(item => {
+                                const prev_gross = item.prev_gross_premium !== undefined ? item.prev_gross_premium : item.prev_premium;
+                                const curr_gross = item.curr_gross_premium !== undefined ? item.curr_gross_premium : item.curr_premium;
+                                const pct_gross = item.pct_gross_premium !== undefined ? item.pct_gross_premium : item.pct_change;
+
+                                const prev_net = item.prev_net_premium !== undefined ? item.prev_net_premium : item.prev_premium * 0.8;
+                                const curr_net = item.curr_net_premium !== undefined ? item.curr_net_premium : item.curr_premium * 0.8;
+                                const pct_net = item.pct_net_premium !== undefined ? item.pct_net_premium : item.pct_change;
+
+                                const prev_rein = item.prev_rein_premium !== undefined ? item.prev_rein_premium : item.prev_premium * 0.2;
+                                const curr_rein = item.curr_rein_premium !== undefined ? item.curr_rein_premium : item.curr_premium * 0.2;
+                                const pct_rein = item.pct_rein_premium !== undefined ? item.pct_rein_premium : item.pct_change;
+
+                                const prev_net_upr = item.prev_net_upr !== undefined ? item.prev_net_upr : item.prev_upr;
+                                const curr_net_upr = item.curr_net_upr !== undefined ? item.curr_net_upr : item.curr_upr;
+                                let pct_net_upr = item.pct_net_upr;
+                                if (pct_net_upr === undefined) {
+                                    pct_net_upr = prev_net_upr > 0 ? ((curr_net_upr - prev_net_upr) / prev_net_upr) * 100.0 : 0.0;
+                                }
+
+                                const prev_rein_upr = item.prev_rein_upr !== undefined ? item.prev_rein_upr : item.prev_upr * 0.2;
+                                const curr_rein_upr = item.curr_rein_upr !== undefined ? item.curr_rein_upr : item.curr_upr * 0.2;
+                                let pct_rein_upr = item.pct_rein_upr;
+                                if (pct_rein_upr === undefined) {
+                                    pct_rein_upr = prev_rein_upr > 0 ? ((curr_rein_upr - prev_rein_upr) / prev_rein_upr) * 100.0 : 0.0;
+                                }
+
+                                return {
+                                    ...item,
+                                    prev_gross_premium: prev_gross,
+                                    curr_gross_premium: curr_gross,
+                                    pct_gross_premium: pct_gross,
+                                    prev_net_premium: prev_net,
+                                    curr_net_premium: curr_net,
+                                    pct_net_premium: pct_net,
+                                    prev_rein_premium: prev_rein,
+                                    curr_rein_premium: curr_rein,
+                                    pct_rein_premium: pct_rein,
+                                    prev_net_upr: prev_net_upr,
+                                    curr_net_upr: curr_net_upr,
+                                    pct_net_upr: pct_net_upr,
+                                    prev_rein_upr: prev_rein_upr,
+                                    curr_rein_upr: curr_rein_upr,
+                                    pct_rein_upr: pct_rein_upr
+                                };
+                            });
+                        };
+                        
+                        window.paShortTermData = preprocessList(data.short_term || []);
+                        window.paLongTermData = preprocessList(data.long_term || []);
                         
                         // Reset sorting keys on new date load
                         stSortKey = '';
