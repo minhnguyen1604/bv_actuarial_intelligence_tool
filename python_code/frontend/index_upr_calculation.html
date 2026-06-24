@@ -2215,7 +2215,7 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table" style="min-width: 1740px;">
+                        <table class="table pa-table" style="min-width: 2070px;">
                             <thead>
                                 <tr>
                                     <th class="pa-sortable-th pa-sticky-col-header" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
@@ -2244,6 +2244,11 @@
                                     <th id="stPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span></th>
                                     <th id="stCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span></th>
                                     <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein UPR</span> <span class="sort-icon" id="st_sort_pct_rein_upr"> ↕</span></th>
+
+                                    <!-- Total UPR Group -->
+                                    <th id="stPrevTotalUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_total_upr')" style="text-align: right; width: 110px;">Total UPR Prev <span class="sort-icon" id="st_sort_prev_total_upr"> ↕</span></th>
+                                    <th id="stCurrTotalUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_total_upr')" style="text-align: right; width: 110px;">Total UPR Curr <span class="sort-icon" id="st_sort_curr_total_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_total_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Total UPR</span> <span class="sort-icon" id="st_sort_pct_total_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="stOverviewBody">
@@ -2264,7 +2269,7 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table" style="min-width: 1740px;">
+                        <table class="table pa-table" style="min-width: 2070px;">
                             <thead>
                                 <tr>
                                     <th class="pa-sortable-th pa-sticky-col-header" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
@@ -2293,6 +2298,11 @@
                                     <th id="ltPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span></th>
                                     <th id="ltCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span></th>
                                     <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein UPR</span> <span class="sort-icon" id="lt_sort_pct_rein_upr"> ↕</span></th>
+
+                                    <!-- Total UPR Group -->
+                                    <th id="ltPrevTotalUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_total_upr')" style="text-align: right; width: 110px;">Total UPR Prev <span class="sort-icon" id="lt_sort_prev_total_upr"> ↕</span></th>
+                                    <th id="ltCurrTotalUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_total_upr')" style="text-align: right; width: 110px;">Total UPR Curr <span class="sort-icon" id="lt_sort_curr_total_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_total_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Total UPR</span> <span class="sort-icon" id="lt_sort_pct_total_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="ltOverviewBody">
@@ -4647,6 +4657,10 @@
                     pct_rein_upr = prev_rein_upr > 0 ? ((curr_rein_upr - prev_rein_upr) / prev_rein_upr) * 100.0 : 0.0;
                 }
 
+                const prev_total_upr = prev_net_upr + prev_rein_upr;
+                const curr_total_upr = curr_net_upr + curr_rein_upr;
+                const pct_total_upr = prev_total_upr > 0 ? ((curr_total_upr - prev_total_upr) / prev_total_upr) * 100.0 : 0.0;
+
                 return {
                     ...item,
                     prev_gross_premium: prev_gross,
@@ -4663,7 +4677,10 @@
                     pct_net_upr: pct_net_upr,
                     prev_rein_upr: prev_rein_upr,
                     curr_rein_upr: curr_rein_upr,
-                    pct_rein_upr: pct_rein_upr
+                    pct_rein_upr: pct_rein_upr,
+                    prev_total_upr: prev_total_upr,
+                    curr_total_upr: curr_total_upr,
+                    pct_total_upr: pct_total_upr
                 };
             });
         }
@@ -4700,6 +4717,8 @@
             document.getElementById('stCurrNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span>`;
             document.getElementById('stPrevReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span>`;
             document.getElementById('stCurrReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span>`;
+            document.getElementById('stPrevTotalUprHeader').innerHTML = `Total UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_total_upr"> ↕</span>`;
+            document.getElementById('stCurrTotalUprHeader').innerHTML = `Total UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_total_upr"> ↕</span>`;
 
             // Long term
             document.getElementById('ltPrevGrossPremiumHeader').innerHTML = `Gross Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span>`;
@@ -4712,6 +4731,8 @@
             document.getElementById('ltCurrNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span>`;
             document.getElementById('ltPrevReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span>`;
             document.getElementById('ltCurrReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span>`;
+            document.getElementById('ltPrevTotalUprHeader').innerHTML = `Total UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_total_upr"> ↕</span>`;
+            document.getElementById('ltCurrTotalUprHeader').innerHTML = `Total UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_total_upr"> ↕</span>`;
         }
 
         function populateOverviewTable(tbodyId, list) {
@@ -4728,6 +4749,8 @@
             let totalCurrNetUpr = 0;
             let totalPrevReinUpr = 0;
             let totalCurrReinUpr = 0;
+            let totalPrevTotalUpr = 0;
+            let totalCurrTotalUpr = 0;
             
             list.forEach(item => {
                 totalPrevGross += item.prev_gross_premium;
@@ -4740,6 +4763,8 @@
                 totalCurrNetUpr += item.curr_net_upr;
                 totalPrevReinUpr += item.prev_rein_upr;
                 totalCurrReinUpr += item.curr_rein_upr;
+                totalPrevTotalUpr += item.prev_total_upr;
+                totalCurrTotalUpr += item.curr_total_upr;
                 
                 html += `
                     <tr>
@@ -4764,6 +4789,10 @@
                         <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_rein_upr)}</td>
                         <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_rein_upr)}</td>
                         <td style="text-align: center;">${getPaPctBadge(item.pct_rein_upr)}</td>
+
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_total_upr)}</td>
+                        <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_total_upr)}</td>
+                        <td style="text-align: center;">${getPaPctBadge(item.pct_total_upr)}</td>
                     </tr>
                 `;
             });
@@ -4773,6 +4802,7 @@
             const totalPctRein = totalPrevRein > 0 ? ((totalCurrRein - totalPrevRein) / totalPrevRein) * 100.0 : 0.0;
             const totalPctNetUpr = totalPrevNetUpr > 0 ? ((totalCurrNetUpr - totalPrevNetUpr) / totalPrevNetUpr) * 100.0 : 0.0;
             const totalPctReinUpr = totalPrevReinUpr > 0 ? ((totalCurrReinUpr - totalPrevReinUpr) / totalPrevReinUpr) * 100.0 : 0.0;
+            const totalPctTotalUpr = totalPrevTotalUpr > 0 ? ((totalCurrTotalUpr - totalPrevTotalUpr) / totalPrevTotalUpr) * 100.0 : 0.0;
             
             html += `
                 <tr class="pa-total-row">
@@ -4797,6 +4827,10 @@
                     <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevReinUpr)}</td>
                     <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrReinUpr)}</td>
                     <td style="text-align: center;">${getPaTotalPctBadge(totalPctReinUpr)}</td>
+
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevTotalUpr)}</td>
+                    <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrTotalUpr)}</td>
+                    <td style="text-align: center;">${getPaTotalPctBadge(totalPctTotalUpr)}</td>
                 </tr>
             `;
             
@@ -4905,7 +4939,8 @@
                 'prev_net_premium', 'curr_net_premium', 'pct_net_premium',
                 'prev_rein_premium', 'curr_rein_premium', 'pct_rein_premium',
                 'prev_net_upr', 'curr_net_upr', 'pct_net_upr',
-                'prev_rein_upr', 'curr_rein_upr', 'pct_rein_upr'
+                'prev_rein_upr', 'curr_rein_upr', 'pct_rein_upr',
+                'prev_total_upr', 'curr_total_upr', 'pct_total_upr'
             ];
             const activeKey = type === 'st' ? stSortKey : ltSortKey;
             const activeState = type === 'st' ? stSortState : ltSortState;
