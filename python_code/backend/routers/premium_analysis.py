@@ -452,9 +452,14 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
 
     ty_gia = load_ty_gia()
 
+    is_lt_upr = lob in LT_LOBS and lob != "PA_TTTBVV"
+
     # Load current quarter valid rows
     curr_df = compute_lob_rows(lob, curr_qid, analysis_date, ty_gia)
-    curr_valid = curr_df[curr_df["Quarter"] == curr_q].copy()
+    if is_lt_upr:
+        curr_valid = curr_df.copy()
+    else:
+        curr_valid = curr_df[curr_df["Quarter"] == curr_q].copy()
 
     # Load previous quarter valid rows
     prev_param = db.query(models.AppParameter).filter(models.AppParameter.quarter_id == prev_qid).first()
@@ -472,14 +477,20 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
             prev_date = datetime.date(int(prev_y_part), 12, 31)
 
     prev_df = compute_lob_rows(lob, prev_qid, prev_date, ty_gia)
-    prev_valid = prev_df[prev_df["Quarter"] == prev_q]
+    if is_lt_upr:
+        prev_valid = prev_df.copy()
+    else:
+        prev_valid = prev_df[prev_df["Quarter"] == prev_q]
 
     # Create the set of valid policy numbers from the previous quarter
     prev_policy_set = set(prev_valid["Policy_Number"].dropna().unique())
 
     # Map New vs Existing on current quarter
     if not curr_valid.empty:
-        curr_valid["Type"] = np.where(curr_valid["Policy_Number"].isin(prev_policy_set), "Existing", "New")
+        if is_lt_upr:
+            curr_valid["Type"] = np.where(curr_valid["Quarter"] == curr_q, "New", "Existing")
+        else:
+            curr_valid["Type"] = np.where(curr_valid["Policy_Number"].isin(prev_policy_set), "Existing", "New")
     else:
         curr_valid["Type"] = pd.Series(dtype=str)
 
