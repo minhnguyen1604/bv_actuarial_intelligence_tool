@@ -4423,9 +4423,11 @@
 
         // Premium Analysis Sorting state variables
         let stSortKey = '';
-        let stSortDesc = false;
+        let stSortState = 0; // 0: unsorted, 1: desc, 2: asc
         let ltSortKey = '';
-        let ltSortDesc = false;
+        let ltSortState = 0; // 0: unsorted, 1: desc, 2: asc
+        window.paShortTermOriginalData = [];
+        window.paLongTermOriginalData = [];
         window.paShortTermData = [];
         window.paLongTermData = [];
 
@@ -4859,12 +4861,16 @@
                             });
                         };
                         
-                        window.paShortTermData = preprocessList(data.short_term || []);
-                        window.paLongTermData = preprocessList(data.long_term || []);
+                        window.paShortTermOriginalData = preprocessList(data.short_term || []);
+                        window.paLongTermOriginalData = preprocessList(data.long_term || []);
+                        window.paShortTermData = [...window.paShortTermOriginalData];
+                        window.paLongTermData = [...window.paLongTermOriginalData];
                         
                         // Reset sorting keys on new date load
                         stSortKey = '';
+                        stSortState = 0;
                         ltSortKey = '';
+                        ltSortState = 0;
                         
                         updateOverviewTableHeaders(data.previous_quarter, data.current_quarter);
                         populateOverviewTable('stOverviewBody', window.paShortTermData);
@@ -4880,66 +4886,81 @@
         }
 
         function sortOverviewTable(type, key) {
-            const list = type === 'st' ? window.paShortTermData : window.paLongTermData;
-            if (!list || list.length === 0) return;
-            
-            let isDesc = type === 'st' ? stSortDesc : ltSortDesc;
-            if ((type === 'st' ? stSortKey : ltSortKey) === key) {
-                isDesc = !isDesc;
+            const originalList = type === 'st' ? window.paShortTermOriginalData : window.paLongTermOriginalData;
+            if (!originalList || originalList.length === 0) return;
+
+            let activeKey = type === 'st' ? stSortKey : ltSortKey;
+            let activeState = type === 'st' ? stSortState : ltSortState;
+
+            if (activeKey === key) {
+                // Same key: cycle 1 (desc) -> 2 (asc) -> 0 (unsorted)
+                activeState = (activeState + 1) % 3;
             } else {
-                isDesc = true; // Default descending on first click
+                // Different key: default to 1 (desc)
+                activeKey = key;
+                activeState = 1;
             }
-            
+
+            // Save state back
             if (type === 'st') {
-                stSortKey = key;
-                stSortDesc = isDesc;
+                stSortKey = activeKey;
+                stSortState = activeState;
             } else {
-                ltSortKey = key;
-                ltSortDesc = isDesc;
+                ltSortKey = activeKey;
+                ltSortState = activeState;
             }
-            
-            list.sort((a, b) => {
-                let valA, valB;
-                if (key === 'lob') {
-                    valA = a.lob || '';
-                    valB = b.lob || '';
-                    return isDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
-                } else if (key === 'prev_premium') {
-                    valA = a.prev_premium || 0;
-                    valB = b.prev_premium || 0;
-                } else if (key === 'curr_premium') {
-                    valA = a.curr_premium || 0;
-                    valB = b.curr_premium || 0;
-                } else if (key === 'pct_change') {
-                    valA = a.pct_change || 0;
-                    valB = b.pct_change || 0;
-                } else if (key === 'prev_upr') {
-                    valA = a.prev_upr || 0;
-                    valB = b.prev_upr || 0;
-                } else if (key === 'curr_upr') {
-                    valA = a.curr_upr || 0;
-                    valB = b.curr_upr || 0;
-                } else if (key === 'pct_upr') {
-                    valA = a.prev_upr > 0 ? ((a.curr_upr - a.prev_upr) / a.prev_upr) * 100 : 0;
-                    valB = b.prev_upr > 0 ? ((b.curr_upr - b.prev_upr) / b.prev_upr) * 100 : 0;
-                }
-                return isDesc ? valB - valA : valA - valB;
-            });
-            
-            populateOverviewTable(type === 'st' ? 'stOverviewBody' : 'ltOverviewBody', list);
+
+            let displayList;
+            if (activeState === 0) {
+                // Unsorted: reset to a copy of original data
+                displayList = [...originalList];
+                if (type === 'st') stSortKey = '';
+                else ltSortKey = '';
+            } else {
+                // Sort a copy of original data to avoid mutating original
+                displayList = [...originalList];
+                const isDesc = activeState === 1;
+                displayList.sort((a, b) => {
+                    if (key === 'lob') {
+                        const valA = a.lob || '';
+                        const valB = b.lob || '';
+                        return isDesc ? valB.localeCompare(valA) : valA.localeCompare(valB);
+                    } else {
+                        const valA = a[key] !== undefined ? a[key] : 0;
+                        const valB = b[key] !== undefined ? b[key] : 0;
+                        return isDesc ? valB - valA : valA - valB;
+                    }
+                });
+            }
+
+            // Update stored display data
+            if (type === 'st') {
+                window.paShortTermData = displayList;
+            } else {
+                window.paLongTermData = displayList;
+            }
+
+            populateOverviewTable(type === 'st' ? 'stOverviewBody' : 'ltOverviewBody', displayList);
             updateSortHeaderIcons(type);
         }
 
         function updateSortHeaderIcons(type) {
-            const keys = ['lob', 'prev_premium', 'curr_premium', 'pct_change', 'prev_upr', 'curr_upr', 'pct_upr'];
+            const keys = [
+                'lob', 
+                'prev_gross_premium', 'curr_gross_premium', 'pct_gross_premium',
+                'prev_net_premium', 'curr_net_premium', 'pct_net_premium',
+                'prev_rein_premium', 'curr_rein_premium', 'pct_rein_premium',
+                'prev_net_upr', 'curr_net_upr', 'pct_net_upr',
+                'prev_rein_upr', 'curr_rein_upr', 'pct_rein_upr'
+            ];
             const activeKey = type === 'st' ? stSortKey : ltSortKey;
-            const isDesc = type === 'st' ? stSortDesc : ltSortDesc;
+            const activeState = type === 'st' ? stSortState : ltSortState;
             
             keys.forEach(key => {
                 const el = document.getElementById(`${type}_sort_${key}`);
                 if (!el) return;
-                if (key === activeKey) {
-                    el.innerHTML = isDesc ? ' ↓' : ' ↑';
+                if (key === activeKey && activeState !== 0) {
+                    el.innerHTML = activeState === 1 ? ' ↓' : ' ↑';
                     el.style.opacity = '1';
                     el.style.color = 'var(--bv-blue)';
                 } else {
