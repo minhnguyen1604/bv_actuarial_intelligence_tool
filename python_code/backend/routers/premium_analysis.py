@@ -66,6 +66,14 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
     if df.empty:
         return pd.DataFrame(columns=["Policy_Number", "Quarter", "Premium", "UPR", "Ky_phi"])
 
+    # Determine which column to use as the Policy Number based on cardinality
+    policy_col = "So_don_Ma_hop_dong_Ma_SDBS"
+    if "So_InsureJ" in df.columns:
+        sodon_nunique = df["So_don_Ma_hop_dong_Ma_SDBS"].nunique() if "So_don_Ma_hop_dong_Ma_SDBS" in df.columns else 0
+        insurej_nunique = df["So_InsureJ"].nunique()
+        if insurej_nunique > sodon_nunique:
+            policy_col = "So_InsureJ"
+
     # Determine LOB characteristics
     group_lower = group_code.lower()
     is_lt = group_lower.endswith("_lt") or group_lower == "xcg_cwvn_lt" or group_lower == "pa_lt"
@@ -202,7 +210,7 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
             for idx in range(len(df)):
                 if tonghop[idx] == 1:
                     detail_rows.append({
-                        "Policy_Number": str(df["So_don_Ma_hop_dong_Ma_SDBS"].iloc[idx]),
+                        "Policy_Number": str(df[policy_col].iloc[idx]),
                         "Quarter": quy_nam[idx],
                         "Premium": phi_goc[idx],
                         "UPR": upr_val[idx],
@@ -225,7 +233,7 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
                 q_val = quy_nam[idx]
                 if q_val != "":
                     detail_rows.append({
-                        "Policy_Number": str(df["So_don_Ma_hop_dong_Ma_SDBS"].iloc[idx]),
+                        "Policy_Number": str(df[policy_col].iloc[idx]),
                         "Quarter": q_val,
                         "Premium": phi_goc[idx],
                         "UPR": upr_val[idx],
