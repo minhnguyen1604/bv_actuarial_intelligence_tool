@@ -51,7 +51,7 @@ def get_quarter_id_from_str(q_str: str) -> str:
 def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date, ty_gia: pd.DataFrame) -> pd.DataFrame:
     """
     Load merged parquet file and calculate row-level premium and UPR values.
-    Returns a DataFrame containing Policy_Number, Quarter, Premium, UPR.
+    Returns a DataFrame containing Policy_Number, Quarter, Gross_Premium, Net_Premium, Rein_Premium, Gross_UPR, Net_UPR, Rein_UPR, Ky_phi.
     """
     dot_qid = quarter_id.replace("_", ".")
     parquet_path = os.path.join(DATA_ROOT, dot_qid, f"{group_code}.parquet")
@@ -60,11 +60,11 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
         if os.path.exists(alt_path):
             parquet_path = alt_path
         else:
-            return pd.DataFrame(columns=["Policy_Number", "Quarter", "Premium", "UPR", "Ky_phi"])
+            return pd.DataFrame(columns=["Policy_Number", "Quarter", "Gross_Premium", "Net_Premium", "Rein_Premium", "Gross_UPR", "Net_UPR", "Rein_UPR", "Ky_phi"])
 
     df = pd.read_parquet(parquet_path)
     if df.empty:
-        return pd.DataFrame(columns=["Policy_Number", "Quarter", "Premium", "UPR", "Ky_phi"])
+        return pd.DataFrame(columns=["Policy_Number", "Quarter", "Gross_Premium", "Net_Premium", "Rein_Premium", "Gross_UPR", "Net_UPR", "Rein_UPR", "Ky_phi"])
 
     # Determine which column to use as the Policy Number based on cardinality
     policy_col = "So_don_Ma_hop_dong_Ma_SDBS"
@@ -84,7 +84,6 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
     fallback_usd = ty_gia["USD"].dropna().iloc[-1] if not ty_gia["USD"].dropna().empty else 1.0
     fallback_eur = ty_gia["EUR"].dropna().iloc[-1] if not ty_gia["EUR"].dropna().empty else 1.0
 
-
     # 2. Get installments (Ky_phi)
     ky_available = []
     for col in df.columns:
@@ -93,7 +92,7 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
             ky_available.append(int(m.group(1)))
     ky_available = sorted(list(set(ky_available)))
     if not ky_available:
-        return pd.DataFrame(columns=["Policy_Number", "Quarter", "Premium", "UPR", "Ky_phi"])
+        return pd.DataFrame(columns=["Policy_Number", "Quarter", "Gross_Premium", "Net_Premium", "Rein_Premium", "Gross_UPR", "Net_UPR", "Rein_UPR", "Ky_phi"])
 
     dpnv = pd.to_datetime(dpnv_date)
     detail_rows = []
@@ -168,7 +167,13 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
             diff_den_tu = (den_date - tu_date).dt.days
             c2 = np.where(diff_den_tu.isna() | (diff_den_tu <= 365), 0, 1)
             
-            c3 = np.where(df[vnd_col].isna(), 0, 1)
+            # FIXED c3 to check all three currency columns
+            c3 = np.where(
+                df[vnd_col].isna() & 
+                (df[usd_col].isna() if usd_col in df.columns else True) & 
+                (df[eur_col].isna() if eur_col in df.columns else True),
+                0, 1
+            )
             
             diff_kp = (den_date_kp - tu_date_kp).dt.days
             c4 = np.where(diff_kp.isna(), 0, np.where(diff_kp > 0, 1, 0))
@@ -205,15 +210,23 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
             )
             
             upr_ratio = np.where(mau_so == 0.0, 0.0, chua_huong_dc / np.where(mau_so == 0.0, 1.0, mau_so))
-            upr_val = phi_goc * upr_ratio
+            
+            # Net, Rein, Gross UPR
+            net_upr_val = phi_giulai * upr_ratio
+            rein_upr_val = phi_tai * upr_ratio
+            gross_upr_val = phi_goc * upr_ratio
             
             for idx in range(len(df)):
                 if tonghop[idx] == 1:
                     detail_rows.append({
                         "Policy_Number": str(df[policy_col].iloc[idx]),
                         "Quarter": quy_nam[idx],
-                        "Premium": phi_goc[idx],
-                        "UPR": upr_val[idx],
+                        "Gross_Premium": phi_goc[idx],
+                        "Net_Premium": phi_giulai[idx],
+                        "Rein_Premium": phi_tai[idx],
+                        "Gross_UPR": gross_upr_val[idx],
+                        "Net_UPR": net_upr_val[idx],
+                        "Rein_UPR": rein_upr_val[idx],
                         "Ky_phi": ky
                     })
         else:
@@ -227,7 +240,10 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
             diff_dpnv_den = (dpnv - den_date).dt.days
             hethieuluc = np.where(diff_dpnv_den.isna(), 0, np.where(diff_dpnv_den >= 0, 1, 0))
             
-            upr_val = np.where((dem_ngay == 1) & (hethieuluc == 1), phi_goc, 0.0)
+            # Net, Rein, Gross UPR
+            gross_upr_val = np.where((dem_ngay == 1) & (hethieuluc == 1), phi_goc, 0.0)
+            net_upr_val = np.where((dem_ngay == 1) & (hethieuluc == 1), phi_giulai, 0.0)
+            rein_upr_val = np.where((dem_ngay == 1) & (hethieuluc == 1), phi_tai, 0.0)
             
             for idx in range(len(df)):
                 q_val = quy_nam[idx]
@@ -235,8 +251,12 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
                     detail_rows.append({
                         "Policy_Number": str(df[policy_col].iloc[idx]),
                         "Quarter": q_val,
-                        "Premium": phi_goc[idx],
-                        "UPR": upr_val[idx],
+                        "Gross_Premium": phi_goc[idx],
+                        "Net_Premium": phi_giulai[idx],
+                        "Rein_Premium": phi_tai[idx],
+                        "Gross_UPR": gross_upr_val[idx],
+                        "Net_UPR": net_upr_val[idx],
+                        "Rein_UPR": rein_upr_val[idx],
                         "Ky_phi": ky
                     })
 
@@ -503,10 +523,19 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
         curr_valid["Type"] = pd.Series(dtype=str)
 
     # Initialize totals
-    premium_new_amount = 0.0
-    premium_old_amount = 0.0
-    upr_new_amount = 0.0
-    upr_old_amount = 0.0
+    premium_new_gross = 0.0
+    premium_old_gross = 0.0
+    premium_new_net = 0.0
+    premium_old_net = 0.0
+    premium_new_rein = 0.0
+    premium_old_rein = 0.0
+
+    upr_new_gross = 0.0
+    upr_old_gross = 0.0
+    upr_new_net = 0.0
+    upr_old_net = 0.0
+    upr_new_rein = 0.0
+    upr_old_rein = 0.0
 
     premium_new_count = 0
     premium_old_count = 0
@@ -514,41 +543,69 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
     upr_old_count = 0
 
     if not curr_valid.empty:
+        # Group by Policy_Number and Type to get policy-level aggregations
         policy_sums = curr_valid.groupby(["Policy_Number", "Type"], as_index=False).agg({
-            "Premium": "sum",
-            "UPR": "sum"
+            "Gross_Premium": "sum",
+            "Net_Premium": "sum",
+            "Rein_Premium": "sum",
+            "Gross_UPR": "sum",
+            "Net_UPR": "sum",
+            "Rein_UPR": "sum"
         })
 
-        premium_new_amount = float(curr_valid[curr_valid["Type"] == "New"]["Premium"].sum())
-        premium_old_amount = float(curr_valid[curr_valid["Type"] == "Existing"]["Premium"].sum())
-        upr_new_amount = float(curr_valid[curr_valid["Type"] == "New"]["UPR"].sum())
-        upr_old_amount = float(curr_valid[curr_valid["Type"] == "Existing"]["UPR"].sum())
+        premium_new_gross = float(curr_valid[curr_valid["Type"] == "New"]["Gross_Premium"].sum())
+        premium_old_gross = float(curr_valid[curr_valid["Type"] == "Existing"]["Gross_Premium"].sum())
+        premium_new_net = float(curr_valid[curr_valid["Type"] == "New"]["Net_Premium"].sum())
+        premium_old_net = float(curr_valid[curr_valid["Type"] == "Existing"]["Net_Premium"].sum())
+        premium_new_rein = float(curr_valid[curr_valid["Type"] == "New"]["Rein_Premium"].sum())
+        premium_old_rein = float(curr_valid[curr_valid["Type"] == "Existing"]["Rein_Premium"].sum())
 
-        premium_new_count = int(policy_sums[(policy_sums["Type"] == "New") & (policy_sums["Premium"] > 0)]["Policy_Number"].nunique())
-        premium_old_count = int(policy_sums[(policy_sums["Type"] == "Existing") & (policy_sums["Premium"] > 0)]["Policy_Number"].nunique())
-        upr_new_count = int(policy_sums[(policy_sums["Type"] == "New") & (policy_sums["UPR"] > 0)]["Policy_Number"].nunique())
-        upr_old_count = int(policy_sums[(policy_sums["Type"] == "Existing") & (policy_sums["UPR"] > 0)]["Policy_Number"].nunique())
+        upr_new_gross = float(curr_valid[curr_valid["Type"] == "New"]["Gross_UPR"].sum())
+        upr_old_gross = float(curr_valid[curr_valid["Type"] == "Existing"]["Gross_UPR"].sum())
+        upr_new_net = float(curr_valid[curr_valid["Type"] == "New"]["Net_UPR"].sum())
+        upr_old_net = float(curr_valid[curr_valid["Type"] == "Existing"]["Net_UPR"].sum())
+        upr_new_rein = float(curr_valid[curr_valid["Type"] == "New"]["Rein_UPR"].sum())
+        upr_old_rein = float(curr_valid[curr_valid["Type"] == "Existing"]["Rein_UPR"].sum())
 
-    premium_total = premium_new_amount + premium_old_amount
-    upr_total = upr_new_amount + upr_old_amount
+        premium_new_count = int(policy_sums[(policy_sums["Type"] == "New") & (policy_sums["Gross_Premium"] > 0)]["Policy_Number"].nunique())
+        premium_old_count = int(policy_sums[(policy_sums["Type"] == "Existing") & (policy_sums["Gross_Premium"] > 0)]["Policy_Number"].nunique())
+        upr_new_count = int(policy_sums[(policy_sums["Type"] == "New") & (policy_sums["Gross_UPR"] > 0)]["Policy_Number"].nunique())
+        upr_old_count = int(policy_sums[(policy_sums["Type"] == "Existing") & (policy_sums["Gross_UPR"] > 0)]["Policy_Number"].nunique())
 
-    premium_new_pct = (premium_new_amount / premium_total * 100.0) if premium_total > 0 else 0.0
-    premium_old_pct = (premium_old_amount / premium_total * 100.0) if premium_total > 0 else 0.0
+    # We use Gross values for the Pie Charts as requested by the user
+    premium_total_gross = premium_new_gross + premium_old_gross
+    upr_total_gross = upr_new_gross + upr_old_gross
 
-    upr_new_pct = (upr_new_amount / upr_total * 100.0) if upr_total > 0 else 0.0
-    upr_old_pct = (upr_old_amount / upr_total * 100.0) if upr_total > 0 else 0.0
+    premium_new_pct = (premium_new_gross / premium_total_gross * 100.0) if premium_total_gross > 0 else 0.0
+    premium_old_pct = (premium_old_gross / premium_total_gross * 100.0) if premium_total_gross > 0 else 0.0
+
+    upr_new_pct = (upr_new_gross / upr_total_gross * 100.0) if upr_total_gross > 0 else 0.0
+    upr_old_pct = (upr_old_gross / upr_total_gross * 100.0) if upr_total_gross > 0 else 0.0
 
     stats_data = [
-        {"class": "Premium (Amount)", "val": premium_total},
-        {"class": "UPR (Amount)", "val": upr_total},
-        {"class": "Premium - Existing Policies (Amount)", "val": premium_old_amount},
-        {"class": "Premium - New Policies (Amount)", "val": premium_new_amount},
-        {"class": "UPR - Existing Policies (Amount)", "val": upr_old_amount},
-        {"class": "UPR - New Policies (Amount)", "val": upr_new_amount},
-        {"class": "Premium - Existing Policies (Count)", "val": premium_old_count},
-        {"class": "Premium - New Policies (Count)", "val": premium_new_count},
-        {"class": "UPR - Existing Policies (Count)", "val": upr_old_count},
-        {"class": "UPR - New Policies (Count)", "val": upr_new_count}
+        {"class": "Gross Premium", "val": premium_new_gross + premium_old_gross},
+        {"class": "Net Premium", "val": premium_new_net + premium_old_net},
+        {"class": "Rein Premium", "val": premium_new_rein + premium_old_rein},
+        {"class": "Existing Gross Premium", "val": premium_old_gross},
+        {"class": "Existing Net Premium", "val": premium_old_net},
+        {"class": "Existing Rein Premium", "val": premium_old_rein},
+        {"class": "New Gross Premium", "val": premium_new_gross},
+        {"class": "New Net Premium", "val": premium_new_net},
+        {"class": "New Rein Premium", "val": premium_new_rein},
+        {"class": "Premium Existing Count", "val": premium_old_count},
+        {"class": "Premium New Count", "val": premium_new_count},
+        
+        {"class": "Gross UPR", "val": upr_new_gross + upr_old_gross},
+        {"class": "Net UPR", "val": upr_new_net + upr_old_net},
+        {"class": "Rein UPR", "val": upr_new_rein + upr_old_rein},
+        {"class": "Existing Gross UPR", "val": upr_old_gross},
+        {"class": "Existing Net UPR", "val": upr_old_net},
+        {"class": "Existing Rein UPR", "val": upr_old_rein},
+        {"class": "New Gross UPR", "val": upr_new_gross},
+        {"class": "New Net UPR", "val": upr_new_net},
+        {"class": "New Rein UPR", "val": upr_new_rein},
+        {"class": "UPR Existing Count", "val": upr_old_count},
+        {"class": "UPR New Count", "val": upr_new_count}
     ]
 
     return {
@@ -557,14 +614,14 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
         "pie_premium": {
             "new_pct": float(premium_new_pct),
             "old_pct": float(premium_old_pct),
-            "new_val": float(premium_new_amount),
-            "old_val": float(premium_old_amount)
+            "new_val": float(premium_new_gross),
+            "old_val": float(premium_old_gross)
         },
         "pie_upr": {
             "new_pct": float(upr_new_pct),
             "old_pct": float(upr_old_pct),
-            "new_val": float(upr_new_amount),
-            "old_val": float(upr_old_amount)
+            "new_val": float(upr_new_gross),
+            "old_val": float(upr_old_gross)
         },
         "stats": stats_data
     }

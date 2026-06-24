@@ -1592,7 +1592,8 @@
         .pa-table {
             table-layout: fixed;
             width: 100%;
-            border-collapse: collapse;
+            border-collapse: separate !important;
+            border-spacing: 0 !important;
         }
         .pa-table th {
             font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
@@ -1602,15 +1603,15 @@
             letter-spacing: 0.06em !important;
             color: var(--text-secondary) !important;
             background: #f9fafb !important; /* Solid light background */
-            padding: 8px 6px !important;
-            border-bottom: 2px solid rgba(0, 86, 163, 0.12) !important;
+            padding: 10px 8px !important; /* Slightly larger padding to create space */
             border-top: none !important;
             border-left: none !important;
             border-right: none !important;
             position: sticky !important; /* Premium sticky headers */
             top: 0 !important;
-            z-index: 10 !important;
+            z-index: 15 !important; /* High z-index to stay above tbody rows */
             line-height: 1.25 !important;
+            box-shadow: inset 0 -2px 0 rgba(0, 86, 163, 0.12) !important; /* Use inset shadow instead of border-bottom for separate border model */
         }
         .pa-table td {
             font-family: 'Inter', -apple-system, sans-serif;
@@ -1626,7 +1627,7 @@
             white-space: nowrap;
         }
         .pa-table tbody tr {
-            transition: background-color 0.2s ease, transform 0.15s ease !important;
+            transition: background-color 0.2s ease !important; /* Removed transform to avoid creating new stacking context */
         }
         .pa-table tbody tr:hover td {
             background-color: rgba(0, 86, 163, 0.03) !important;
@@ -1837,6 +1838,42 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Container cuộn tự động ẩn thanh cuộn và chỉ hiện khi hover */
+        .custom-scroll-hover {
+            max-height: 290px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none; /* Cho Firefox */
+        }
+        .custom-scroll-hover::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll-hover::-webkit-scrollbar-thumb {
+            background: transparent;
+            border-radius: 4px;
+        }
+        .custom-scroll-hover::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll-hover:hover::-webkit-scrollbar-thumb {
+            background: rgba(0, 86, 163, 0.2);
+        }
+        .custom-scroll-hover:hover::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 86, 163, 0.4);
+        }
+        .custom-scroll-hover:hover {
+            scrollbar-width: thin; /* Cho Firefox */
+            scrollbar-color: rgba(0, 86, 163, 0.2) transparent;
+        }
+        
+        /* Giữ cố định tiêu đề bảng khi cuộn xuống */
+        .pa-table thead th {
+            position: sticky !important;
+            top: 0 !important;
+            background: #f9fafb !important; /* Nền xám nhạt đục đồng nhất */
+            z-index: 15 !important; /* Đảm bảo luôn nằm trên các hàng của tbody */
+            box-shadow: inset 0 -2px 0 rgba(0, 86, 163, 0.12) !important;
+        }
     </style>
 </head>
 
@@ -2360,11 +2397,11 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%;">
                     <div style="text-align: center; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 16px; border: 1px solid rgba(0, 86, 163, 0.04);">
-                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Premium Structure</h4>
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Gross Premium Structure</h4>
                         <div id="chartPaPremium" style="height: 300px; width: 100%;"></div>
                     </div>
                     <div style="text-align: center; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 16px; border: 1px solid rgba(0, 86, 163, 0.04);">
-                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">UPR Structure</h4>
+                        <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Gross UPR Structure</h4>
                         <div id="chartPaUpr" style="height: 300px; width: 100%;"></div>
                     </div>
                 </div>
@@ -2381,10 +2418,10 @@
                     <!-- Premium Stats Table -->
                     <div>
                         <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">Premium Detailed Metrics</h4>
-                        <div style="overflow-x: auto; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll">
+                        <div style="max-height: 290px; overflow-y: auto; overflow-x: hidden; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 0 12px 12px 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll-hover">
                             <table class="table pa-table">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
+                                    <tr>
                                         <th style="text-align: left; padding: 10px 8px;">LOB</th>
                                         <th style="text-align: left; padding: 10px 8px;">Metric</th>
                                         <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
@@ -2399,10 +2436,10 @@
                     <!-- UPR Stats Table -->
                     <div>
                         <h4 style="font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px;">UPR Detailed Metrics</h4>
-                        <div style="overflow-x: auto; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll">
+                        <div style="max-height: 290px; overflow-y: auto; overflow-x: hidden; background: rgba(255, 255, 255, 0.35); border-radius: 12px; padding: 0 12px 12px 12px; border: 1px solid rgba(0, 86, 163, 0.04);" class="custom-scroll-hover">
                             <table class="table pa-table">
                                 <thead>
-                                    <tr style="border-bottom: 2px solid rgba(0, 86, 163, 0.12);">
+                                    <tr>
                                         <th style="text-align: left; padding: 10px 8px;">LOB</th>
                                         <th style="text-align: left; padding: 10px 8px;">Metric</th>
                                         <th style="text-align: right; padding: 10px 8px; width: 150px;">Value</th>
@@ -4576,51 +4613,13 @@
                     updateSortHeaderIcons('lt');
 
                     // 2. Render Detail
-                    renderPaPieChart('chartPaPremium', 'Premium Structure', pendingDetailData.pie_premium.new_pct, pendingDetailData.pie_premium.old_pct, pendingDetailData.pie_premium.new_val, pendingDetailData.pie_premium.old_val);
-                    renderPaPieChart('chartPaUpr', 'UPR Structure', pendingDetailData.pie_upr.new_pct, pendingDetailData.pie_upr.old_pct, pendingDetailData.pie_upr.new_val, pendingDetailData.pie_upr.old_val);
+                    renderPaPieChart('chartPaPremium', 'Gross Premium Structure', pendingDetailData.pie_premium.new_pct, pendingDetailData.pie_premium.old_pct, pendingDetailData.pie_premium.new_val, pendingDetailData.pie_premium.old_val);
+                    renderPaPieChart('chartPaUpr', 'Gross UPR Structure', pendingDetailData.pie_upr.new_pct, pendingDetailData.pie_upr.old_pct, pendingDetailData.pie_upr.new_val, pendingDetailData.pie_upr.old_val);
                     
                     const stats = pendingDetailData.stats;
                     const lobVal = pendingDetailData.lob;
                     
-                    const premStats = [
-                        { class: "Total Premium Amount", val: getStatVal(stats, "Premium (Amount)") },
-                        { class: "Existing Policies Premium", val: getStatVal(stats, "Premium - Existing Policies (Amount)") },
-                        { class: "New Policies Premium", val: getStatVal(stats, "Premium - New Policies (Amount)") },
-                        { class: "Existing Policies Count", val: getStatVal(stats, "Premium - Existing Policies (Count)") },
-                        { class: "New Policies Count", val: getStatVal(stats, "Premium - New Policies (Count)") }
-                    ];
-                    
-                    const uprStats = [
-                        { class: "Total UPR Amount", val: getStatVal(stats, "UPR (Amount)") },
-                        { class: "Existing Policies UPR", val: getStatVal(stats, "UPR - Existing Policies (Amount)") },
-                        { class: "New Policies UPR", val: getStatVal(stats, "UPR - New Policies (Amount)") },
-                        { class: "Existing Policies Count", val: getStatVal(stats, "UPR - Existing Policies (Count)") },
-                        { class: "New Policies Count", val: getStatVal(stats, "UPR - New Policies (Count)") }
-                    ];
-                    
-                    let premHtml = '';
-                    premStats.forEach(item => {
-                        premHtml += `
-                            <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
-                                <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
-                                <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
-                                <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
-                            </tr>
-                        `;
-                    });
-                    document.getElementById('tablePaPremiumStatsBody').innerHTML = premHtml;
-                    
-                    let uprHtml = '';
-                    uprStats.forEach(item => {
-                        uprHtml += `
-                            <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
-                                <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
-                                <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
-                                <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
-                            </tr>
-                        `;
-                    });
-                    document.getElementById('tablePaUprStatsBody').innerHTML = uprHtml;
+                    populatePaStatsTables(lobVal, stats);
 
                     // 3. Save last successfully loaded date
                     window.paLastValidDate = document.getElementById('paDate').value;
@@ -5032,51 +5031,12 @@
                 .then(data => {
                     if (data.ok) {
                         // Render Pie Charts (which clears the loading innerHTML)
-                        renderPaPieChart('chartPaPremium', 'Premium Structure', data.pie_premium.new_pct, data.pie_premium.old_pct, data.pie_premium.new_val, data.pie_premium.old_val);
-                        renderPaPieChart('chartPaUpr', 'UPR Structure', data.pie_upr.new_pct, data.pie_upr.old_pct, data.pie_upr.new_val, data.pie_upr.old_val);
+                        renderPaPieChart('chartPaPremium', 'Gross Premium Structure', data.pie_premium.new_pct, data.pie_premium.old_pct, data.pie_premium.new_val, data.pie_premium.old_val);
+                        renderPaPieChart('chartPaUpr', 'Gross UPR Structure', data.pie_upr.new_pct, data.pie_upr.old_pct, data.pie_upr.new_val, data.pie_upr.old_val);
                         
                         const stats = data.stats;
                         const lobVal = data.lob;
-                        
-                        const premStats = [
-                            { class: "Total Premium Amount", val: getStatVal(stats, "Premium (Amount)") },
-                            { class: "Existing Policies Premium", val: getStatVal(stats, "Premium - Existing Policies (Amount)") },
-                            { class: "New Policies Premium", val: getStatVal(stats, "Premium - New Policies (Amount)") },
-                            { class: "Existing Policies Count", val: getStatVal(stats, "Premium - Existing Policies (Count)") },
-                            { class: "New Policies Count", val: getStatVal(stats, "Premium - New Policies (Count)") }
-                        ];
-                        
-                        const uprStats = [
-                            { class: "Total UPR Amount", val: getStatVal(stats, "UPR (Amount)") },
-                            { class: "Existing Policies UPR", val: getStatVal(stats, "UPR - Existing Policies (Amount)") },
-                            { class: "New Policies UPR", val: getStatVal(stats, "UPR - New Policies (Amount)") },
-                            { class: "Existing Policies Count", val: getStatVal(stats, "UPR - Existing Policies (Count)") },
-                            { class: "New Policies Count", val: getStatVal(stats, "UPR - New Policies (Count)") }
-                        ];
-                        
-                        let premHtml = '';
-                        premStats.forEach(item => {
-                            premHtml += `
-                                <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
-                                    <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
-                                    <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
-                                    <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
-                                </tr>
-                            `;
-                        });
-                        document.getElementById('tablePaPremiumStatsBody').innerHTML = premHtml;
-                        
-                        let uprHtml = '';
-                        uprStats.forEach(item => {
-                            uprHtml += `
-                                <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
-                                    <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
-                                    <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
-                                    <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
-                                </tr>
-                            `;
-                        });
-                        document.getElementById('tablePaUprStatsBody').innerHTML = uprHtml;
+                        populatePaStatsTables(lobVal, stats);
                     } else {
                         console.error("Error loading detail data:", data);
                     }
@@ -5086,6 +5046,60 @@
                     document.getElementById('chartPaPremium').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #EF4444; font-size: 14px;">Failed to load data</div>';
                     document.getElementById('chartPaUpr').innerHTML = '<div style="height: 100%; display: flex; align-items: center; justify-content: center; color: #EF4444; font-size: 14px;">Failed to load data</div>';
                 });
+        }
+
+        function populatePaStatsTables(lobVal, stats) {
+            const premStats = [
+                { class: "Gross Premium", val: getStatVal(stats, "Gross Premium") },
+                { class: "Net Premium", val: getStatVal(stats, "Net Premium") },
+                { class: "Rein Premium", val: getStatVal(stats, "Rein Premium") },
+                { class: "Existing Policies Gross Premium", val: getStatVal(stats, "Existing Gross Premium") },
+                { class: "Existing Policies Net Premium", val: getStatVal(stats, "Existing Net Premium") },
+                { class: "Existing Policies Rein Premium", val: getStatVal(stats, "Existing Rein Premium") },
+                { class: "New Policies Gross Premium", val: getStatVal(stats, "New Gross Premium") },
+                { class: "New Policies Net Premium", val: getStatVal(stats, "New Net Premium") },
+                { class: "New Policies Rein Premium", val: getStatVal(stats, "New Rein Premium") },
+                { class: "Existing Policies Count", val: getStatVal(stats, "Premium Existing Count") },
+                { class: "New Policies Count", val: getStatVal(stats, "Premium New Count") }
+            ];
+            
+            const uprStats = [
+                { class: "Gross UPR", val: getStatVal(stats, "Gross UPR") },
+                { class: "Net UPR", val: getStatVal(stats, "Net UPR") },
+                { class: "Rein UPR", val: getStatVal(stats, "Rein UPR") },
+                { class: "Existing Policies Gross UPR", val: getStatVal(stats, "Existing Gross UPR") },
+                { class: "Existing Policies Net UPR", val: getStatVal(stats, "Existing Net UPR") },
+                { class: "Existing Policies Rein UPR", val: getStatVal(stats, "Existing Rein UPR") },
+                { class: "New Policies Gross UPR", val: getStatVal(stats, "New Gross UPR") },
+                { class: "New Policies Net UPR", val: getStatVal(stats, "New Net UPR") },
+                { class: "New Policies Rein UPR", val: getStatVal(stats, "New Rein UPR") },
+                { class: "Existing Policies Count", val: getStatVal(stats, "UPR Existing Count") },
+                { class: "New Policies Count", val: getStatVal(stats, "UPR New Count") }
+            ];
+            
+            let premHtml = '';
+            premStats.forEach(item => {
+                premHtml += `
+                    <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                        <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                        <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                        <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('tablePaPremiumStatsBody').innerHTML = premHtml;
+            
+            let uprHtml = '';
+            uprStats.forEach(item => {
+                uprHtml += `
+                    <tr style="border-bottom: 1px solid rgba(0, 0, 0, 0.04); transition: background 0.15s;" onmouseover="this.style.backgroundColor='rgba(0, 86, 163, 0.02)';" onmouseout="this.style.backgroundColor='transparent';">
+                        <td style="font-weight: 600; color: #1f2937; padding: 10px 8px;">${lobVal}</td>
+                        <td style="color: var(--text-primary); padding: 10px 8px;">${item.class}</td>
+                        <td style="text-align: right; font-weight: 700; color: #111827; font-feature-settings: 'tnum'; padding: 10px 8px;">${formatPaNumber(item.val)}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('tablePaUprStatsBody').innerHTML = uprHtml;
         }
 
         function getStatVal(stats, key) {
