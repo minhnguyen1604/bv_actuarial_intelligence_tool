@@ -4550,10 +4550,14 @@
             document.getElementById('btnPaModalContinue').addEventListener('click', () => {
                 if (pendingOverviewData && pendingDetailData) {
                     // 1. Render Overview
-                    window.paShortTermData = preprocessPaOverviewList(pendingOverviewData.short_term || []);
-                    window.paLongTermData = preprocessPaOverviewList(pendingOverviewData.long_term || []);
+                    window.paShortTermOriginalData = preprocessPaOverviewList(pendingOverviewData.short_term || []);
+                    window.paLongTermOriginalData = preprocessPaOverviewList(pendingOverviewData.long_term || []);
+                    window.paShortTermData = [...window.paShortTermOriginalData];
+                    window.paLongTermData = [...window.paLongTermOriginalData];
                     stSortKey = '';
+                    stSortState = 0;
                     ltSortKey = '';
+                    ltSortState = 0;
                     
                     updateOverviewTableHeaders(pendingOverviewData.previous_quarter, pendingOverviewData.current_quarter);
                     populateOverviewTable('stOverviewBody', window.paShortTermData);
@@ -4811,58 +4815,8 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.ok) {
-                        // Pre-populate actual / mock fields for frontend table and sorting
-                        const preprocessList = (list) => {
-                            return list.map(item => {
-                                const prev_gross = item.prev_gross_premium !== undefined ? item.prev_gross_premium : item.prev_premium;
-                                const curr_gross = item.curr_gross_premium !== undefined ? item.curr_gross_premium : item.curr_premium;
-                                const pct_gross = item.pct_gross_premium !== undefined ? item.pct_gross_premium : item.pct_change;
-
-                                const prev_net = item.prev_net_premium !== undefined ? item.prev_net_premium : item.prev_premium * 0.8;
-                                const curr_net = item.curr_net_premium !== undefined ? item.curr_net_premium : item.curr_premium * 0.8;
-                                const pct_net = item.pct_net_premium !== undefined ? item.pct_net_premium : item.pct_change;
-
-                                const prev_rein = item.prev_rein_premium !== undefined ? item.prev_rein_premium : item.prev_premium * 0.2;
-                                const curr_rein = item.curr_rein_premium !== undefined ? item.curr_rein_premium : item.curr_premium * 0.2;
-                                const pct_rein = item.pct_rein_premium !== undefined ? item.pct_rein_premium : item.pct_change;
-
-                                const prev_net_upr = item.prev_net_upr !== undefined ? item.prev_net_upr : item.prev_upr;
-                                const curr_net_upr = item.curr_net_upr !== undefined ? item.curr_net_upr : item.curr_upr;
-                                let pct_net_upr = item.pct_net_upr;
-                                if (pct_net_upr === undefined) {
-                                    pct_net_upr = prev_net_upr > 0 ? ((curr_net_upr - prev_net_upr) / prev_net_upr) * 100.0 : 0.0;
-                                }
-
-                                const prev_rein_upr = item.prev_rein_upr !== undefined ? item.prev_rein_upr : item.prev_upr * 0.2;
-                                const curr_rein_upr = item.curr_rein_upr !== undefined ? item.curr_rein_upr : item.curr_upr * 0.2;
-                                let pct_rein_upr = item.pct_rein_upr;
-                                if (pct_rein_upr === undefined) {
-                                    pct_rein_upr = prev_rein_upr > 0 ? ((curr_rein_upr - prev_rein_upr) / prev_rein_upr) * 100.0 : 0.0;
-                                }
-
-                                return {
-                                    ...item,
-                                    prev_gross_premium: prev_gross,
-                                    curr_gross_premium: curr_gross,
-                                    pct_gross_premium: pct_gross,
-                                    prev_net_premium: prev_net,
-                                    curr_net_premium: curr_net,
-                                    pct_net_premium: pct_net,
-                                    prev_rein_premium: prev_rein,
-                                    curr_rein_premium: curr_rein,
-                                    pct_rein_premium: pct_rein,
-                                    prev_net_upr: prev_net_upr,
-                                    curr_net_upr: curr_net_upr,
-                                    pct_net_upr: pct_net_upr,
-                                    prev_rein_upr: prev_rein_upr,
-                                    curr_rein_upr: curr_rein_upr,
-                                    pct_rein_upr: pct_rein_upr
-                                };
-                            });
-                        };
-                        
-                        window.paShortTermOriginalData = preprocessList(data.short_term || []);
-                        window.paLongTermOriginalData = preprocessList(data.long_term || []);
+                        window.paShortTermOriginalData = preprocessPaOverviewList(data.short_term || []);
+                        window.paLongTermOriginalData = preprocessPaOverviewList(data.long_term || []);
                         window.paShortTermData = [...window.paShortTermOriginalData];
                         window.paLongTermData = [...window.paLongTermOriginalData];
                         
