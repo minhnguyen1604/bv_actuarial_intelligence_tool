@@ -234,120 +234,204 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
 
     return pd.DataFrame(detail_rows)
 
+def query_db_lob_metrics(db_filename: str, lob: str, quarter_name: str) -> dict:
+    metrics = {
+        "gross_premium": 0.0,
+        "net_premium": 0.0,
+        "rein_premium": 0.0,
+        "net_upr": 0.0,
+        "rein_upr": 0.0
+    }
+    
+    db_path = os.path.join(DATA_ROOT, db_filename)
+    if not os.path.exists(db_path):
+        return metrics
+        
+    conn = sqlite3.connect(db_path)
+    try:
+        cursor = conn.cursor()
+        
+        # Determine table and query type
+        is_tttbvv = "tttbvv" in lob.lower()
+        is_lt = lob.lower().endswith("_lt") or lob.lower() == "xcg_cwvn_lt"
+        
+        if is_tttbvv:
+            # Query PA_TTTBVV_Summary table filtering by Quy = quarter_name
+            cursor.execute(
+                "SELECT SUM(Phi_bao_hiem_goc), SUM(Phi_bao_hiem_giu_lai), "
+                "SUM(Du_phong_bao_hiem_giu_lai), SUM(Du_phong_bao_hiem_tai) "
+                "FROM PA_TTTBVV_Summary WHERE lob = ? AND Quy = ?",
+                (lob, quarter_name)
+            )
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                goc = float(row[0] or 0.0)
+                giulai = float(row[1] or 0.0)
+                metrics["gross_premium"] = goc
+                metrics["net_premium"] = giulai
+                metrics["rein_premium"] = goc - giulai
+                metrics["net_upr"] = float(row[2] or 0.0)
+                metrics["rein_upr"] = float(row[3] or 0.0)
+                
+        elif is_lt:
+            # Query Long_term table filtering by Quy = 'Số dùng để tính'
+            cursor.execute(
+                "SELECT SUM(Phi_bao_hiem_sau_dong), SUM(Phi_bao_hiem_giu_lai), SUM(Phi_tai_bao_hiem), "
+                "SUM(Phi_bao_hiem_giu_lai_chua_huong), SUM(Phi_tai_bao_hiem_chua_huong) "
+                "FROM Long_term WHERE lob = ? AND Quy = 'Số dùng để tính'",
+                (lob,)
+            )
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                metrics["gross_premium"] = float(row[0] or 0.0)
+                metrics["net_premium"] = float(row[1] or 0.0)
+                metrics["rein_premium"] = float(row[2] or 0.0)
+                metrics["net_upr"] = float(row[3] or 0.0)
+                metrics["rein_upr"] = float(row[4] or 0.0)
+                
+        else:
+            # Query Short_term table filtering by Quy = quarter_name
+            cursor.execute(
+                "SELECT SUM(Phi_bao_hiem_goc), SUM(Phi_bao_hiem_giu_lai), "
+                "SUM(Giam_phi_bao_hiem_giu_lai), SUM(Giam_phi_bao_hiem_tai) "
+                "FROM Short_term WHERE lob = ? AND Quy = ?",
+                (lob, quarter_name)
+            )
+            row = cursor.fetchone()
+            if row and row[0] is not None:
+                goc = float(row[0] or 0.0)
+                giulai = float(row[1] or 0.0)
+                metrics["gross_premium"] = goc
+                metrics["net_premium"] = giulai
+                metrics["rein_premium"] = goc - giulai
+                metrics["net_upr"] = float(row[2] or 0.0)
+                metrics["rein_upr"] = float(row[3] or 0.0)
+                
+    except Exception as e:
+        print(f"Error querying metrics for {lob} from {db_filename}: {e}")
+    finally:
+        conn.close()
+        
+    return metrics
+
+import sqlite3
+
 @router.get("/overview")
 def get_premium_analysis_overview(day: int, month: int, year: int, db: Session = Depends(get_db)):
-    """Retrieve Short-Term and Long-Term Premium and UPR overview table data."""
+    """Retrieve Short-Term and Long-Term Premium and UPR overview table data from SQLite DB."""
     analysis_date = datetime.date(year, month, day)
     curr_q, prev_q = get_quarters_for_date(analysis_date)
     curr_qid = get_quarter_id_from_str(curr_q)
     prev_qid = get_quarter_id_from_str(prev_q)
 
-    ty_gia = load_ty_gia()
-
-    queue_files = db.query(models.FileQueue).filter(models.FileQueue.quarter_id == curr_qid).all()
-    calculated_lobs = {f.group_code for f in queue_files if f.status == "Calculated"}
+    curr_db_file = f"{curr_qid.replace('_', '.')}.db"
+    prev_db_file = f"{prev_qid.replace('_', '.')}.db"
 
     st_results = []
     lt_results = []
 
-    # Process ST LOBs
+    # 1. Process Short-Term LOBs
     for lob in ST_LOBS:
-        if lob not in calculated_lobs:
-            st_results.append({
-                "lob": lob,
-                "prev_premium": 0.0,
-                "curr_premium": 0.0,
-                "pct_change": 0.0,
-                "prev_upr": 0.0,
-                "curr_upr": 0.0
-            })
-            continue
+        curr_metrics = query_db_lob_metrics(curr_db_file, lob, curr_q)
+        prev_metrics = query_db_lob_metrics(prev_db_file, lob, prev_q)
+        
+        # Calculate % changes
+        pct_gross = 0.0
+        if prev_metrics["gross_premium"] > 0:
+            pct_gross = ((curr_metrics["gross_premium"] - prev_metrics["gross_premium"]) / prev_metrics["gross_premium"]) * 100.0
             
-        curr_df = compute_lob_rows(lob, curr_qid, analysis_date, ty_gia)
-        curr_valid = curr_df[curr_df["Quarter"] == curr_q]
-        curr_prem = curr_valid["Premium"].sum()
-        curr_upr = curr_valid["UPR"].sum()
-
-        prev_param = db.query(models.AppParameter).filter(models.AppParameter.quarter_id == prev_qid).first()
-        if prev_param:
-            prev_date = datetime.date(prev_param.year, prev_param.month, prev_param.day)
-        else:
-            prev_q_part, prev_y_part = prev_q.split("/")
-            if prev_q_part == "Q1":
-                prev_date = datetime.date(int(prev_y_part), 3, 31)
-            elif prev_q_part == "Q2":
-                prev_date = datetime.date(int(prev_y_part), 6, 30)
-            elif prev_q_part == "Q3":
-                prev_date = datetime.date(int(prev_y_part), 9, 30)
-            else:
-                prev_date = datetime.date(int(prev_y_part), 12, 31)
-
-        prev_df = compute_lob_rows(lob, prev_qid, prev_date, ty_gia)
-        prev_valid = prev_df[prev_df["Quarter"] == prev_q]
-        prev_prem = prev_valid["Premium"].sum()
-        prev_upr = prev_valid["UPR"].sum()
-
-        pct = 0.0
-        if prev_prem > 0:
-            pct = ((curr_prem - prev_prem) / prev_prem) * 100.0
+        pct_net = 0.0
+        if prev_metrics["net_premium"] > 0:
+            pct_net = ((curr_metrics["net_premium"] - prev_metrics["net_premium"]) / prev_metrics["net_premium"]) * 100.0
+            
+        pct_rein = 0.0
+        if prev_metrics["rein_premium"] > 0:
+            pct_rein = ((curr_metrics["rein_premium"] - prev_metrics["rein_premium"]) / prev_metrics["rein_premium"]) * 100.0
+            
+        pct_net_upr = 0.0
+        if prev_metrics["net_upr"] > 0:
+            pct_net_upr = ((curr_metrics["net_upr"] - prev_metrics["net_upr"]) / prev_metrics["net_upr"]) * 100.0
+            
+        pct_rein_upr = 0.0
+        if prev_metrics["rein_upr"] > 0:
+            pct_rein_upr = ((curr_metrics["rein_upr"] - prev_metrics["rein_upr"]) / prev_metrics["rein_upr"]) * 100.0
 
         st_results.append({
             "lob": lob,
-            "prev_premium": float(prev_prem),
-            "curr_premium": float(curr_prem),
-            "pct_change": float(pct),
-            "prev_upr": float(prev_upr),
-            "curr_upr": float(curr_upr)
+            # Old backward-compatibility keys
+            "prev_premium": float(prev_metrics["gross_premium"]),
+            "curr_premium": float(curr_metrics["gross_premium"]),
+            "pct_change": float(pct_gross),
+            "prev_upr": float(prev_metrics["net_upr"]),
+            "curr_upr": float(curr_metrics["net_upr"]),
+            # New detailed keys
+            "prev_gross_premium": float(prev_metrics["gross_premium"]),
+            "curr_gross_premium": float(curr_metrics["gross_premium"]),
+            "pct_gross_premium": float(pct_gross),
+            "prev_net_premium": float(prev_metrics["net_premium"]),
+            "curr_net_premium": float(curr_metrics["net_premium"]),
+            "pct_net_premium": float(pct_net),
+            "prev_rein_premium": float(prev_metrics["rein_premium"]),
+            "curr_rein_premium": float(curr_metrics["rein_premium"]),
+            "pct_rein_premium": float(pct_rein),
+            "prev_net_upr": float(prev_metrics["net_upr"]),
+            "curr_net_upr": float(curr_metrics["net_upr"]),
+            "pct_net_upr": float(pct_net_upr),
+            "prev_rein_upr": float(prev_metrics["rein_upr"]),
+            "curr_rein_upr": float(curr_metrics["rein_upr"]),
+            "pct_rein_upr": float(pct_rein_upr)
         })
 
-    # Process LT LOBs
+    # 2. Process Long-Term LOBs
     for lob in LT_LOBS:
-        if lob not in calculated_lobs:
-            lt_results.append({
-                "lob": lob,
-                "prev_premium": 0.0,
-                "curr_premium": 0.0,
-                "pct_change": 0.0,
-                "prev_upr": 0.0,
-                "curr_upr": 0.0
-            })
-            continue
-
-        curr_df = compute_lob_rows(lob, curr_qid, analysis_date, ty_gia)
-        curr_valid = curr_df[curr_df["Quarter"] == curr_q]
-        curr_prem = curr_valid["Premium"].sum()
-        curr_upr = curr_valid["UPR"].sum()
-
-        prev_param = db.query(models.AppParameter).filter(models.AppParameter.quarter_id == prev_qid).first()
-        if prev_param:
-            prev_date = datetime.date(prev_param.year, prev_param.month, prev_param.day)
-        else:
-            prev_q_part, prev_y_part = prev_q.split("/")
-            if prev_q_part == "Q1":
-                prev_date = datetime.date(int(prev_y_part), 3, 31)
-            elif prev_q_part == "Q2":
-                prev_date = datetime.date(int(prev_y_part), 6, 30)
-            elif prev_q_part == "Q3":
-                prev_date = datetime.date(int(prev_y_part), 9, 30)
-            else:
-                prev_date = datetime.date(int(prev_y_part), 12, 31)
-
-        prev_df = compute_lob_rows(lob, prev_qid, prev_date, ty_gia)
-        prev_valid = prev_df[prev_df["Quarter"] == prev_q]
-        prev_prem = prev_valid["Premium"].sum()
-        prev_upr = prev_valid["UPR"].sum()
-
-        pct = 0.0
-        if prev_prem > 0:
-            pct = ((curr_prem - prev_prem) / prev_prem) * 100.0
+        curr_metrics = query_db_lob_metrics(curr_db_file, lob, curr_q)
+        prev_metrics = query_db_lob_metrics(prev_db_file, lob, prev_q)
+        
+        # Calculate % changes
+        pct_gross = 0.0
+        if prev_metrics["gross_premium"] > 0:
+            pct_gross = ((curr_metrics["gross_premium"] - prev_metrics["gross_premium"]) / prev_metrics["gross_premium"]) * 100.0
+            
+        pct_net = 0.0
+        if prev_metrics["net_premium"] > 0:
+            pct_net = ((curr_metrics["net_premium"] - prev_metrics["net_premium"]) / prev_metrics["net_premium"]) * 100.0
+            
+        pct_rein = 0.0
+        if prev_metrics["rein_premium"] > 0:
+            pct_rein = ((curr_metrics["rein_premium"] - prev_metrics["rein_premium"]) / prev_metrics["rein_premium"]) * 100.0
+            
+        pct_net_upr = 0.0
+        if prev_metrics["net_upr"] > 0:
+            pct_net_upr = ((curr_metrics["net_upr"] - prev_metrics["net_upr"]) / prev_metrics["net_upr"]) * 100.0
+            
+        pct_rein_upr = 0.0
+        if prev_metrics["rein_upr"] > 0:
+            pct_rein_upr = ((curr_metrics["rein_upr"] - prev_metrics["rein_upr"]) / prev_metrics["rein_upr"]) * 100.0
 
         lt_results.append({
             "lob": lob,
-            "prev_premium": float(prev_prem),
-            "curr_premium": float(curr_prem),
-            "pct_change": float(pct),
-            "prev_upr": float(prev_upr),
-            "curr_upr": float(curr_upr)
+            # Old backward-compatibility keys
+            "prev_premium": float(prev_metrics["gross_premium"]),
+            "curr_premium": float(curr_metrics["gross_premium"]),
+            "pct_change": float(pct_gross),
+            "prev_upr": float(prev_metrics["net_upr"]),
+            "curr_upr": float(curr_metrics["net_upr"]),
+            # New detailed keys
+            "prev_gross_premium": float(prev_metrics["gross_premium"]),
+            "curr_gross_premium": float(curr_metrics["gross_premium"]),
+            "pct_gross_premium": float(pct_gross),
+            "prev_net_premium": float(prev_metrics["net_premium"]),
+            "curr_net_premium": float(curr_metrics["net_premium"]),
+            "pct_net_premium": float(pct_net),
+            "prev_rein_premium": float(prev_metrics["rein_premium"]),
+            "curr_rein_premium": float(curr_metrics["rein_premium"]),
+            "pct_rein_premium": float(pct_rein),
+            "prev_net_upr": float(prev_metrics["net_upr"]),
+            "curr_net_upr": float(curr_metrics["net_upr"]),
+            "pct_net_upr": float(pct_net_upr),
+            "prev_rein_upr": float(prev_metrics["rein_upr"]),
+            "curr_rein_upr": float(curr_metrics["rein_upr"]),
+            "pct_rein_upr": float(pct_rein_upr)
         })
 
     return {

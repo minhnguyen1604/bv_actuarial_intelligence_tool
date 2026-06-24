@@ -1596,13 +1596,13 @@
         }
         .pa-table th {
             font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
-            font-size: 11px !important;
+            font-size: 10.5px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
-            letter-spacing: 0.08em !important;
+            letter-spacing: 0.06em !important;
             color: var(--text-secondary) !important;
-            background: rgba(255, 255, 255, 0.85) !important;
-            padding: 12px 10px !important;
+            background: #f9fafb !important; /* Solid light background */
+            padding: 8px 6px !important;
             border-bottom: 2px solid rgba(0, 86, 163, 0.12) !important;
             border-top: none !important;
             border-left: none !important;
@@ -1610,6 +1610,7 @@
             position: sticky !important; /* Premium sticky headers */
             top: 0 !important;
             z-index: 10 !important;
+            line-height: 1.25 !important;
         }
         .pa-table td {
             font-family: 'Inter', -apple-system, sans-serif;
@@ -1640,6 +1641,48 @@
             color: #111827 !important;
             background: transparent !important;
             padding: 14px 10px !important;
+        }
+
+        /* Sticky LOB Column */
+        .pa-sticky-col-header {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 30 !important; /* Higher priority than standard header sticky (10) */
+            background-color: #f3f4f6 !important; /* solid light gray */
+            border-right: 1.5px solid rgba(0, 86, 163, 0.12) !important;
+            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
+        }
+        
+        .pa-sticky-col {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 5 !important;
+            background-color: #ffffff !important; /* solid white */
+            border-right: 1.5px solid rgba(0, 86, 163, 0.08) !important;
+            box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1);
+        }
+        
+        /* Hover state for sticky cells in tbody */
+        .pa-table tbody tr:hover td.pa-sticky-col {
+            background-color: #f3f4f6 !important; /* same hover background */
+        }
+        
+        /* Total row sticky cell styling */
+        .pa-table tbody tr.pa-total-row td.pa-sticky-col {
+            background-color: #f9fafb !important;
+            z-index: 6 !important;
+            font-weight: 700 !important;
+        }
+
+        /* Sub-header styles */
+        .pa-header-sub {
+            display: block;
+            font-size: 9px;
+            font-weight: 500;
+            opacity: 0.65;
+            text-transform: uppercase;
+            margin-top: 3px;
+            letter-spacing: 0.05em;
         }
 
         /* Sorting Styles */
@@ -2172,35 +2215,35 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table" style="min-width: 2090px;">
+                        <table class="table pa-table" style="min-width: 1740px;">
                             <thead>
                                 <tr>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
+                                    <th class="pa-sortable-th pa-sticky-col-header" onclick="sortOverviewTable('st', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="st_sort_lob"> ↕</span></th>
                                     
                                     <!-- Gross Premium Group -->
-                                    <th id="stPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_gross_premium')" style="text-align: right; width: 130px;">Gross Prem Prev <span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span></th>
-                                    <th id="stCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_gross_premium')" style="text-align: right; width: 130px;">Gross Prem Curr <span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_gross_premium')" style="text-align: center; width: 130px;">% Change Gross <span class="sort-icon" id="st_sort_pct_gross_premium"> ↕</span></th>
+                                    <th id="stPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Prev <span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span></th>
+                                    <th id="stCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Curr <span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_gross_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Gross</span> <span class="sort-icon" id="st_sort_pct_gross_premium"> ↕</span></th>
                                     
                                     <!-- Net Premium Group -->
-                                    <th id="stPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_premium')" style="text-align: right; width: 130px;">Net Prem Prev <span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span></th>
-                                    <th id="stCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_premium')" style="text-align: right; width: 130px;">Net Prem Curr <span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_premium')" style="text-align: center; width: 130px;">% Change Net <span class="sort-icon" id="st_sort_pct_net_premium"> ↕</span></th>
+                                    <th id="stPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_premium')" style="text-align: right; width: 110px;">Net Prem Prev <span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span></th>
+                                    <th id="stCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_premium')" style="text-align: right; width: 110px;">Net Prem Curr <span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Net</span> <span class="sort-icon" id="st_sort_pct_net_premium"> ↕</span></th>
                                     
                                     <!-- Rein Premium Group -->
-                                    <th id="stPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_premium')" style="text-align: right; width: 130px;">Rein Prem Prev <span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span></th>
-                                    <th id="stCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_premium')" style="text-align: right; width: 130px;">Rein Prem Curr <span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_premium')" style="text-align: center; width: 130px;">% Change Rein <span class="sort-icon" id="st_sort_pct_rein_premium"> ↕</span></th>
+                                    <th id="stPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Prev <span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span></th>
+                                    <th id="stCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Curr <span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein</span> <span class="sort-icon" id="st_sort_pct_rein_premium"> ↕</span></th>
                                     
                                     <!-- Net UPR Group -->
-                                    <th id="stPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_upr')" style="text-align: right; width: 130px;">Net UPR Prev <span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span></th>
-                                    <th id="stCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_upr')" style="text-align: right; width: 130px;">Net UPR Curr <span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_upr')" style="text-align: center; width: 130px;">% Change Net UPR <span class="sort-icon" id="st_sort_pct_net_upr"> ↕</span></th>
+                                    <th id="stPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_net_upr')" style="text-align: right; width: 110px;">Net UPR Prev <span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span></th>
+                                    <th id="stCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_net_upr')" style="text-align: right; width: 110px;">Net UPR Curr <span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_net_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Net UPR</span> <span class="sort-icon" id="st_sort_pct_net_upr"> ↕</span></th>
                                     
                                     <!-- Rein UPR Group -->
-                                    <th id="stPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_upr')" style="text-align: right; width: 130px;">Rein UPR Prev <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span></th>
-                                    <th id="stCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_upr')" style="text-align: right; width: 130px;">Rein UPR Curr <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_upr')" style="text-align: center; width: 130px;">% Change Rein UPR <span class="sort-icon" id="st_sort_pct_rein_upr"> ↕</span></th>
+                                    <th id="stPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span></th>
+                                    <th id="stCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('st', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('st', 'pct_rein_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein UPR</span> <span class="sort-icon" id="st_sort_pct_rein_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="stOverviewBody">
@@ -2221,35 +2264,35 @@
                         </button>
                     </div>
                     <div class="pa-table-scroll">
-                        <table class="table pa-table" style="min-width: 2090px;">
+                        <table class="table pa-table" style="min-width: 1740px;">
                             <thead>
                                 <tr>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
+                                    <th class="pa-sortable-th pa-sticky-col-header" onclick="sortOverviewTable('lt', 'lob')" style="text-align: left; width: 140px;">LOB <span class="sort-icon" id="lt_sort_lob"> ↕</span></th>
                                     
                                     <!-- Gross Premium Group -->
-                                    <th id="ltPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_gross_premium')" style="text-align: right; width: 130px;">Gross Prem Prev <span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span></th>
-                                    <th id="ltCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_gross_premium')" style="text-align: right; width: 130px;">Gross Prem Curr <span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_gross_premium')" style="text-align: center; width: 130px;">% Change Gross <span class="sort-icon" id="lt_sort_pct_gross_premium"> ↕</span></th>
+                                    <th id="ltPrevGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Prev <span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span></th>
+                                    <th id="ltCurrGrossPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_gross_premium')" style="text-align: right; width: 110px;">Gross Prem Curr <span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_gross_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Gross</span> <span class="sort-icon" id="lt_sort_pct_gross_premium"> ↕</span></th>
                                     
                                     <!-- Net Premium Group -->
-                                    <th id="ltPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_premium')" style="text-align: right; width: 130px;">Net Prem Prev <span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span></th>
-                                    <th id="ltCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_premium')" style="text-align: right; width: 130px;">Net Prem Curr <span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_premium')" style="text-align: center; width: 130px;">% Change Net <span class="sort-icon" id="lt_sort_pct_net_premium"> ↕</span></th>
+                                    <th id="ltPrevNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_premium')" style="text-align: right; width: 110px;">Net Prem Prev <span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span></th>
+                                    <th id="ltCurrNetPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_premium')" style="text-align: right; width: 110px;">Net Prem Curr <span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Net</span> <span class="sort-icon" id="lt_sort_pct_net_premium"> ↕</span></th>
                                     
                                     <!-- Rein Premium Group -->
-                                    <th id="ltPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_premium')" style="text-align: right; width: 130px;">Rein Prem Prev <span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span></th>
-                                    <th id="ltCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_premium')" style="text-align: right; width: 130px;">Rein Prem Curr <span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_premium')" style="text-align: center; width: 130px;">% Change Rein <span class="sort-icon" id="lt_sort_pct_rein_premium"> ↕</span></th>
+                                    <th id="ltPrevReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Prev <span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span></th>
+                                    <th id="ltCurrReinPremiumHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_premium')" style="text-align: right; width: 110px;">Rein Prem Curr <span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_premium')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein</span> <span class="sort-icon" id="lt_sort_pct_rein_premium"> ↕</span></th>
                                     
                                     <!-- Net UPR Group -->
-                                    <th id="ltPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_upr')" style="text-align: right; width: 130px;">Net UPR Prev <span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span></th>
-                                    <th id="ltCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_upr')" style="text-align: right; width: 130px;">Net UPR Curr <span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_upr')" style="text-align: center; width: 130px;">% Change Net UPR <span class="sort-icon" id="lt_sort_pct_net_upr"> ↕</span></th>
+                                    <th id="ltPrevNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_net_upr')" style="text-align: right; width: 110px;">Net UPR Prev <span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span></th>
+                                    <th id="ltCurrNetUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_net_upr')" style="text-align: right; width: 110px;">Net UPR Curr <span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_net_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Net UPR</span> <span class="sort-icon" id="lt_sort_pct_net_upr"> ↕</span></th>
                                     
                                     <!-- Rein UPR Group -->
-                                    <th id="ltPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_upr')" style="text-align: right; width: 130px;">Rein UPR Prev <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span></th>
-                                    <th id="ltCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_upr')" style="text-align: right; width: 130px;">Rein UPR Curr <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span></th>
-                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_upr')" style="text-align: center; width: 130px;">% Change Rein UPR <span class="sort-icon" id="lt_sort_pct_rein_upr"> ↕</span></th>
+                                    <th id="ltPrevReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'prev_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Prev <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span></th>
+                                    <th id="ltCurrReinUprHeader" class="pa-sortable-th" onclick="sortOverviewTable('lt', 'curr_rein_upr')" style="text-align: right; width: 110px;">Rein UPR Curr <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span></th>
+                                    <th class="pa-sortable-th" onclick="sortOverviewTable('lt', 'pct_rein_upr')" style="text-align: center; width: 100px;">% Change<br><span class="pa-header-sub">Rein UPR</span> <span class="sort-icon" id="lt_sort_pct_rein_upr"> ↕</span></th>
                                 </tr>
                             </thead>
                             <tbody id="ltOverviewBody">
@@ -4641,28 +4684,28 @@
 
         function updateOverviewTableHeaders(prevQ, currQ) {
             // Short term
-            document.getElementById('stPrevGrossPremiumHeader').innerHTML = `Gross Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span>`;
-            document.getElementById('stCurrGrossPremiumHeader').innerHTML = `Gross Prem ${currQ} <span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span>`;
-            document.getElementById('stPrevNetPremiumHeader').innerHTML = `Net Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span>`;
-            document.getElementById('stCurrNetPremiumHeader').innerHTML = `Net Prem ${currQ} <span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span>`;
-            document.getElementById('stPrevReinPremiumHeader').innerHTML = `Rein Prem ${prevQ} <span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span>`;
-            document.getElementById('stCurrReinPremiumHeader').innerHTML = `Rein Prem ${currQ} <span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span>`;
-            document.getElementById('stPrevNetUprHeader').innerHTML = `Net UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span>`;
-            document.getElementById('stCurrNetUprHeader').innerHTML = `Net UPR ${currQ} <span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span>`;
-            document.getElementById('stPrevReinUprHeader').innerHTML = `Rein UPR ${prevQ} <span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span>`;
-            document.getElementById('stCurrReinUprHeader').innerHTML = `Rein UPR ${currQ} <span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span>`;
+            document.getElementById('stPrevGrossPremiumHeader').innerHTML = `Gross Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_gross_premium"> ↕</span>`;
+            document.getElementById('stCurrGrossPremiumHeader').innerHTML = `Gross Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_gross_premium"> ↕</span>`;
+            document.getElementById('stPrevNetPremiumHeader').innerHTML = `Net Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_net_premium"> ↕</span>`;
+            document.getElementById('stCurrNetPremiumHeader').innerHTML = `Net Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_net_premium"> ↕</span>`;
+            document.getElementById('stPrevReinPremiumHeader').innerHTML = `Rein Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_rein_premium"> ↕</span>`;
+            document.getElementById('stCurrReinPremiumHeader').innerHTML = `Rein Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_rein_premium"> ↕</span>`;
+            document.getElementById('stPrevNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_net_upr"> ↕</span>`;
+            document.getElementById('stCurrNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_net_upr"> ↕</span>`;
+            document.getElementById('stPrevReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="st_sort_prev_rein_upr"> ↕</span>`;
+            document.getElementById('stCurrReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="st_sort_curr_rein_upr"> ↕</span>`;
 
             // Long term
-            document.getElementById('ltPrevGrossPremiumHeader').innerHTML = `Gross Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span>`;
-            document.getElementById('ltCurrGrossPremiumHeader').innerHTML = `Gross Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span>`;
-            document.getElementById('ltPrevNetPremiumHeader').innerHTML = `Net Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span>`;
-            document.getElementById('ltCurrNetPremiumHeader').innerHTML = `Net Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span>`;
-            document.getElementById('ltPrevReinPremiumHeader').innerHTML = `Rein Prem ${prevQ} <span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span>`;
-            document.getElementById('ltCurrReinPremiumHeader').innerHTML = `Rein Prem ${currQ} <span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span>`;
-            document.getElementById('ltPrevNetUprHeader').innerHTML = `Net UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span>`;
-            document.getElementById('ltCurrNetUprHeader').innerHTML = `Net UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span>`;
-            document.getElementById('ltPrevReinUprHeader').innerHTML = `Rein UPR ${prevQ} <span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span>`;
-            document.getElementById('ltCurrReinUprHeader').innerHTML = `Rein UPR ${currQ} <span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span>`;
+            document.getElementById('ltPrevGrossPremiumHeader').innerHTML = `Gross Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_gross_premium"> ↕</span>`;
+            document.getElementById('ltCurrGrossPremiumHeader').innerHTML = `Gross Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_gross_premium"> ↕</span>`;
+            document.getElementById('ltPrevNetPremiumHeader').innerHTML = `Net Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_net_premium"> ↕</span>`;
+            document.getElementById('ltCurrNetPremiumHeader').innerHTML = `Net Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_net_premium"> ↕</span>`;
+            document.getElementById('ltPrevReinPremiumHeader').innerHTML = `Rein Prem<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_rein_premium"> ↕</span>`;
+            document.getElementById('ltCurrReinPremiumHeader').innerHTML = `Rein Prem<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_rein_premium"> ↕</span>`;
+            document.getElementById('ltPrevNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_net_upr"> ↕</span>`;
+            document.getElementById('ltCurrNetUprHeader').innerHTML = `Net UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_net_upr"> ↕</span>`;
+            document.getElementById('ltPrevReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${prevQ}</span><span class="sort-icon" id="lt_sort_prev_rein_upr"> ↕</span>`;
+            document.getElementById('ltCurrReinUprHeader').innerHTML = `Rein UPR<br><span class="pa-header-sub">${currQ}</span><span class="sort-icon" id="lt_sort_curr_rein_upr"> ↕</span>`;
         }
 
         function populateOverviewTable(tbodyId, list) {
@@ -4694,7 +4737,7 @@
                 
                 html += `
                     <tr>
-                        <td style="font-weight: 600; color: var(--bv-blue);">${item.lob}</td>
+                        <td class="pa-sticky-col" style="font-weight: 600; color: var(--bv-blue);">${item.lob}</td>
                         
                         <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.prev_gross_premium)}</td>
                         <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(item.curr_gross_premium)}</td>
@@ -4727,7 +4770,7 @@
             
             html += `
                 <tr class="pa-total-row">
-                    <td>Total</td>
+                    <td class="pa-sticky-col">Total</td>
                     
                     <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalPrevGross)}</td>
                     <td style="text-align: right; font-feature-settings: 'tnum';">${formatPaNumber(totalCurrGross)}</td>
