@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Calculation completed successfully!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 10,
+        "file_name": "(Ngan ky) BHCN Q1.2026 - 17042026.xlsx",
+        "status": "Error",
+        "error": "cannot subtract DatetimeArray from ndarray[object]"
+      }
+    ]
+  }
+}

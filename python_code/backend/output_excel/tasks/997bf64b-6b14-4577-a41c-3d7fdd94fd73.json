@@ -1,0 +1,22 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Calculation completed successfully!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 53,
+        "file_name": "(Ngan Ky) BHCN lan 2 - TBH.xlsx",
+        "status": "Success",
+        "out_path": "D:\\bv_intelligence_tool\\python_code\\backend\\services\\..\\output_excel\\Q2_2026\\PA_ST.xlsx"
+      },
+      {
+        "file_id": 54,
+        "file_name": "(Chet&TPD) BHCN lan 2 - TBH.xlsx",
+        "status": "Success",
+        "out_path": "D:\\bv_intelligence_tool\\python_code\\backend\\services\\..\\output_excel\\Q2_2026\\PA_TTTBVV.xlsx"
+      }
+    ]
+  }
+}

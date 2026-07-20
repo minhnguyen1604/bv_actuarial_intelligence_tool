@@ -227,7 +227,10 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
                         "Gross_UPR": gross_upr_val[idx],
                         "Net_UPR": net_upr_val[idx],
                         "Rein_UPR": rein_upr_val[idx],
-                        "Ky_phi": ky
+                        "Ky_phi": ky,
+                        "Customer_Name": str(df["Ten_khach_hang"].iloc[idx]) if "Ten_khach_hang" in df.columns and pd.notna(df["Ten_khach_hang"].iloc[idx]) else "",
+                        "Den_Date": den_date.iloc[idx],
+                        "Den_Date_KP": den_date_kp.iloc[idx]
                     })
         else:
             # Short-Term / Standard / Vietjet / TTTBVV logic
@@ -257,7 +260,10 @@ def compute_lob_rows(group_code: str, quarter_id: str, dpnv_date: datetime.date,
                         "Gross_UPR": gross_upr_val[idx],
                         "Net_UPR": net_upr_val[idx],
                         "Rein_UPR": rein_upr_val[idx],
-                        "Ky_phi": ky
+                        "Ky_phi": ky,
+                        "Customer_Name": str(df["Ten_khach_hang"].iloc[idx]) if "Ten_khach_hang" in df.columns and pd.notna(df["Ten_khach_hang"].iloc[idx]) else "",
+                        "Den_Date": den_date.iloc[idx],
+                        "Den_Date_KP": den_date.iloc[idx]
                     })
 
     return pd.DataFrame(detail_rows)
@@ -472,11 +478,23 @@ def get_premium_analysis_overview(day: int, month: int, year: int, db: Session =
 
 @router.get("/detail")
 def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: Session = Depends(get_db)):
-    """Calculate the Premium & UPR composition (New vs Existing) for the selected LOB."""
+    """Calculate the Premium & UPR composition (New vs Existing) and advanced analysis metrics for the selected LOB."""
     analysis_date = datetime.date(year, month, day)
     curr_q, prev_q = get_quarters_for_date(analysis_date)
     curr_qid = get_quarter_id_from_str(curr_q)
     prev_qid = get_quarter_id_from_str(prev_q)
+    
+    # Calculate two quarters ago
+    prev_q_part, prev_y_part = prev_q.split("/")
+    if prev_q_part == "Q1":
+        prev2_q = f"Q4/{int(prev_y_part) - 1}"
+    elif prev_q_part == "Q2":
+        prev2_q = f"Q1/{prev_y_part}"
+    elif prev_q_part == "Q3":
+        prev2_q = f"Q2/{prev_y_part}"
+    else:
+        prev2_q = f"Q3/{prev_y_part}"
+    prev2_qid = get_quarter_id_from_str(prev2_q)
 
     ty_gia = load_ty_gia()
 
@@ -494,7 +512,6 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
     if prev_param:
         prev_date = datetime.date(prev_param.year, prev_param.month, prev_param.day)
     else:
-        prev_q_part, prev_y_part = prev_q.split("/")
         if prev_q_part == "Q1":
             prev_date = datetime.date(int(prev_y_part), 3, 31)
         elif prev_q_part == "Q2":
@@ -508,17 +525,156 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
     if is_lt_upr:
         prev_valid = prev_df.copy()
     else:
-        prev_valid = prev_df[prev_df["Quarter"] == prev_q]
+        prev_valid = prev_df[prev_df["Quarter"] == prev_q].copy()
 
-    # Create the set of valid policy numbers from the previous quarter
-    prev_policy_set = set(prev_valid["Policy_Number"].dropna().unique())
+    # Load two quarters ago valid rows
+    prev2_q_part, prev2_y_part = prev2_q.split("/")
+    if prev2_q_part == "Q1":
+        prev2_date = datetime.date(int(prev2_y_part), 3, 31)
+    elif prev2_q_part == "Q2":
+        prev2_date = datetime.date(int(prev2_y_part), 6, 30)
+    elif prev2_q_part == "Q3":
+        prev2_date = datetime.date(int(prev2_y_part), 9, 30)
+    else:
+        prev2_date = datetime.date(int(prev2_y_part), 12, 31)
+
+    prev2_df = compute_lob_rows(lob, prev2_qid, prev2_date, ty_gia)
+    if is_lt_upr:
+        prev2_valid = prev2_df.copy()
+    else:
+        prev2_valid = prev2_df[prev2_df["Quarter"] == prev2_q].copy()
+
+    # Standardization helpers for policy matching
+    def get_policy_keys_for_qid(lob_name: str, qid_str: str, df_val: pd.DataFrame) -> set:
+        if df_val.empty:
+            return set()
+        if lob_name in ["XCG_LT", "PA_NNTX_LT"]:
+            dot_qid_str = qid_str.replace("_", ".")
+            parquet_path = os.path.join(DATA_ROOT, dot_qid_str, f"{lob_name}.parquet")
+            if not os.path.exists(parquet_path):
+                alt_path = os.path.join(DATA_ROOT, qid_str, f"{lob_name}.parquet")
+                if os.path.exists(alt_path):
+                    parquet_path = alt_path
+                else:
+                    parquet_path = None
+                    
+            if parquet_path:
+                try:
+                    df_raw = pd.read_parquet(parquet_path)
+                    if lob_name == "XCG_LT":
+                        if "Q3" in qid_str:
+                            if "So_InsureJ" in df_raw.columns:
+                                keys = df_raw["So_InsureJ"].dropna().astype(str).str.strip().apply(
+                                    lambda x: x[:-2] if x.endswith('.0') else x
+                                ).unique()
+                                return set(keys)
+                        else:
+                            if "So_don_Ma_nghiep_vu" in df_raw.columns:
+                                keys = df_raw["So_don_Ma_nghiep_vu"].dropna().astype(str).str.strip().apply(
+                                    lambda x: x[:-2] if x.endswith('.0') else x
+                                ).unique()
+                                return set(keys)
+                    elif lob_name == "PA_NNTX_LT":
+                        if "So_don_Ma_nghiep_vu" in df_raw.columns:
+                            keys = df_raw["So_don_Ma_nghiep_vu"].dropna().astype(str).str.strip().apply(
+                                    lambda x: x[:-2] if x.endswith('.0') else x
+                            ).unique()
+                            return set(keys)
+                except Exception as e:
+                    print(f"Error standardizing keys for {qid_str}: {e}")
+                    
+        keys = df_val["Policy_Number"].dropna().astype(str).str.strip().apply(
+            lambda x: x[:-2] if x.endswith('.0') else x
+        ).unique()
+        return set(keys)
+
+    def map_dataframe_keys(df_val: pd.DataFrame, qid_str: str):
+        if "Contract_Number" not in df_val.columns:
+            df_val["Contract_Number"] = pd.Series(dtype=str)
+        if df_val.empty:
+            return
+        if lob in ["XCG_LT", "PA_NNTX_LT"]:
+            dot_qid_str = qid_str.replace("_", ".")
+            parquet_path = os.path.join(DATA_ROOT, dot_qid_str, f"{lob}.parquet")
+            if not os.path.exists(parquet_path):
+                alt_path = os.path.join(DATA_ROOT, qid_str, f"{lob}.parquet")
+                if os.path.exists(alt_path):
+                    parquet_path = alt_path
+                else:
+                    parquet_path = None
+                    
+            raw_map = {}
+            if parquet_path:
+                try:
+                    df_raw = pd.read_parquet(parquet_path)
+                    df_raw["So_InsureJ"] = df_raw["So_InsureJ"].astype(str).str.strip()
+                    df_raw["So_don_Ma_nghiep_vu"] = df_raw["So_don_Ma_nghiep_vu"].astype(str).str.strip().apply(
+                        lambda x: x[:-2] if x.endswith('.0') else x
+                    )
+                    raw_map = dict(zip(df_raw["So_InsureJ"], df_raw["So_don_Ma_nghiep_vu"]))
+                except Exception as e:
+                    print(f"Error mapping keys for {qid_str}: {e}")
+                    
+            df_val["Contract_Number"] = df_val["Policy_Number"].map(raw_map).fillna(df_val["Policy_Number"])
+        else:
+            df_val["Contract_Number"] = df_val["Policy_Number"].astype(str).str.strip().apply(
+                lambda x: x[:-2] if x.endswith('.0') else x
+            )
+
+    def get_all_raw_policy_keys(lob_name: str, qid_str: str) -> set:
+        dot_qid_str = qid_str.replace("_", ".")
+        parquet_path = os.path.join(DATA_ROOT, dot_qid_str, f"{lob_name}.parquet")
+        if not os.path.exists(parquet_path):
+            alt_path = os.path.join(DATA_ROOT, qid_str, f"{lob_name}.parquet")
+            if os.path.exists(alt_path):
+                parquet_path = alt_path
+            else:
+                return set()
+        try:
+            df_raw = pd.read_parquet(parquet_path)
+            if df_raw.empty:
+                return set()
+            policy_col = "So_don_Ma_hop_dong_Ma_SDBS"
+            if "So_InsureJ" in df_raw.columns:
+                sodon_nunique = df_raw["So_don_Ma_hop_dong_Ma_SDBS"].nunique() if "So_don_Ma_hop_dong_Ma_SDBS" in df_raw.columns else 0
+                insurej_nunique = df_raw["So_InsureJ"].nunique()
+                if insurej_nunique > sodon_nunique:
+                    policy_col = "So_InsureJ"
+            if lob_name in ["XCG_LT", "PA_NNTX_LT"]:
+                df_raw["So_InsureJ"] = df_raw["So_InsureJ"].astype(str).str.strip() if "So_InsureJ" in df_raw.columns else pd.Series(dtype=str)
+                if "So_don_Ma_nghiep_vu" in df_raw.columns:
+                    df_raw["So_don_Ma_nghiep_vu"] = df_raw["So_don_Ma_nghiep_vu"].astype(str).str.strip().apply(
+                        lambda x: x[:-2] if x.endswith('.0') else x
+                    )
+                    raw_map = dict(zip(df_raw["So_InsureJ"], df_raw["So_don_Ma_nghiep_vu"]))
+                else:
+                    raw_map = {}
+                contract_series = df_raw[policy_col].map(raw_map).fillna(df_raw[policy_col])
+            else:
+                contract_series = df_raw[policy_col]
+            cleaned_keys = contract_series.dropna().astype(str).str.strip().apply(
+                lambda x: x[:-2] if x.endswith('.0') else x
+            ).unique()
+            return set(cleaned_keys)
+        except Exception as e:
+            print(f"Error loading raw keys for {qid_str}: {e}")
+            return set()
+
+    # Apply mappings to dataframes
+    map_dataframe_keys(curr_valid, curr_qid)
+    map_dataframe_keys(prev_valid, prev_qid)
+    map_dataframe_keys(prev2_valid, prev2_qid)
+
+    # Standardize previous policies set (only include policies with Gross_Premium > 0 in previous quarter)
+    if not prev_valid.empty:
+        prev_contract_sums = prev_valid.groupby("Contract_Number")["Gross_Premium"].sum()
+        prev_policy_set = set(prev_contract_sums[prev_contract_sums > 0].index)
+    else:
+        prev_policy_set = set()
 
     # Map New vs Existing on current quarter
     if not curr_valid.empty:
-        if is_lt_upr:
-            curr_valid["Type"] = np.where(curr_valid["Quarter"] == curr_q, "New", "Existing")
-        else:
-            curr_valid["Type"] = np.where(curr_valid["Policy_Number"].isin(prev_policy_set), "Existing", "New")
+        curr_valid["Type"] = np.where(curr_valid["Contract_Number"].isin(prev_policy_set), "Existing", "New")
     else:
         curr_valid["Type"] = pd.Series(dtype=str)
 
@@ -608,6 +764,163 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
         {"class": "UPR New Count", "val": upr_new_count}
     ]
 
+    # --- ADVANCED ANALYSIS COMPUTATIONS ---
+    
+    # 1. Retention & Churn Rate Analysis
+    if not curr_valid.empty:
+        curr_contract_sums = curr_valid.groupby("Contract_Number")["Gross_Premium"].sum()
+        curr_keys = set(curr_contract_sums[curr_contract_sums > 0].index)
+    else:
+        curr_keys = set()
+    prev_keys = prev_policy_set
+    curr_raw_keys = get_all_raw_policy_keys(lob, curr_qid)
+    retained_keys = prev_keys.intersection(curr_raw_keys)
+    churned_keys = prev_keys - curr_raw_keys
+    
+    retained_count = len(retained_keys)
+    churned_count = len(churned_keys)
+    prev_count = len(prev_keys)
+    
+    retention_rate = (retained_count / prev_count * 100.0) if prev_count > 0 else 0.0
+    churn_rate = (churned_count / prev_count * 100.0) if prev_count > 0 else 0.0
+    
+    churned_gross = 0.0
+    churned_avg = 0.0
+    churned_policies_list = []
+    if not prev_valid.empty and churned_keys:
+        churned_prev_df = prev_valid[prev_valid["Contract_Number"].isin(churned_keys)]
+        churned_gross = float(churned_prev_df["Gross_Premium"].sum())
+        churned_avg = churned_gross / churned_count if churned_count > 0 else 0.0
+        
+        # Aggregate churned policies to avoid duplicates and get details
+        churned_agg = churned_prev_df.groupby("Contract_Number").agg({
+            "Policy_Number": "first",
+            "Customer_Name": "first",
+            "Den_Date": "max",
+            "Den_Date_KP": "max",
+            "Gross_Premium": "sum"
+        }).reset_index()
+        
+        for idx, row in churned_agg.iterrows():
+            den_date_val = row["Den_Date"]
+            is_expired = False
+            if pd.notna(den_date_val):
+                # Convert to date if it is Timestamp
+                den_date_only = den_date_val.date() if isinstance(den_date_val, pd.Timestamp) else den_date_val
+                if den_date_only <= analysis_date:
+                    is_expired = True
+            
+            reason = "Natural Expiration" if is_expired else "Early Terminated"
+            
+            def fmt_date(d):
+                if pd.isna(d):
+                    return None
+                if isinstance(d, (pd.Timestamp, datetime.datetime, datetime.date)):
+                    return d.strftime("%Y-%m-%d")
+                return str(d)
+                
+            churned_policies_list.append({
+                "policy_number": row["Policy_Number"],
+                "customer_name": row["Customer_Name"],
+                "gross_premium": float(row["Gross_Premium"]),
+                "den_date": fmt_date(row["Den_Date"]),
+                "den_date_kp": fmt_date(row["Den_Date_KP"]),
+                "reason": reason
+            })
+        
+    retained_avg_prev = 0.0
+    retained_avg_curr = 0.0
+    if retained_count > 0:
+        retained_prev_df = prev_valid[prev_valid["Contract_Number"].isin(retained_keys)]
+        retained_curr_df = curr_valid[curr_valid["Contract_Number"].isin(retained_keys)]
+        retained_avg_prev = float(retained_prev_df["Gross_Premium"].sum() / retained_count)
+        retained_avg_curr = float(retained_curr_df["Gross_Premium"].sum() / retained_count)
+        
+    # Standardize two quarters ago policies set
+    if not prev2_valid.empty:
+        prev2_contract_sums = prev2_valid.groupby("Contract_Number")["Gross_Premium"].sum()
+        prev2_keys = set(prev2_contract_sums[prev2_contract_sums > 0].index)
+    else:
+        prev2_keys = set()
+        
+    loyal_count = None
+    if not prev2_valid.empty:
+        loyal_keys = curr_keys.intersection(prev_keys).intersection(prev2_keys)
+        loyal_count = len(loyal_keys)
+
+    retention_analysis = {
+        "prev_policies_count": prev_count,
+        "curr_policies_count": len(curr_keys),
+        "retained_policies_count": retained_count,
+        "churned_policies_count": churned_count,
+        "retention_rate": float(retention_rate),
+        "churn_rate": float(churn_rate),
+        "loyal_policies_count": loyal_count,
+        "churned_gross_premium": float(churned_gross),
+        "churned_avg_premium": float(churned_avg),
+        "retained_avg_premium_prev": float(retained_avg_prev),
+        "retained_avg_premium_curr": float(retained_avg_curr),
+        "churned_policies_list": churned_policies_list
+    }
+
+    # 2. Growth Attribution
+    prev_total_gross = float(prev_valid["Gross_Premium"].sum()) if not prev_valid.empty else 0.0
+    curr_total_gross = float(curr_valid["Gross_Premium"].sum()) if not curr_valid.empty else 0.0
+    change_gross = curr_total_gross - prev_total_gross
+    
+    curr_new_premium = float(curr_valid[curr_valid["Type"] == "New"]["Gross_Premium"].sum()) if not curr_valid.empty else 0.0
+    prev_lost_premium = churned_gross
+    
+    curr_retained_premium = float(curr_valid[curr_valid["Type"] == "Existing"]["Gross_Premium"].sum()) if not curr_valid.empty else 0.0
+    prev_retained_premium = float(prev_valid[prev_valid["Contract_Number"].isin(retained_keys)]["Gross_Premium"].sum()) if not prev_valid.empty else 0.0
+    
+    volume_effect = curr_new_premium - prev_lost_premium
+    price_effect = curr_retained_premium - prev_retained_premium
+    
+    avg_premium_new = float(curr_new_premium / premium_new_count) if premium_new_count > 0 else 0.0
+    avg_premium_existing = float(curr_retained_premium / premium_old_count) if premium_old_count > 0 else 0.0
+    avg_premium_prev_existing = float(prev_retained_premium / premium_old_count) if premium_old_count > 0 else 0.0
+    
+    growth_attribution = {
+        "prev_total_gross": prev_total_gross,
+        "curr_total_gross": curr_total_gross,
+        "change_gross": change_gross,
+        "volume_effect": volume_effect,
+        "price_effect": price_effect,
+        "new_policies_volume_effect": curr_new_premium,
+        "lost_policies_volume_effect": prev_lost_premium,
+        "retained_policies_price_effect": curr_retained_premium - prev_retained_premium,
+        "avg_premium_new": avg_premium_new,
+        "avg_premium_existing": avg_premium_existing,
+        "avg_premium_prev_existing": avg_premium_prev_existing
+    }
+
+    # 3. Cohort Analysis
+    cohort_analysis = None
+    if not prev2_valid.empty and not prev_valid.empty:
+        prev_new_keys = prev_keys - prev2_keys
+        initial_cohort_count = len(prev_new_keys)
+        
+        prev_new_df = prev_valid[prev_valid["Contract_Number"].isin(prev_new_keys)]
+        initial_cohort_premium = float(prev_new_df["Gross_Premium"].sum())
+        
+        retained_cohort_keys = prev_new_keys.intersection(curr_keys)
+        retained_cohort_count = len(retained_cohort_keys)
+        
+        curr_cohort_df = curr_valid[curr_valid["Contract_Number"].isin(retained_cohort_keys)]
+        retained_cohort_premium = float(curr_cohort_df["Gross_Premium"].sum())
+        
+        survival_rate = (retained_cohort_count / initial_cohort_count * 100.0) if initial_cohort_count > 0 else 0.0
+        
+        cohort_analysis = {
+            "cohort_name": f"New in {prev_q}",
+            "initial_count": initial_cohort_count,
+            "initial_premium": initial_cohort_premium,
+            "retained_count": retained_cohort_count,
+            "retained_premium": retained_cohort_premium,
+            "survival_rate": float(survival_rate)
+        }
+
     return {
         "ok": True,
         "lob": lob,
@@ -623,7 +936,10 @@ def get_premium_analysis_detail(day: int, month: int, year: int, lob: str, db: S
             "new_val": float(upr_new_gross),
             "old_val": float(upr_old_gross)
         },
-        "stats": stats_data
+        "stats": stats_data,
+        "retention_analysis": retention_analysis,
+        "growth_attribution": growth_attribution,
+        "cohort_analysis": cohort_analysis
     }
 
 @router.get("/download-excel")

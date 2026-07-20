@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Tính toán hoàn thành!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 10,
+        "file_name": "(Ngan ky) BHCN Q1.2026 - 17042026.xlsx",
+        "status": "Error",
+        "error": "[Errno 28] No space left on device"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Calculation completed successfully!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 11,
+        "file_name": "(Death&TPD) BHCN Q1.2026 - 15042026.xlsx",
+        "status": "Success",
+        "out_path": "D:\\bv_intelligence_tool\\python_code\\backend\\services\\..\\output_excel\\Q1_2026\\PA_TTTBVV.xlsx"
+      }
+    ]
+  }
+}

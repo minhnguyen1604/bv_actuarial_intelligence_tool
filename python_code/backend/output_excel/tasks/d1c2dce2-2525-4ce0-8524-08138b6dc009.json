@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Calculation completed successfully!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 12,
+        "file_name": "ĐơnTS_DK-NK_HLQ1.2026_nhaphet02.04.2026 -TBH -giai doan 1@9.4.2026.xlsx",
+        "status": "Success",
+        "out_path": "D:\\bv_intelligence_tool\\python_code\\backend\\services\\..\\output_excel\\Q1_2026\\Fire_ST.xlsx"
+      }
+    ]
+  }
+}

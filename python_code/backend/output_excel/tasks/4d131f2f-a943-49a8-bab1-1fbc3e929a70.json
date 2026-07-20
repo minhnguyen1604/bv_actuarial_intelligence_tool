@@ -1,0 +1,16 @@
+{
+  "status": "success",
+  "progress": 100,
+  "message": "Calculation completed successfully!",
+  "error": null,
+  "result": {
+    "calculated": [
+      {
+        "file_id": 18,
+        "file_name": "Q1.2026 - BAO CAO BH NGAN KY 10.04.2026 - CTTV.xlsx",
+        "status": "Success",
+        "out_path": "D:\\bv_intelligence_tool\\python_code\\backend\\services\\..\\output_excel\\Q1_2026\\Travel_CTTV.xlsx"
+      }
+    ]
+  }
+}
