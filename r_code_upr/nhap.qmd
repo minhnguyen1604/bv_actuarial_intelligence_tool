@@ -1,0 +1,461 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+saveRDS(tygia,"D:\\UPR\\20250813\\ty_gia.rds")
+```
+
+```{r}
+
+
+# # 
+
+observeEvent(input$cal, {
+  # Lấy danh sách hiện có (không phần mở rộng)
+  existing_files <- tools::file_path_sans_ext(
+    list.files("www/cur_data", pattern = "\\.rds$", full.names = FALSE)
+  )
+
+  # Lọc ra các file expected có tồn tại (Available)
+  available_expected_files <- expected_files[expected_files %in% existing_files]
+
+  if (length(available_expected_files) == 0) {
+    showNotification("❗Không có file .rds nào phù hợp trong www/cur_data", type = "warning")
+    return()
+  }
+
+  # Chia theo Long / Short
+  long_files <- available_expected_files[grepl("LT", available_expected_files)]
+  short_files <- available_expected_files[!grepl("LT", available_expected_files)]
+
+
+  vals$long_files <- long_files
+  vals$short_files <- short_files
+
+  # Đọc tỷ giá
+  ty_gia_data <- readRDS("ty_gia.rds")
+  # Lấy dòng cuối cùng (quý gần nhất)
+  ty_gia_latest <- tail(ty_gia_data, 1)
+
+  quy_gan_nhat <- ty_gia_latest$Thoi_gian
+  usd_latest   <- ty_gia_latest$USD
+  eur_latest   <- ty_gia_latest$EUR
+
+  showModal(modalDialog(
+    title = "📂 Chọn file để tính toán",
+    # Thêm message thời điểm tính dự phòng
+    tags$p(
+      style = "color:blue; font-weight:bold;",
+      paste0(
+        "🕒 Thời điểm tính dự phòng: ",
+        input$dpnv_ngay, "/", input$dpnv_thang, "/", input$dpnv_nam
+      )
+    ),
+
+    # Tỷ giá quý gần nhất
+    tags$p(
+      style = "color:blue; font-weight:bold;",
+      paste0("💱 Tỷ giá quý ", quy_gan_nhat,
+             " — USD: ", format(usd_latest, big.mark = ","),
+             " | EUR: ", format(eur_latest, big.mark = ","))
+    ),
+
+    actionButton("select_all", "Select All"),
+    actionButton("deselect_all", "Remove All"),
+
+
+    hr(),
+    fluidRow(
+      column(6,
+             checkboxGroupInput(
+               "selected_rds_long",
+               "📦 Long Term",
+               choices = long_files
+             )
+      ),
+      column(6,
+             checkboxGroupInput(
+               "selected_rds_short",
+               "📦 Short Term",
+               choices = short_files
+             )
+      )
+    ),
+    footer = tagList(
+      modalButton("❌ Hủy"),
+      actionButton("confirm_calc", "✅ Thực hiện tính toán")
+    ),
+    easyClose = TRUE
+  ))
+
+})
+
+
+# # 
+#
+
+#
+#
+# # 
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+# Lấy danh sách các cột tháng và năm
+ghi_thang_cols <- grep("^Ky_phi_\\d+_Ghi_Thang$", names(df), value = TRUE)
+ghi_nam_cols   <- grep("^Ky_phi_\\d+_Ghi_Nam$", names(df), value = TRUE)
+
+# Ghép dữ liệu tháng + năm theo đúng cặp
+df_quy <- purrr::map2_dfr(
+  ghi_thang_cols,
+  ghi_nam_cols,
+  ~ df %>%
+    select(thang = all_of(.x), nam = all_of(.y)) %>%
+    mutate(
+      quy = case_when(
+        thang %in% 1:3  ~ 1,
+        thang %in% 4:6  ~ 2,
+        thang %in% 7:9  ~ 3,
+        thang %in% 10:12 ~ 4,
+        TRUE ~ NA_real_
+      ),
+      quy_nam = paste0("Q", quy, "-", nam)
+    )
+)
+
+# Đếm số quý khác nhau
+table_quy <- df_quy %>%
+  filter(!is.na(quy)) %>%
+  distinct(quy_nam) %>%
+  arrange(quy_nam)
+
+table_quy
+
+
+```
+
+```{r}
+library(readxl)
+df <-  read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_XeCoGioi/20250708 TBH 18h33/XCG_365_2025_07_TBH.xlsx", 
+    sheet = "Sheet1")
+
+
+```
+
+```{r}
+library(dplyr)
+
+# Cột chính
+check_cols <- c(
+  "BKS",
+  "LOAI_HINH_NAME","NGAY_HIEU_LUC_TU","THANG_HIEU_LUC_TU",
+  "NAM_HIEU_LUC_TU","NGAY_HIEU_LUC_DEN","THANG_HIEU_LUC_DEN",
+  "NAM_HIEU_LUC_DEN","SO_TIEN_BH","LOAI_TIEN_BH",
+  "SUM(PHI_BAO_HIEM)","BILLING_CURRENCY"
+)
+
+# Cột cần check PHI_THUC_THU
+check_cols_ps <- colnames(df)[grepl("PHI_THUC_THU", colnames(df), ignore.case = TRUE)]
+
+# Tạo bản sao và bỏ qua 0
+df_for_check <- df
+df_for_check[check_cols_ps] <- lapply(df_for_check[check_cols_ps], function(x) {
+  x <- suppressWarnings(as.numeric(as.character(x)))
+  x[x == 0] <- NA
+  x
+})
+
+# Kết quả tổng
+hehe <- data.frame()
+d <- 0
+
+for (i in check_cols_ps) {
+  all_check_cols <- c(check_cols, i)
+  
+  # Nhóm theo all_check_cols ngoại trừ cột đang check
+  df_grouped <- df_for_check %>%
+    group_by(across(all_of(check_cols))) %>%
+    filter(sum(!is.na(.data[[i]])) > 1) %>%  # chỉ giữ nhóm có >1 giá trị >0
+    ungroup()
+  
+  dup_flag <- duplicated(df_grouped[all_check_cols]) | duplicated(df_grouped[all_check_cols], fromLast = TRUE)
+  df_dups <- df_grouped[dup_flag, ]
+  
+  if (nrow(df_dups) > 0) {
+    if (d > 0) {
+      hehe <- bind_rows(hehe, df_dups)
+    } else {
+      hehe <- df_dups
+    }
+    d <- d + 1
+    
+    # Bỏ các bản ghi đã trùng ra khỏi dataset để vòng sau không check lại
+    df_for_check <- anti_join(df_for_check, df_dups, by = colnames(df_for_check))
+  }
+}
+# Quan trọng: join hehe với df_original thay vì df_for_check (NA đã được thay lại)
+hehe_full <- df %>%
+  semi_join(hehe, by = check_cols) %>% 
+  mutate(check_trung = 1)
+
+# Ghép vào df gốc
+df_final <- df %>%
+  left_join(hehe_full %>% select(all_of(colnames(df)), check_trung),
+            by = colnames(df)) %>%
+  mutate(check_trung = ifelse(is.na(check_trung), 0, check_trung))
+```
+
+```{r}
+df= test
+```
+
+```{r}
+# --- Sau khi bạn đã có df_final từ phần check trùng đầu tiên ---
+
+# Cột cần check trùng mới
+check_cols<- c(
+  "So_don_Ma_nghiep_vu",
+  "So_don_Ma_hop_dong_Ma_SDBS",
+  "So_InsureJ",
+  "Doi_tuong_duoc_bao_hiem",
+  "Dia_diem_bao_hiem"
+)
+
+# Tìm bản ghi trùng theo cột mới
+df_dups <- df %>%
+  filter(duplicated(across(all_of(check_cols))) |
+           duplicated(across(all_of(check_cols)), fromLast = TRUE)) %>%
+  mutate(check_trung = 1)
+
+# Ghép cờ vào df, chỉ join theo check_cols
+df <- df %>%
+  left_join(
+    df_dups %>%
+      select(all_of(check_cols)) %>%
+      distinct() %>%           # loại lặp khóa
+      mutate(check_trung = 1),
+    by = check_cols
+  ) %>%
+  mutate(check_trung = ifelse(is.na(check_trung), 0, check_trung))
+```
+
+```{r}
+check_cols <- c(
+  "BKS",
+  "LOAI_HINH_NAME","NGAY_HIEU_LUC_TU","THANG_HIEU_LUC_TU",
+  "NAM_HIEU_LUC_TU","NGAY_HIEU_LUC_DEN","THANG_HIEU_LUC_DEN",
+  "NAM_HIEU_LUC_DEN","SO_TIEN_BH","LOAI_TIEN_BH",
+  "SUM(PHI_BAO_HIEM)","BILLING_CURRENCY"
+)
+
+# Tìm cột PHI_THUC_THU
+check_cols_ps <- colnames(df)[grepl("PHI_THUC_THU", colnames(df), ignore.case = TRUE)]
+
+# Tạo bản sao để xử lý điều kiện "bỏ qua 0"
+df_for_check <- df
+
+# Với các cột PHI_THUC_THU, gán giá trị 0 thành NA để không tính khi so sánh
+df_for_check[check_cols_ps] <- lapply(df_for_check[check_cols_ps], function(x) {
+  ifelse(x == 0, NA, x)
+})
+# Kết quả tổng
+hehe <- data.frame()
+d <- 0
+
+for (i in check_cols_ps) {
+  all_check_cols <- c(check_cols, i)
+  
+  dup_flag <- duplicated(df_for_check[all_check_cols]) | duplicated(df_for_check[all_check_cols], fromLast = TRUE)
+  df_dups <- df_for_check[dup_flag, ]
+  
+  if (nrow(df_dups) > 0) {
+    if (d > 0) {
+      hehe <- bind_rows(hehe, df_dups)
+    } else {
+      hehe <- df_dups
+    }
+    d <- d + 1
+    
+    # Bỏ các bản ghi đã trùng ra khỏi dataset để vòng sau không check lại
+    df_for_check <- anti_join(df_for_check, df_dups, by = colnames(df_for_check))
+  }
+}
+```
+
+# 1. check trùng
+
+```{r}
+check_cols <- c(
+  "BKS",
+  "LOAI_HINH_NAME","NGAY_HIEU_LUC_TU","THANG_HIEU_LUC_TU",
+  "NAM_HIEU_LUC_TU","NGAY_HIEU_LUC_DEN","THANG_HIEU_LUC_DEN",
+  "NAM_HIEU_LUC_DEN","SO_TIEN_BH","LOAI_TIEN_BH",
+  "SUM(PHI_BAO_HIEM)","BILLING_CURRENCY"
+)
+
+# Đánh dấu bản ghi nào có giá trị trùng nhau trên toàn bộ check_cols
+dup_flag <- duplicated(df[check_cols]) | duplicated(df[check_cols], fromLast = TRUE)
+
+# Lọc ra toàn bộ bản ghi thuộc nhóm duplicate
+df_dups <- df[dup_flag, ]
+
+```
+
+```{r}
+# Lấy danh sách các cột cần check
+check_cols_ps <- colnames(df_dups)[grepl("PHI_THUC_THU", colnames(df_dups), ignore.case = TRUE)]
+
+# Cờ duplicate (ít nhất 1 cột trùng, và giá trị trùng đó khác 0)
+dup_flag_ps <- Reduce(`|`, lapply(check_cols_ps, function(col) {
+  (duplicated(df_dups[[col]]) | duplicated(df_dups[[col]], fromLast = TRUE)) & df_dups[[col]] != 0
+}))
+
+# Lọc ra các bản ghi vi phạm
+df_dups_ps <- df_dups[dup_flag_ps, ]
+
+```
+
+# 2. check ngày
+
+```{r}
+if(grepl("XCG_LT|XCG_ST|PA_NNTX", code1, ignore.case = TRUE )) {
+  # Tạo thêm tên cột cho kỳ phí 7 đến 10
+  extra_cols <- unlist(lapply(7:10, generate_fee_cols))
+  base_cols <- colnames(readRDS("pre_data/Eng_LT_Pre.rds"))
+  # Tổng hợp 144 tên cột
+  all_cols <- c(base_cols, extra_cols)
+  
+  # Tạo dataframe rỗng với 0 dòng và 144 cột
+  df_blank <- as.data.frame(matrix(NA, nrow = nrow(df), ncol = length(all_cols)))
+  colnames(df_blank) <- all_cols
+  
+  df_blank$STT = df[,1]
+  df_blank$Ten_cong_ty_Ten_ban = df$CONG_TY
+  df_blank$So_don_Ma_nghiep_vu = df$SO_DON
+  df_blank$Thoi_han_bao_hiem_Tu_Ngay = df$NGAY_HIEU_LUC_TU
+  df_blank$Thoi_han_bao_hiem_Tu_Thang = df$THANG_HIEU_LUC_TU
+  df_blank$Thoi_han_bao_hiem_Tu_Nam = df$NAM_HIEU_LUC_TU
+  df_blank$Thoi_han_bao_hiem_Den_Ngay = df$NGAY_HIEU_LUC_DEN
+  df_blank$Thoi_han_bao_hiem_Den_Thang = df$THANG_HIEU_LUC_DEN
+  df_blank$Thoi_han_bao_hiem_Den_Nam = df$NAM_HIEU_LUC_DEN
+  df_blank$So_tien_bao_hiem_So_tien = df$SO_TIEN_BH
+  df_blank$So_tien_bao_hiem_Loai_tien = df$LOAI_TIEN_BH
+  df_blank$Tong_phi_bao_hiem_khong_thue_So_tien = df$`SUM(PHI_BAO_HIEM)`
+  df_blank$Tong_phi_bao_hiem_khong_thue_Loai_tien = df$BILLING_CURRENCY
+  # Tìm tên cột khớp mẫu
+  col_name <- grep("Tỷ[[:space:].]*lệ[[:space:].]*BV[[:space:].]*giữ[[:space:].]*lại", 
+                   names(df), ignore.case = TRUE, value = TRUE)
+  
+  # Gán dữ liệu
+  df_blank$Ty_le_giu_lai_cua_BHBV_checked <- df[[col_name]]
+  # df_blank$Ty_le_giu_lai_cua_BHBV_checked = df$`Tỷ.lệ.BV.giữ.lại`
+  
+  #print(colnames(df))
+  for (i in 1:10) {
+    # Tên gốc: KY1, KY2,...
+    ky <- paste0("KY", i)
+    ky_next <- paste0("KY", i + 1)
+    
+    # Các biến nguồn
+    df_blank[[paste0("Ky_phi_", i, "_So_tien_VND")]] <- df[[paste0(ky, "_PHI_THUC_THU")]]
+    df_blank[[paste0("Ky_phi_", i, "_Tu_Ngay")]]      <- df[[paste0(ky, "_DUE_DATE_DAY")]]
+    df_blank[[paste0("Ky_phi_", i, "_Tu_Thang")]]    <- df[[paste0(ky, "_DUE_DATE_MONTH")]]
+    df_blank[[paste0("Ky_phi_", i, "_Tu_Nam")]]      <- df[[paste0(ky, "_DUE_DATE_YEAR")]]
+    
+    # Cột "Đến Ngày/Tháng/Năm" phụ thuộc kỳ kế tiếp
+    df_blank[[paste0("Ky_phi_", i, "_Den_Ngay")]] <- ifelse(
+      !is.na(df[[paste0(ky, "_DUE_DATE_DAY")]]) & df[[paste0(ky, "_DUE_DATE_DAY")]] != 0 ,
+      ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+             df[[paste0(ky_next, "_DUE_DATE_DAY")]],
+             df$NGAY_HIEU_LUC_DEN),
+      NA
+    )
+    
+    df_blank[[paste0("Ky_phi_", i, "_Den_Thang")]] <- ifelse(
+      !is.na(df[[paste0(ky, "_DUE_DATE_MONTH")]]) & df[[paste0(ky, "_DUE_DATE_MONTH")]] != 0,
+      ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+             df[[paste0(ky_next, "_DUE_DATE_MONTH")]],
+             df$THANG_HIEU_LUC_DEN),
+      NA
+    )
+    
+    df_blank[[paste0("Ky_phi_", i, "_Den_Nam")]] <- ifelse(
+      !is.na(df[[paste0(ky, "_DUE_DATE_YEAR")]]) & df[[paste0(ky, "_DUE_DATE_YEAR")]] != 0,
+      ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+             df[[paste0(ky_next, "_DUE_DATE_YEAR")]],
+             df$NAM_HIEU_LUC_DEN),
+      NA
+    )
+    
+    # Ngày ghi nhận thực tế
+    df_blank[[paste0("Ky_phi_", i, "_Ghi_Ngay")]]   <- df[[paste0(ky, "_DUE_DATE_REAL_DAY")]]
+    df_blank[[paste0("Ky_phi_", i, "_Ghi_Thang")]] <- df[[paste0(ky, "_DUE_DATE_REAL_MONTH")]]
+    df_blank[[paste0("Ky_phi_", i, "_Ghi_Nam")]]   <- df[[paste0(ky, "_DUE_DATE_REAL_YEAR")]]
+  }
+  df= df_blank
+  # Tìm các cột Ngày, Tháng, Năm
+  cols_to_convert <- grep("_Ngay$|_Thang$|_Nam$", names(df), value = TRUE)
+  df[cols_to_convert] <- lapply(df[cols_to_convert], as.integer)
+  
+  ngay_cols <- names(df)[str_detect(names(df), "_Ngay$")]
+  for (ngay_col in ngay_cols) {
+    prefix <- str_remove(ngay_col, "_Ngay$")
+    thang_col <- paste0(prefix, "_Thang")
+    nam_col <- paste0(prefix, "_Nam")
+    new_col <- paste0(prefix, "_Hop_Le")
+    
+    if (thang_col %in% names(df) && nam_col %in% names(df)) {
+      df[[new_col]] <- mapply(
+        kiem_tra_ngay_hop_le,
+        df[[ngay_col]],
+        df[[thang_col]],
+        df[[nam_col]]
+      )
+    }
+  }
+  # Tổng hợp kết quả kiểm tra
+  hop_le_cols <- names(df)[str_detect(names(df), "_Hop_Le$")]
+  df$Check_Ngay_Hop_Le <- apply(df[, hop_le_cols], 1, function(row) {
+    if (all(row)) {
+      return("Hợp lệ")
+    } else {
+      sai <- hop_le_cols[!row]
+      return(paste("Sai:", paste(str_remove(sai, "_Hop_Le$"), collapse = ", ")))
+    }
+  })
+  # Giữ lại cột kiểm tra, bỏ cột _Hop_Le
+  df <- df[, !str_detect(names(df), "_Hop_Le$") | names(df) == "Check_Ngay_Hop_Le"]
+  
+  # Bỏ dòng có quá nhiều NA và dòng chứa "Tổng"
+  df <- df[rowSums(is.na(df)) <= (ncol(df) - 4), ]
+  df <- df[!grepl("Tổng", df[[1]], ignore.case = TRUE), ]
+  # Giả sử bạn có các kỳ từ 1 đến 6
+  all_fee_cols <- unlist(lapply(1:10, generate_fee_cols))
+  
+  # Gộp thêm các cột không theo kỳ nhưng vẫn cần chuyển
+  other_cols <- c(
+    "Thoi_han_bao_hiem_Tu_Ngay", "Thoi_han_bao_hiem_Tu_Thang", "Thoi_han_bao_hiem_Tu_Nam",
+    "Thoi_han_bao_hiem_Den_Ngay", "Thoi_han_bao_hiem_Den_Thang", "Thoi_han_bao_hiem_Den_Nam",
+    "So_tien_bao_hiem_So_tien", "Tong_phi_bao_hiem_khong_thue_So_tien",
+    "Ty_le_dong_bao_hiem_coinsurance", "Ty_le_giu_lai_cua_BHBV_TBH_cung_cap",
+    "Ty_le_giu_lai_cua_BHBV_checked", "Ty_le_giu_lai_cua_BHBV"
+  )
+  
+  # Danh sách tất cả các cột cần chuyển
+  cols_to_numeric <- c(other_cols, all_fee_cols)
+  
+  # Lọc ra các cột thực sự có trong df (phòng khi thiếu cột)
+  cols_exist <- intersect(cols_to_numeric, colnames(df))
+  
+  # Chuyển sang numeric
+  df[cols_exist] <- lapply(df[cols_exist], function(x) as.numeric(as.character(x)))
+  
+  #______________________________kdh ntkjdhkjfdhjkhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+  
+}
+```

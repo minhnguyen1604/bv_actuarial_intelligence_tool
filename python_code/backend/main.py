@@ -1,3 +1,8 @@
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
@@ -25,4 +30,5 @@ async def root():
     return RedirectResponse(url="/login.html")
 
 # Serve the frontend directory at the root path
-app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
+app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="static")

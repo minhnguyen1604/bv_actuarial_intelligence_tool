@@ -1,0 +1,400 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+# extract input DTBT vas
+
+```{r}
+library(readxl)
+library(dplyr)
+
+# Đọc file và chia dt / bt
+df <- read_excel("Z:/Actuary/2024/Q1.2024/VAS report Q1.2024_22.04_EY_điều chỉnh IFRS.xlsx", 
+                 sheet = "22.04")[, c(8:10,16)]
+
+rows <- which(grepl("BT", pull(df, 1), ignore.case = TRUE))
+dt  <- df[1:(rows-1), ]
+bt  <- df[(rows+1): nrow(df), ]
+
+# Hàm clean chung
+clean_df <- function(df, lines) {
+  colnames(df) <- c("Line", "DIRECT", "INWARD", "NET")
+  df <- df[-1, ] %>%
+    filter(!is.na(Line), Line != "")
+  df <- df[1:12,]
+  df$Line <- lines
+  rownames(df) <- NULL
+  return(df)
+}
+
+hehe <- c("Cargo in transit", "Hull & PI", "Aviation & Oil", "Aviation & Oil",
+          "Engineering", "Fire and Misc.", "General Liability", "Motor Vehicles",
+          "Personal Accident", "Travel", "Healthcare", "Agriculture")
+
+dt <- clean_df(dt, hehe)[1:12, ]
+bt <- clean_df(bt, hehe)[1:12, ]
+
+# Hàm thêm dòng gộp + Total
+process_df <- function(df, ten) {
+  df2 <- df %>%
+    mutate(across(-Line, ~ suppressWarnings(as.numeric(.))))
+  
+  groups <- list(
+    "Healthcare + Travel"   = c("Healthcare", "Travel"),
+    "HC & PA & Travel"      = c("Travel", "Healthcare", "Personal Accident"),
+    "Total"                 = unique(df2$Line)  # tất cả
+  )
+  
+  added <- lapply(names(groups), function(new_name) {
+    codes <- groups[[new_name]]
+    df2 %>%
+      filter(Line %in% codes) %>%
+      summarise(across(-Line, sum, na.rm = TRUE)) %>%
+      mutate(Line = new_name) %>%
+      select(names(df2))
+  })
+  
+  df2 = bind_rows(df2, dplyr::bind_rows(added)) %>%
+    group_by(Line) %>%
+    summarise(across(c(DIRECT, INWARD, NET), ~ sum(.x/10e9, na.rm = TRUE)), .groups = "drop")
+  df2 %>%
+  pivot_longer(
+    cols = c(DIRECT, INWARD, NET),   # các cột cần pivot
+    names_to = "Type",               # tên cột mới chứa tên biến
+    values_to = ten              # tên cột mới chứa giá trị
+  )
+}
+
+# Xử lý dt và bt
+dt_final <- process_df(dt, "Written")
+bt_final <- process_df(bt,"Paid" )
+df_joined <- dt_final %>%
+  full_join(bt_final, by = c("Line", "Type"))
+```
+
+### sbgjkhw
+
+```{r}
+df <- read_excel("Z:/Actuary/2024/Q1.2024/VAS report Q1.2024_22.04_EY_điều chỉnh IFRS.xlsx", 
+    sheet = "22.04")
+```
+
+```{r}
+df= df[,8:18]
+rows <- which(grepl("BT", pull(df, 1), ignore.case = TRUE))
+```
+
+```{r}
+dt= df[1:(rows-1), ]
+bt= df[(rows+1): nrow(df), ]
+clean_df <- function(df) {
+  # Lấy dòng đầu tiên làm tên cột
+  colnames(df) <- as.character(unlist(df[1, ]))
+  
+  # Bỏ dòng đầu tiên
+  df <- df[-1, ]
+  
+  # Đảm bảo cột đầu tiên không bị NA/rỗng
+  first_col <- names(df)[1]
+  df <- df[!is.na(df[[first_col]]) & df[[first_col]] != "", ]
+  
+  rownames(df) <- NULL
+  return(df)
+}
+```
+
+```{r}
+dt = clean_df(dt)
+bt = clean_df(bt)
+```
+
+# extract input result vas
+
+```{r}
+library(readxl)
+df<- read_excel("test/VAS report Q3.2023ver 20.10.xlsx", 
+ sheet = "Result VAS sent to TC")
+
+```
+
+```{r}
+library(stringi)
+library(stringr)
+rows <- which(grepl("Line", pull(df, 1), ignore.case = TRUE))
+i= rows[1]
+vt <- which(grepl("Direct|Inward|Recovery|Retrocession|Net", as.character(unlist(df[i, ])), ignore.case = TRUE))[1:5]
+vt
+```
+
+```{r}
+df = df[,c(1,vt)]
+```
+
+```{r}
+# Lấy vị trí bắt đầu của từng phần
+upr_start <- which(grepl("UPR", df[[1]], ignore.case = TRUE))
+osc_start <- which(grepl("OSC", df[[1]], ignore.case = TRUE))
+ibnr_start <- which(grepl("IBNR", df[[1]], ignore.case = TRUE))
+cat_start <- which(grepl("CAT", df[[1]], ignore.case = TRUE))
+
+# Tạo danh sách các vị trí bắt đầu
+starts <- c(upr_start, osc_start, ibnr_start, cat_start)
+names(starts) <- c("upr", "osc", "ibnr", "cat")
+
+# Sắp xếp theo thứ tự xuất hiện
+starts <- sort(starts)
+
+# Tạo danh sách các đoạn dữ liệu
+df_list <- list()
+for (i in seq_along(starts)) {
+  start <- starts[i]
+  end <- if (i < length(starts)) starts[i + 1] - 1 else nrow(df)
+  df_list[[names(starts)[i]]] <- df[start:end, ]
+}
+tam = df_list$cat
+df_list$cat = tam[,1:2]
+
+```
+
+```{r}
+# Hàm cắt dữ liệu từ "Line" đến "Total"
+slice_line_to_total <- function(d, 
+                                start_pat = "\\bLine\\b", 
+                                end_pat   = "\\bTotal\\b", 
+                                col_index = 1) {
+  # Lấy cột dùng để dò (mặc định là cột đầu tiên)
+  col1 <- as.character(d[[col_index]])
+  col1[is.na(col1)] <- ""
+  
+  # Vị trí "Line" đầu tiên
+  start_pos <- which(grepl(start_pat, col1, ignore.case = TRUE))
+  if (length(start_pos) == 0) {
+    # Không có "Line" -> trả về data.frame rỗng
+    return(d[0, , drop = FALSE]) 
+  }
+  start_pos <- start_pos[1]
+  
+  # Vị trí "Total" đầu tiên xuất hiện sau (hoặc tại) start_pos
+  total_pos_all <- which(grepl(end_pat, col1, ignore.case = TRUE) & seq_along(col1) >= start_pos)
+  if (length(total_pos_all) == 0) {
+    # Không thấy "Total" sau "Line" -> cắt đến cuối bảng
+    end_pos <- nrow(d)
+  } else {
+    end_pos <- total_pos_all[1]
+  }
+  
+  he <- as.character(unlist(d[start_pos, , drop = TRUE]))
+  he <- trimws(he)
+  
+  d= d[(start_pos+1):end_pos, , drop = FALSE]
+  colnames(d) = he
+  d %>% filter(!is.na(.[[1]]))
+  
+}
+
+# Áp dụng cho toàn bộ list
+df_list_cut <- lapply(df_list, slice_line_to_total)
+
+# (không bắt buộc) Kiểm tra nhanh số dòng sau khi cắt
+sapply(df_list_cut, nrow)
+
+```
+
+# đổi form
+
+```{r}
+data <- readRDS("D:/R_Project/ALCO/data.rds")
+```
+
+```{r}
+upr = df_list_cut$upr
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+upr_long <- upr%>%
+  pivot_longer(cols = c(Direct, Inward, Recovery, Retrocession, `Net UPR`),
+               names_to = "Type",
+               values_to = "UPR")
+upr_long <- upr_long %>%
+  mutate(Type = toupper(Type))
+upr_long <- upr_long %>%
+  mutate(Type = ifelse(Type == "NET UPR", "NET", Type))
+upr_long <- upr_long %>%
+  filter(Type %in% c("DIRECT", "INWARD","NET" ))
+```
+
+```{r}
+osc = df_list_cut$osc
+osc_long <- osc%>%
+  pivot_longer(cols = c(Direct, Inward, Recovery, Retrocession, `Net OsC`),
+               names_to = "Type",
+               values_to = "OSC")
+osc_long <- osc_long %>%
+  mutate(Type = toupper(Type))
+osc_long <- osc_long %>%
+  mutate(Type = ifelse(Type == "NET OSC", "NET", Type))
+osc_long <- osc_long %>%
+filter(Type %in% c("DIRECT", "INWARD","NET" ))
+```
+
+```{r}
+library(dplyr)
+
+combined_long <- full_join(upr_long, osc_long, by = c("Line", "Type")) %>%
+  mutate(
+    UPR = as.numeric(UPR),
+    OSC = as.numeric(OSC)
+  )
+
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+
+normalize_line <- function(line) {
+  line <- str_to_lower(line) # chuẩn hóa
+  
+  case_when(
+    str_detect(line, "^pa$|personal") ~ "Personal Accident",       # đúng "PA" riêng
+    str_detect(line, "pa & health") ~ "HC & PA & Travel", # nhóm PA + Health
+    str_detect(line, "health") ~ "Healthcare",
+    str_detect(line, "motor") ~ "Motor Vehicles",
+    str_detect(line, "aviation|oil and gas") ~ "Aviation & Oil",
+    str_detect(line, "agriculture") ~ "Agriculture",
+    str_detect(line, "cargo") ~ "Cargo in transit",
+    str_detect(line, "engineering") ~ "Engineering",
+    str_detect(line, "fire") ~ "Fire and Misc.",
+    str_detect(line, "liability|miscell") ~ "General Liability",
+    str_detect(line, "hull") ~ "Hull & PI",
+    str_detect(line, "travel") ~ "Travel",
+    str_detect(line, "total") ~ "Total",
+    TRUE ~ str_to_title(line) # giữ nguyên nếu không match
+  )
+}
+
+
+# Áp dụng cho combined_long
+combined_long <- combined_long %>%
+  mutate(Line = normalize_line(Line))
+```
+
+```{r}
+setdiff(  unique(data$Line),unique(combined_long$Line))
+```
+
+```{r}
+
+library(dplyr)
+
+# Tính tổng OSC cho từng Type từ Healthcare và Travel
+row_add <- combined_long %>%
+  filter(Line %in% c("Healthcare", "Travel")) %>%
+  mutate(OSC = as.numeric(OSC)) %>%
+  group_by(Type) %>%
+  summarise(Line = "Healthcare + Travel", 
+            UPR = sum(UPR, na.rm = TRUE),
+            OSC = sum(OSC, na.rm = TRUE), .groups = "drop")
+
+# Thêm vào bảng gốc
+combined_long <- bind_rows(combined_long, row_add)
+
+combined_long <- combined_long %>% 
+  group_by(Line ,Type ) %>%
+  summarise(
+    `@UPR` = sum(UPR/10^9, na.rm = TRUE),
+            `@OsC` = sum(OSC/10^9, na.rm = TRUE), .groups = "drop")
+```
+
+```{r}
+library(writexl)
+# write_xlsx(combined_long, "D:\\R_Project\\ALCO\\test\\he.xlsx")
+```
+
+# ghép
+
+```{r}
+combined_long$`Quý/Lũy kế` = "Theo quý"
+combined_long$`Năm LK` = "2023"
+combined_long$`Qúy` = "Q4"
+combined_long$`Năm` = paste0(combined_long$`Năm LK`,combined_long$`Qúy` )
+```
+
+```{r}
+# Ghép 2 bảng theo kiểu bind_rows
+data_all <- bind_rows(data, combined_long)
+
+```
+
+```{r}
+View(data_all %>% filter(`Năm LK` == "2023" & `Quý/Lũy kế` == "Theo quý" & Type == "NET" & `Qúy` == "Q4"))
+```
+
+```{r}
+q=3
+for (i in 1: (q-1)){
+      prev_q_n  = paste0("2023", "Q", i)
+      print(prev_q_n)
+    }
+```
+
+```{r}
+View(data %>%
+         filter(Năm == "2023Q3" & `Quý/Lũy kế` == "Lũy kế" ))
+```
+
+```{r}
+View(data %>%
+         filter(Năm == "2023Q3" & `Quý/Lũy kế` == "Theo quý" ))
+```
+
+# extract data
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2024/Q1.2024/06. BÁO CÁO/ALCO Q1-2024.xlsx", 
+    sheet = "INPUT")
+
+```
+
+```{r}
+df= df[,1:18]
+```
+
+```{r}
+# Lấy danh sách các cột là character
+char_cols <- names(df)[sapply(df, is.character)]
+
+# # Tạo table cho từng cột character
+# char_tables <- lapply(df[char_cols], table)
+# 
+# # Xem kết quả
+# char_tables
+
+```
+
+```{r}
+for (col in char_cols) {
+  cat("\n===== Cột:", col, "=====\n")
+  print(table(df[[col]]))
+}
+
+```
+
+```{r}
+library(dplyr)
+View(df %>% filter(`Năm LK` =="2024"))
+```
+
+```{r}
+saveRDS(df,"D:\\R_Project\\ALCO\\data.rds" )
+```
+
+```{r}
+library(dplyr)
+df = data %>% filter(`Năm LK` != "2024")
+```

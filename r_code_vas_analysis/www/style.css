@@ -1,0 +1,300 @@
+/* header custom */
+.btn-eye-on  { color: #2c7be5 !important; }
+.btn-eye-off { color: #adb5bd !important; }
+.btn-action {
+  border: none !important;
+  background: transparent !important;
+  font-size: 18px;
+}   
+.skin-blue .main-header {
+  background-color: #004080; /* màu xanh đậm */
+  border-bottom: 1px solid #003366;
+}
+
+.skin-blue .main-header .logo {
+  background-color: #004080;
+  color: black           /*  white;*/
+  font-weight: bold;
+}
+
+.skin-blue .main-header .navbar {
+  background-color: #004080;
+}
+
+.skin-blue .main-header .navbar .sidebar-toggle {
+  color: white;
+}
+
+
+/* _____________________________________________________________ Sidebar background */
+/* Sidebar background giống màu body */
+.skin-blue .main-sidebar {
+  background-color: #ecf0f5 !important;
+}
+
+/* Sidebar menu items: chữ đen */
+.skin-blue .sidebar .sidebar-menu > li > a {
+  color: #000000 !important;
+}
+
+/* Hover effect */
+.skin-blue .sidebar .sidebar-menu > li > a:hover {
+  background-color: #dfe4ea !important;
+  color: #000000 !important;
+}
+
+.sidebar {
+  
+  color: #000000 !important;
+}
+
+/* Active tab */
+.skin-blue .sidebar .sidebar-menu > li.active > a {
+  background-color: #d0d3d4 !important;
+  color: #000000 !important;
+  font-weight: bold;
+}
+
+
+
+/* _____________________________________________________________footer custom */
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+  z-index: 1000;
+}
+
+
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 ô trên 1 hàng */
+  gap: 12px;
+}
+
+.kpi-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+  min-height: 120px;
+}
+
+.kpi-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 2px 0;
+}
+
+.kpi-green { color: #2ecc71; font-weight: bold; }
+.kpi-red   { color: #e74c3c; font-weight: bold; }
+
+
+/* _______________________________________________________Bold header */
+/* Header datatable: xanh đậm chữ trắng */
+.dataTable thead th {
+  background-color: #004080 !important;  /* xanh đậm */
+  color: white !important;               /* chữ trắng */
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Kẻ cột và hàng */
+.dataTable th, 
+.dataTable td {
+  border-right: 1px solid #ccc !important;
+  border-bottom: 1px solid #ccc !important;
+}
+.dataTable th:last-child, 
+.dataTable td:last-child {
+  border-right: none !important;
+}
+
+/* Dòng cuối cùng: xanh đậm chữ trắng 
+.dataTable tbody tr:last-child td {
+  background-color: #004080 !important;
+  color: white !important;
+  font-weight: bold;
+}*/
+/* Giới hạn chiều cao DataTable + scroll */
+.dataTables_wrapper .dataTables_scrollBody {
+  max-height: 600px !important;   /* chỉnh độ cao theo ý bạn */
+  overflow-y: auto !important;    /* bật scroll dọc */
+  border-bottom: 1px solid #ccc;  /* viền dưới */
+}
+
+ /*________________________________________________________________________________ Custom ChatGPT-like box */
+    .box {
+      border-radius: 16px;        /* bo góc */
+      border: 1px solid #e5e5e5; /* viền xám nhạt */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* bóng nhẹ */
+      padding: 16px;             /* khoảng cách trong */
+      margin-bottom: 20px;       /* cách nhau giữa các box */
+      background-color: #ffffff; /* nền trắng */
+    }
+    
+    /* Header của box */
+    .box-header {
+      border-bottom: none !important;
+      background: transparent !important;
+      padding-bottom: 8px;
+    }
+    .box-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333333;
+    }
+    
+    /* Nội dung trong box */
+    .box-body {
+      padding: 0px !important; /* bỏ padding mặc định */  
+    }
+    
+ /*________________________________________________________________________________ font chữ */   
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Noto+Sans:wght@300;400;700&display=swap&subset=vietnamese');
+
+/* Toàn bộ app */
+html, body, .content-wrapper, .main-header, .main-sidebar, .tab-content {
+  font-family: 'Inter', 'Noto Sans', Arial, sans-serif !important;
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0.01em;
+  color: #2d2d2d;
+}
+
+
+
+/* Fix font cho box title */
+.box-header .box-title {
+  font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", sans-serif !important;
+  font-weight: 600; /* cho đẹp giống ChatGPT */
+  font-size: 16px;
+  color: #222; /* chỉnh màu nếu muốn */
+}
+
+
+/* Giảm khoảng cách ngang giữa các column */
+.col-sm-2, .col-sm-10, .col-sm-6, .col-sm-12 {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Giảm khoảng cách ngang giữa các box trong cùng một hàng */
+.row {
+  margin-left: -5px !important;
+  margin-right: -5px !important;
+}
+
+
+/* Header của box */
+
+/* Chỉnh lại title cho đẹp */
+ .box .box-body {
+      padding-top: 0px;   /* giảm khoảng cách phía trên plot */
+      padding-bottom: 5px; /* (tùy chọn) giảm khoảng cách dưới */
+    }
+    .box .box-header .box-title {
+      font-size: 16px;    /* có thể cho nhỏ lại nếu muốn */
+      margin-bottom: 0px; /* bỏ khoảng trống thừa dưới title */
+    }
+    
+/* table */
+
+table.dataTable thead th {
+    color: white !important;   /* chữ header */
+  }
+  table.dataTable thead select {
+    color: black !important;   /* chữ trong dropdown */
+  }
+table.dataTable {
+      table-layout: fixed;  /* ✅ giữ cột thẳng */
+      width: 100% !important;
+      font-size: 13px;
+    }
+    .dt-filter-row select {
+      width: 100%;
+      font-size: 13px;
+    }
+    
+    
+/* _______________________________________________________________________ cực kỳ quan trọng, xử lý cái phần đen đen hay gặp khi kéo xuống */
+        .main-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          width: 100%;
+          z-index: 1030;
+        }
+
+        /* Đẩy nội dung xuống dưới header */
+        .content-wrapper, .right-side {
+          margin-top: 50px; /* chiều cao header */
+          background-color: #FFFFFF; /* nền nội dung */
+        }
+
+        /* Đổi nền của wrapper + footer */
+        .wrapper, .main-footer {
+          background-color: #FFFFFF !important;
+        }
+
+        body {
+          background-color: #FFFFFF !important;
+        }
+
+#_______________________________________________________
+/* icon ▼ */
+.excel-filter {
+  cursor: pointer;
+  font-size: 10px;
+  margin-left: 6px;
+  color: #ddd;
+}
+.excel-filter:hover {
+  color: white;
+}
+
+/* popup */
+.excel-popup {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 6px;
+  z-index: 9999;
+  width: 220px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* buttons */
+.excel-popup button {
+  width: 48%;
+  margin: 2px 1%;
+  font-size: 11px;
+  padding: 3px;
+}
+
+/* selectize */
+.excel-popup .selectize-input {
+  min-height: 30px;
+  font-size: 12px;
+}

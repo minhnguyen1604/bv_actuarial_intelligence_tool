@@ -1,0 +1,186 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## check xcg
+
+## dpbt
+
+```{r}
+library(readxl)
+library(tools)
+library(data.table)
+
+# Danh sách file
+files <- list.files("D:/R_Project/DPNV/www/soure_osc/XCG",
+                    pattern = "\\.xlsx$", full.names = TRUE)
+
+# Đọc sheet chứa "DPBT"
+list_data <- lapply(files, function(f) {
+  sheets <- excel_sheets(f)
+  target_sheets <- sheets[grepl("DPBT|chi", sheets, ignore.case = TRUE)]
+  
+  if (length(target_sheets) == 0) return(NULL)
+  
+  lapply(target_sheets, function(s) {
+    df <- read_excel(f, sheet = s)
+    df$source_file <- basename(file_path_sans_ext(f))
+    df$sheet_name  <- s
+    return(as.data.frame(df))   # ép về data.frame cho chắc
+  })
+})
+
+# Bỏ NULL và gộp list lại (flatten)
+list_data <- Filter(Negate(is.null), list_data)
+list_data <- do.call(c, list_data)
+
+# Ghép theo vị trí cột
+all_data <- rbindlist(list_data, use.names = FALSE, fill = FALSE)
+
+```
+
+```{r}
+colnames(all_data) <- c(
+  "cong_ty", "phong_kd", "pham_vi_bt", "so_kn", "chu_xe", "bks", "don_ij",
+  "ngay_hieu_luc", "ngay_ket_thuc", "ngay_ton_that", "ngay_thong_bao", "tt_kn",
+  "du_phong_net", "ghi_chu", "source_file", "sheet_name"
+)
+
+```
+
+## bt
+
+```{r}
+library(readxl)
+library(dplyr)
+library(tools)
+library(purrr) 
+# colnames(all_data) <- c(
+#   "cong_ty", "phong_kd", "pham_vi_bt", "so_kn", "chu_xe", "bks", "don_ij",
+#   "ngay_hieu_luc", "ngay_ket_thuc", "ngay_ton_that", "ngay_thong_bao", "tt_kn",
+#   "du_phong_net", "ghi_chu", "source_file", "sheet_name"
+# )
+# Danh sách file Excel
+files <- list.files("D:/R_Project/DPNV/www/source_paid/XCG",
+                    pattern = "\\.xlsx$", full.names = TRUE)
+# Đọc toàn bộ file Excel, đổi tên cột ngay khi load
+list_data <- lapply(files, function(f) {
+  df <- read_excel(f)
+  
+  # chuẩn hóa colnames
+  new_names <- colnames(df)
+  new_names[grepl("parent|công", new_names, ignore.case = TRUE)] <- "cong_ty"
+  new_names[grepl("BUSINESS|KD", new_names, ignore.case = TRUE)] <- "phong_kd"
+  new_names[grepl("COV|PHAM", new_names, ignore.case = TRUE)] <- "pham_vi_bt"
+  new_names[grepl("CLAIM_URN", new_names, ignore.case = TRUE)] <- "so_kn"
+  new_names[grepl("HOLDER|KHÁCH", new_names, ignore.case = TRUE)] <- "chu_xe"
+  new_names[grepl("BKS", new_names, ignore.case = TRUE)] <- "bks"
+  new_names[grepl("POLICY_URN|ĐƠN", new_names, ignore.case = TRUE)] <- "don_ij"
+  new_names[grepl("FROM$|LỰC", new_names, ignore.case = TRUE)] <- "ngay_hieu_luc"
+  new_names[grepl("TO$|THÚC", new_names, ignore.case = TRUE)] <- "ngay_ket_thuc"
+  new_names[grepl("LOSS|THẤT", new_names, ignore.case = TRUE)] <- "ngay_ton_that"
+  new_names[grepl("REPORTED|BÁO", new_names, ignore.case = TRUE)] <- "ngay_thong_bao"
+  new_names[grepl("duyệt", new_names, ignore.case = TRUE)] <- "ngay_duyet_boi_thuong"
+  new_names[grepl("n\\.*bt", new_names, ignore.case = TRUE)] <- "ngay_boi_thuong"
+  
+  new_names[grepl("thu ly", new_names, ignore.case = TRUE)] <- "thu_ly"
+  new_names[grepl("TT_KN", new_names, ignore.case = TRUE)] <- "tt_kn"
+  
+  new_names[grepl("BỒI THƯỜNG|Paid", new_names, ignore.case = TRUE)] <- "paid"
+  colnames(df) <- new_names
+  
+  return(df)
+})
+
+# Đặt tên phần tử trong list bằng tên file (không kèm .xlsx)
+names(list_data) <- basename(file_path_sans_ext(files))
+q1 = list_data$`BT 2025_0804`
+q2 = list_data$`BT 2025 0907`
+y2024 = list_data$`BT 2024 0106 ACTC`
+```
+
+```{r}
+common_cols <-c("pham_vi_bt", "so_kn", "chu_xe", "bks", "don_ij", "ngay_hieu_luc", "ngay_ket_thuc", "ngay_ton_that", "ngay_thong_bao",   "paid")  # intersect(names(q1), names(q2))
+# các dòng của y2024 có trong q2 (theo common_cols)
+in_q2 <- semi_join(y2024[, common_cols], q2[, common_cols])
+# lấy danh sách bks
+unique_bks <- unique(in_q2$bks)
+
+# lọc chi tiết trong q1 theo các bks này
+View( y2024 %>% filter(bks %in% unique_bks) )
+
+```
+
+```{r}
+common_cols <-c("pham_vi_bt", "so_kn", "chu_xe", "bks", "don_ij", "ngay_hieu_luc", "ngay_ket_thuc", "ngay_ton_that", "ngay_thong_bao", "ngay_boi_thuong",  "paid")  # intersect(names(q1), names(q2))
+not_in_q2 <- anti_join(q1[, common_cols], q2[, common_cols])
+
+```
+
+```{r}
+
+# lấy danh sách bks
+unique_bks <- unique(not_in_q2$bks)
+
+# lọc chi tiết trong q1 theo các bks này
+View( q1 %>% filter(bks %in% unique_bks) )
+
+```
+
+```{r}
+# In colnames của từng data frame
+for (nm in names(list_data)) {
+  cat("Tên file:", nm, "\n")
+  print(colnames(list_data[[nm]]))
+  cat("\n")
+}
+```
+
+```{r}
+# list_data là list các dataframes, names(list_data) là tên file
+all_data <- map2_dfr(
+  list_data,
+  names(list_data),
+  ~ mutate(.x, source = .y)
+)
+# # Ghép theo colnames chung (union tất cả cột, fill NA nếu thiếu)
+# all_data <- bind_rows(list_data)
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+bt <- read_excel("Z:/Actuary/2025/Q2.2025/03_OsC_Paid_QLNV/BH_XeCoGioi/20250709/BT 2025 0907.xlsx") #, col_types = "text")
+```
+
+```{r}
+# 1. Trùng tất cả các cột
+bt %>%
+  group_by(across(everything())) %>%
+  filter(n() > 1) %>%
+  ungroup()
+
+```
+
+```{r}
+# 2. Trùng cột COV_CLASS_NAME, BKS
+View( bt %>%
+  group_by(COV_CLASS_NAME, BKS, EFFECTIVE_FROM) %>%
+  filter(n() > 1) %>%
+  arrange(CLAIM_URN, BKS) )
+
+```
+
+```{r}
+bt$gap <- as.numeric(difftime(bt$`N.BT MAX`, bt$REPORTED_DATE, units = "days"))
+```
+
+```{r}
+summary(bt$gap)
+```
+
+```{r}
+View(bt %>% filter(gap >300))
+```

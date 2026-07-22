@@ -8,5 +8,15 @@ venv/
 .env
 .gemini/
 r_code/
-*.db  
- 
+*.db
+
+# Ignore large binary formats and archives
+*.xlsb
+*.xlsm
+*.7z
+*.7z.*
+
+# Ignore specific large R cache/temp files
+r_code_upr/zithNIcQ
+r_code_upr/ziTPtArq
+*RDataTmp*

@@ -1,0 +1,1076 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250708 NNTX TBH 17h54/NTX_365_202507_TBH.xlsx", 
+    sheet = "Sheet1")
+```
+
+```{r}
+library(readxl)
+df<- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250715 21h15/Gui lan 2 - 15.07.2025/2. L2 - BHCN - Ngan ky - Q2.2025_TBH.xlsx", 
+    sheet = "Data")
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+
+df_long <- df %>%
+  pivot_longer(
+    cols = matches("^Ky_phi_\\d+_"),        # chọn các cột bắt đầu bằng Ky_phi_
+    names_to = c("Ky_phi", "Thong_tin"),    # tách tên cột thành 2 phần
+    names_pattern = "^Ky_phi_(\\d+)_(.*)$", # nhóm 1: số kỳ, nhóm 2: thông tin còn lại
+    values_to = "Gia_tri"
+  )
+df_wide <- df_long %>%
+  pivot_wider(
+    names_from = Thong_tin,
+    values_from = Gia_tri
+  )
+```
+
+```{r}
+# Đọc thời điểm tính từ file
+dpnv_values <- readRDS("dpnv_last_values.rds")
+
+# Tạo ngày thời điểm tính
+ngay_tinh <- as.Date(
+  paste(dpnv_values$nam, dpnv_values$thang, dpnv_values$ngay, sep = "-"),
+  format = "%Y-%m-%d"
+)
+```
+
+```{r}
+df_wide$quy_ghi_doanh_thu <- ifelse(
+  df_wide$Ghi_Thang == "" | is.na(df_wide$Ghi_Thang),
+  0,
+  floor((as.integer(df_wide$Ghi_Thang) - 1) / 3) + 1
+)
+df_wide$quy_nam <-  paste0("Q", df_wide$quy_ghi_doanh_thu, "/", df_wide$Ghi_Nam)
+# Tạo ngày kết thúc kỳ phí từ df_wide
+ngay_ky <- as.Date(
+  with(df_wide, paste(Den_Nam, Den_Thang, Den_Ngay, sep = "-")),
+  format = "%Y-%m-%d"
+)
+
+# Tính check_01 như Excel
+df_wide$check_01 <- ifelse(
+  is.na(ngay_ky) | is.na(ngay_tinh),
+  0,  # giống IFERROR → nếu lỗi hoặc NA thì trả 0
+  ifelse(ngay_tinh - ngay_ky >= 0, 0, 1)
+)
+
+df_wide$check_02 <- ifelse(
+  # Điều kiện 1: bất kỳ ô nào bị rỗng hoặc NA
+  df_wide$Thoi_han_bao_hiem_Tu_Ngay == "" |
+  df_wide$Thoi_han_bao_hiem_Tu_Thang == "" |
+  df_wide$Thoi_han_bao_hiem_Tu_Nam == "" |
+  df_wide$Thoi_han_bao_hiem_Den_Ngay == "" |
+  df_wide$Thoi_han_bao_hiem_Den_Thang == "" |
+  df_wide$Thoi_han_bao_hiem_Den_Nam == "" |
+  is.na(df_wide$Thoi_han_bao_hiem_Tu_Ngay) |
+  is.na(df_wide$Thoi_han_bao_hiem_Tu_Thang) |
+  is.na(df_wide$Thoi_han_bao_hiem_Tu_Nam) |
+  is.na(df_wide$Thoi_han_bao_hiem_Den_Ngay) |
+  is.na(df_wide$Thoi_han_bao_hiem_Den_Thang) |
+  is.na(df_wide$Thoi_han_bao_hiem_Den_Nam),
+  
+  0,  # Nếu thiếu giá trị → 0
+  
+  {
+    # Điều kiện 2: tính khoảng cách ngày
+    ngay_tu <- as.Date(
+      with(df_wide, paste(Thoi_han_bao_hiem_Tu_Nam,
+                          Thoi_han_bao_hiem_Tu_Thang,
+                          Thoi_han_bao_hiem_Tu_Ngay, sep = "-")),
+      format = "%Y-%m-%d"
+    )
+    
+    ngay_den <- as.Date(
+      with(df_wide, paste(Thoi_han_bao_hiem_Den_Nam,
+                          Thoi_han_bao_hiem_Den_Thang,
+                          Thoi_han_bao_hiem_Den_Ngay, sep = "-")),
+      format = "%Y-%m-%d"
+    )
+    
+    ifelse(ngay_den - ngay_tu < 365, 0, 1)
+  }
+)
+
+df_wide$check_03 <- ifelse(
+  (df_wide$So_tien_VND == "" | is.na(df_wide$So_tien_VND)) &
+  (df_wide$So_tien_USD == "" | is.na(df_wide$So_tien_USD)) &
+  (df_wide$So_tien_EUR == "" | is.na(df_wide$So_tien_EUR)),
+  0,  # Nếu cả 3 đều rỗng hoặc NA
+  1   # Ngược lại
+)
+
+df_wide$check_04 <- ifelse(
+  is.na(df_wide$Den_Nam) | is.na(df_wide$Den_Thang) | is.na(df_wide$Den_Ngay) |
+  is.na(df_wide$Tu_Nam)  | is.na(df_wide$Tu_Thang)  | is.na(df_wide$Tu_Ngay),
+  0,  # giống IFERROR → nếu thiếu dữ liệu thì 0
+  {
+    ngay_den <- as.Date(
+      with(df_wide, paste(Den_Nam, Den_Thang, Den_Ngay, sep = "-")),
+      format = "%Y-%m-%d"
+    )
+    
+    ngay_tu <- as.Date(
+      with(df_wide, paste(Tu_Nam, Tu_Thang, Tu_Ngay, sep = "-")),
+      format = "%Y-%m-%d"
+    )
+    
+    ifelse(ngay_den - ngay_tu > 0, 1, 0)
+  }
+)
+
+df_wide$check_05 <- ifelse(
+  (df_wide$Ghi_Thang == "" | is.na(df_wide$Ghi_Thang)) &
+  (df_wide$Ghi_Nam == ""   | is.na(df_wide$Ghi_Nam)),
+  0,
+  1
+)
+
+# Tạo ngày bắt đầu bảo hiểm
+ngay_tu <- as.Date(
+  with(df_wide, paste(Thoi_han_bao_hiem_Tu_Nam,
+                      Thoi_han_bao_hiem_Tu_Thang,
+                      Thoi_han_bao_hiem_Tu_Ngay,
+                      sep = "-")),
+  format = "%Y-%m-%d"
+)
+
+# Tính check_06
+df_wide$check_06 <- ifelse(
+  is.na(ngay_tu) | is.na(ngay_tinh),
+  0,  # giống IFERROR → nếu thiếu dữ liệu thì 0
+  ifelse(ngay_tinh - ngay_tu >= 0, 1, 0)
+)
+
+# check_07
+
+ngay_ghi <- as.Date(
+  with(df_wide, paste(Ghi_Nam, Ghi_Thang, Ghi_Ngay, sep = "-")),
+  format = "%Y-%m-%d"
+)
+
+df_wide$check_07 <- ifelse(
+  is.na(ngay_ghi) | is.na(ngay_tinh),
+  0,
+  ifelse(ngay_ghi - ngay_tinh > 0, 0, 1)
+)
+
+df_wide$tong_hop <- ifelse(
+  rowSums(df_wide[paste0("check_0", 1:7)] == 0) > 0,
+  0,
+  1
+)
+
+df_wide$thu_tu_quy_dp <- ifelse(
+  df_wide$tong_hop == 0,
+  0,
+  {
+    tryCatch({
+      # Quý của thời điểm tính DPNV
+      quy_dpnv <- (dpnv_values$thang - 1) %/% 3 + 1
+      
+      # Quý của kỳ phí (từ ngày)
+      quy_kyp <- (df_wide$Tu_Thang - 1) %/% 3 + 1
+      
+      # Tính thứ tự quý
+      ( (dpnv_values$nam - df_wide$Tu_Nam) * 4 + (quy_dpnv - quy_kyp) + 1 )
+    }, error = function(e) 0)
+  }
+)
+
+df_wide$mau_so <- tryCatch({
+  ngay_tu <- as.Date(
+    with(df_wide, paste(Tu_Nam, Tu_Thang, Tu_Ngay, sep = "-")),
+    format = "%Y-%m-%d"
+  )
+  
+  ngay_den <- as.Date(
+    with(df_wide, paste(Den_Nam, Den_Thang, Den_Ngay, sep = "-")),
+    format = "%Y-%m-%d"
+  )
+  
+  (((ngay_den - ngay_tu) + 1) / 365) * 8
+}, error = function(e) 0)
+
+df_wide$tu_so_huong_cu <- ifelse(
+  df_wide$tong_hop == 0,
+  df_wide$mau_so,
+  ifelse(df_wide$thu_tu_quy_dp == 0, 0, df_wide$thu_tu_quy_dp * 2 - 1)
+)
+
+df_wide$tu_so_chua_huong <- df_wide$mau_so - df_wide$tu_so_huong_cu
+
+
+df_wide$tu_so_chua_huong_dc <- tryCatch({
+  # Nếu >= 0 thì giữ nguyên
+  ifelse(
+    df_wide$tu_so_chua_huong >= 0,
+    df_wide$tu_so_chua_huong,
+    {
+      # Ngày kỳ phí 1 (Den)
+      ngay_den <- as.Date(
+        with(df_wide, paste(Den_Nam, Den_Thang, Den_Ngay, sep = "-")),
+        format = "%Y-%m-%d"
+      )
+      
+      # Ngày tính DPNV
+      ngay_tinh <- as.Date(
+        paste(dpnv_values$nam, dpnv_values$thang, dpnv_values$ngay, sep = "-"),
+        format = "%Y-%m-%d"
+      )
+      
+      ((ngay_den - ngay_tinh) / 365) * 8
+    }
+  )
+}, error = function(e) 0)
+
+#df_wide$tu_so_huong_sau_dc <- df_wide$mau_so - df_wide$tu_so_chua_huong_dc
+ty_gia <- readRDS("D:/UPR/20250801/ty_gia.rds")
+df_wide <- df_wide %>%
+  left_join(ty_gia, by = c("quy_nam" = "Thoi_gian"))
+df_wide <- df_wide %>%
+  replace_na(list(USD = 0, EUR = 0, So_tien_VND = 0, So_tien_USD = 0, So_tien_EUR = 0)) %>%
+  mutate(
+    phi_bao_hiem_sau_dong = So_tien_VND +
+                            So_tien_USD * USD +
+                            So_tien_EUR * EUR
+  )
+library(tidyr)
+
+df_wide <- df_wide %>%
+  replace_na(list(
+    phi_bao_hiem_sau_dong = 0,
+    Ty_le_giu_lai_cua_BHBV_checked = 1
+  )) %>%
+  mutate(
+    phi_bao_hiem_giu_lai = phi_bao_hiem_sau_dong * Ty_le_giu_lai_cua_BHBV_checked
+  )
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+# Vietjet
+
+```{r}
+df= Vietjet
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+
+df_long <- df %>%
+  pivot_longer(
+    cols = -c(Nam_phat_sinh_doanh_thu, Thang_phat_sinh_doanh_thu,hieu_luc),
+    names_to = "Chi_tieu",
+    values_to = "Gia_tri"
+  )
+
+```
+
+```{r}
+library(tidyverse)
+
+Vietjet_wide <- Vietjet %>%
+  pivot_wider(
+    id_cols = c(Nam_phat_sinh_doanh_thu, Thang_phat_sinh_doanh_thu, hieu_luc, Don_vi_lien_ket),
+    names_from = Dau_muc,
+    values_from = Gia_tri
+  )
+
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+
+df_long <- df_long %>%
+  mutate(
+    Dau_muc = str_extract(Chi_tieu, "_(Phi|Ty|Muc|Hach).*") %>% str_remove("^_"),
+    Don_vi_lien_ket = str_remove(Chi_tieu, "_(Phi|Ty|Muc|Hach).*")
+  )
+
+```
+
+```{r}
+
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiSan_KyThuat_TrachNhiem/20250714/Tài sản - Đơn DK-NK HLQ2.2025_GĐ 2_ TBH @14.07.xlsx", 
+    sheet = "TS-NK-Q2.2025")
+```
+
+```{r}
+df= df[7:nrow(df), 1:96]
+```
+
+```{r}
+colnames(df) = colnames(Fire_LT_Pre)
+```
+
+```{r}
+# Tạo cột mới
+Fire_ST_Pre$Cot_moi <- NA_character_
+# Chèn vào vị trí giữa cột 22 và 23
+Fire_ST_Pre <- Fire_ST_Pre[, append(1:22, c(ncol(Fire_ST_Pre), 23:(ncol(Fire_ST_Pre)-1)))]
+#colnames(Misc_ST_Pre) = colnames(Eng_LT_Pre)
+saveRDS(Fire_ST_Pre, "D:\\UPR\\20250801\\pre_data\\Fire_ST_Pre.rds")
+```
+
+```{r}
+Misc_ST_Pre <- Misc_ST_Pre[, append(1:22, c(ncol(Misc_ST_Pre), 23:(ncol(Misc_ST_Pre)-1)))]
+colnames(Misc_ST_Pre) = colnames(Eng_LT_Pre)
+saveRDS(Misc_ST_Pre, "D:\\UPR\\20250801\\pre_data\\Misc_ST_Pre.rds")
+```
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_HangHai/20250718/Tổng hợp BC Ngắn kỳ - Dài kỳ - NV Hàng Hải - Q2_2025 update 16.07.2025 - Ban TBH (BHHH-17.07.2025).xlsx", 
+    sheet = "Ngắn Kỳ")
+```
+
+```{r}
+ty_gia <- data.frame(
+  Thoi_gian = c("Q1/2022", "Q2/2022", "Q3/2022", "Q4/2022", "Q1/2023", "Q2/2023", "Q3/2023", "Q4/2023",
+                "Q1/2024", "Q2/2024", "Q3/2024", "Q4/2024", "Q1/2025", "Q2/2025"),
+  USD = c(22840, 23275, 23870, 23570, 23460, 23580, 24290, 24250, 24800, 25363, 24560, 25401, 25560, 26120),
+  EUR = c(25671.695, 24487.945, 23549.875, 25279.905, 25686.135, 25751.065, 25904.8, 26955.05,
+          26865.3, 27219.3, 27502.23, 26702.02, 27855.74, 30778.865)
+)
+
+saveRDS(ty_gia, "ty_gia.rds")
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+library(readxl)
+xcg <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_XeCoGioi/20250708 TBH 18h33/XCG_365_2025_07_TBH.xlsx", 
+    sheet = "Sheet1")
+```
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250708 PA TBH 17h57/BC doanh thu don BHCN - 08.07.2025 - TBH check/3. BHCN - Don Dai ky - Q2.2025_TBH.xlsx")
+```
+
+```{r}
+library(readxl)
+df<- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250708 PA TBH 17h57/BC doanh thu don BHCN - 08.07.2025 - TBH check/4. BHCN - Don chi BH Chet&TPD - Q2.2025_TBH.xlsm")
+```
+
+# CHUYỂN FORM XCG
+
+```{r}
+library(readxl)
+df2 <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250708 NNTX TBH 17h54/NTX_364_202507_TBH.xlsx")
+```
+
+```{r}
+# Hàm tạo tên cột cho kỳ phí
+generate_fee_cols <- function(ky) {
+  prefix <- paste0("Ky_phi_", ky)
+  c(
+    paste0(prefix, "_So_tien_VND"),
+    paste0(prefix, "_So_tien_USD"),
+    paste0(prefix, "_So_tien_EUR"),
+    paste0(prefix, "_Tu_Ngay"),
+    paste0(prefix, "_Tu_Thang"),
+    paste0(prefix, "_Tu_Nam"),
+    paste0(prefix, "_Den_Ngay"),
+    paste0(prefix, "_Den_Thang"),
+    paste0(prefix, "_Den_Nam"),
+    paste0(prefix, "_Ghi_Ngay"),
+    paste0(prefix, "_Ghi_Thang"),
+    paste0(prefix, "_Ghi_Nam")
+  )
+}
+# Tạo thêm tên cột cho kỳ phí 7 đến 10
+extra_cols <- unlist(lapply(7:10, generate_fee_cols))
+base_cols <- colnames(Eng_LT_Pre)
+# Tổng hợp 144 tên cột
+all_cols <- c(base_cols, extra_cols)
+
+# Tạo dataframe rỗng với 0 dòng và 144 cột
+df_blank <- as.data.frame(matrix(NA, nrow = nrow(df), ncol = length(all_cols)))
+colnames(df_blank) <- all_cols
+```
+
+```{r}
+df_blank$STT = df$...1
+df_blank$Ten_cong_ty_Ten_ban = df$CONG_TY
+df_blank$So_don_Ma_nghiep_vu = df$SO_DON
+df_blank$Thoi_han_bao_hiem_Tu_Ngay = df$NGAY_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Tu_Thang = df$THANG_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Tu_Nam = df$NAM_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Den_Ngay = df$NGAY_HIEU_LUC_DEN
+df_blank$Thoi_han_bao_hiem_Den_Thang = df$THANG_HIEU_LUC_DEN
+df_blank$Thoi_han_bao_hiem_Den_Nam = df$NAM_HIEU_LUC_DEN
+df_blank$So_tien_bao_hiem_So_tien = df$SO_TIEN_BH
+df_blank$So_tien_bao_hiem_Loai_tien = df$LOAI_TIEN_BH
+df_blank$Tong_phi_bao_hiem_khong_thue_So_tien = df$`SUM(PHI_BAO_HIEM)`
+df_blank$Tong_phi_bao_hiem_khong_thue_Loai_tien = df$BILLING_CURRENCY
+df_blank$Ty_le_giu_lai_cua_BHBV_checked = 0.76
+for (i in 1:10) {
+  # Tên gốc: KY1, KY2,...
+  ky <- paste0("KY", i)
+  ky_next <- paste0("KY", i + 1)
+
+  # Các biến nguồn
+  df_blank[[paste0("Ky_phi_", i, "_So_tien_VND")]] <- df[[paste0(ky, "_PHI_THUC_THU")]]
+  df_blank[[paste0("Ky_phi_", i, "_Tu_Ngay")]]      <- df[[paste0(ky, "_DUE_DATE_DAY")]]
+  df_blank[[paste0("Ky_phi_", i, "_Tu_Thang")]]    <- df[[paste0(ky, "_DUE_DATE_MONTH")]]
+  df_blank[[paste0("Ky_phi_", i, "_Tu_Nam")]]      <- df[[paste0(ky, "_DUE_DATE_YEAR")]]
+
+  # Cột "Đến Ngày/Tháng/Năm" phụ thuộc kỳ kế tiếp
+  df_blank[[paste0("Ky_phi_", i, "_Den_Ngay")]] <- ifelse(
+    df[[paste0(ky, "_DUE_DATE_DAY")]] != 0,
+    ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+           df[[paste0(ky_next, "_DUE_DATE_DAY")]],
+           df$NGAY_HIEU_LUC_DEN),
+    0
+  )
+
+  df_blank[[paste0("Ky_phi_", i, "_Den_Thang")]] <- ifelse(
+    df[[paste0(ky, "_DUE_DATE_MONTH")]] != 0,
+    ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+           df[[paste0(ky_next, "_DUE_DATE_MONTH")]],
+           df$THANG_HIEU_LUC_DEN),
+    0
+  )
+
+  df_blank[[paste0("Ky_phi_", i, "_Den_Nam")]] <- ifelse(
+    df[[paste0(ky, "_DUE_DATE_YEAR")]] != 0,
+    ifelse(df[[paste0(ky_next, "_PHI_THUC_THU")]] != 0,
+           df[[paste0(ky_next, "_DUE_DATE_YEAR")]],
+           df$NAM_HIEU_LUC_DEN),
+    0
+  )
+
+  # Ngày ghi nhận thực tế
+  df_blank[[paste0("Ky_phi_", i, "_Ghi_Ngay")]]   <- df[[paste0(ky, "_DUE_DATE_REAL_DAY")]]
+  df_blank[[paste0("Ky_phi_", i, "_Ghi_Thang")]] <- df[[paste0(ky, "_DUE_DATE_REAL_MONTH")]]
+  df_blank[[paste0("Ky_phi_", i, "_Ghi_Nam")]]   <- df[[paste0(ky, "_DUE_DATE_REAL_YEAR")]]
+}
+
+```
+
+```{r}
+df_blank$STT = df$...1
+df_blank$Ten_cong_ty_Ten_ban = df$CONG_TY
+df_blank$So_don_Ma_nghiep_vu = df$SO_DON
+df_blank$Thoi_han_bao_hiem_Tu_Ngay = df$NGAY_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Tu_Thang = df$THANG_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Tu_Nam = df$NAM_HIEU_LUC_TU
+df_blank$Thoi_han_bao_hiem_Den_Ngay = df$NGAY_HIEU_LUC_DEN
+df_blank$Thoi_han_bao_hiem_Den_Thang = df$THANG_HIEU_LUC_DEN
+df_blank$Thoi_han_bao_hiem_Den_Nam = df$NAM_HIEU_LUC_DEN
+df_blank$So_tien_bao_hiem_So_tien = df$SO_TIEN_BH
+df_blank$So_tien_bao_hiem_Loai_tien = df$LOAI_TIEN_BH
+df_blank$Tong_phi_bao_hiem_khong_thue_So_tien = df$`SUM(PHI_BAO_HIEM)`
+df_blank$Tong_phi_bao_hiem_khong_thue_Loai_tien = df$BILLING_CURRENCY
+df_blank$Ty_le_giu_lai_cua_BHBV_checked = 0.76
+df_blank$Ky_phi_1_So_tien_VND = df$KY1_PHI_THUC_THU
+df_blank$Ky_phi_1_Tu_Ngay = df$KY1_DUE_DATE_DAY 
+df_blank$Ky_phi_1_Tu_Thang = df$KY1_DUE_DATE_MONTH 
+df_blank$Ky_phi_1_Tu_Nam = df$KY1_DUE_DATE_YEAR 
+df_blank$Ky_phi_1_Den_Ngay = ifelse(df$KY1_DUE_DATE_DAY!=0, ifelse(df$KY2_PHI_THUC_THU!=0,df$KY2_DUE_DATE_DAY, df$NGAY_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_1_Den_Thang =ifelse(df$KY1_DUE_DATE_MONTH!=0, ifelse(df$KY2_PHI_THUC_THU!=0,df$KY2_DUE_DATE_MONTH, df$THANG_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_1_Den_Nam = ifelse(df$KY1_DUE_DATE_YEAR!=0, ifelse(df$KY2_PHI_THUC_THU!=0,df$KY2_DUE_DATE_YEAR, df$NAM_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_1_Ghi_Ngay = df$KY1_DUE_DATE_REAL_DAY 
+df_blank$Ky_phi_1_Ghi_Thang = df$KY1_DUE_DATE_REAL_MONTH 
+df_blank$Ky_phi_1_Ghi_Nam = df$KY1_DUE_DATE_REAL_YEAR 
+
+df_blank$Ky_phi_2_So_tien_VND = df$KY2_PHI_THUC_THU
+df_blank$Ky_phi_2_Tu_Ngay = df$KY2_DUE_DATE_DAY 
+df_blank$Ky_phi_2_Tu_Thang = df$KY2_DUE_DATE_MONTH 
+df_blank$Ky_phi_2_Tu_Nam = df$KY2_DUE_DATE_YEAR 
+df_blank$Ky_phi_2_Den_Ngay = ifelse(df$KY2_DUE_DATE_DAY!=0, ifelse(df$KY3_PHI_THUC_THU!=0,df$KY3_DUE_DATE_DAY, df$NGAY_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_2_Den_Thang =ifelse(df$KY2_DUE_DATE_MONTH!=0, ifelse(df$KY3_PHI_THUC_THU!=0,df$KY3_DUE_DATE_MONTH, df$THANG_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_2_Den_Nam = ifelse(df$KY2_DUE_DATE_YEAR!=0, ifelse(df$KY3_PHI_THUC_THU!=0,df$KY3_DUE_DATE_YEAR, df$NAM_HIEU_LUC_DEN),0 )
+df_blank$Ky_phi_2_Ghi_Ngay = df$KY2_DUE_DATE_REAL_DAY 
+df_blank$Ky_phi_2_Ghi_Thang = df$KY2_DUE_DATE_REAL_MONTH 
+df_blank$Ky_phi_2_Ghi_Nam = df$KY2_DUE_DATE_REAL_YEAR 
+```
+
+# CHUYỂN FORM TRAVEL
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_DuLich/20250716 - CTTV/Q2.2025 - BAO CAO BH NGAN KY - CTTV - 16.07.2025.xlsx", 
+    sheet = "BÁO CÁO ĐƠN NGẮN KÌ")
+```
+
+```{r}
+# Vị trí muốn chèn
+insert_at <- 5
+
+# Tạo 3 cột toàn NA có độ dài bằng df
+new_cols <- data.frame(
+  X = rep(NA, nrow(df)),
+  Y = rep(NA, nrow(df))
+)
+
+# Chèn vào giữa
+df <- cbind(
+  df[ , 1:insert_at],
+  new_cols,
+  df[ , (insert_at + 1):ncol(df)]
+)
+# Vị trí muốn chèn
+insert_at <- 9
+
+# Tạo 3 cột toàn NA có độ dài bằng df
+new_cols <- data.frame(
+  z = rep(NA, nrow(df)),
+  t = rep(NA, nrow(df))
+)
+
+# Chèn vào giữa
+df <- cbind(
+  df[ , 1:insert_at],
+  new_cols,
+  df[ , (insert_at + 1):ncol(df)]
+)
+```
+
+```{r}
+colnames(df)= colnames(readRDS("D:/UPR/20250721/pre_data/Eng_LT_Pre.rds"))[1:ncol(df)]
+```
+
+```{r}
+library(readxl)
+df2  <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_DuLich/20250718 - BHTT/BAO CAO DU LICH NGAN KY Q2.2025- Ban BHTT_TBH.xlsx", 
+    sheet = "Ngắn kì đến Q2.2025")
+```
+
+vietjet
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_DuLich/20250718 - BHTT/BAO CAO DU LICH NGAN KY Q2.2025- Ban BHTT_TBH.xlsx", 
+    sheet = "Vietjet")
+```
+
+```{r}
+
+```
+
+```{r}
+s= which(grepl("phí bảo hiểm", df[[25]], ignore.case = TRUE))[1]
+e = which(grepl("phí bảo hiểm", df[[25]], ignore.case = TRUE))[2]
+het_hieu_luc = df[(s+1):(e-4),c(1:2, 25:45)]
+con_hieu_luc = df[(e+1):nrow(df),c(1:2, 25:45)]
+het_hieu_luc <- het_hieu_luc[rowSums(is.na(het_hieu_luc)) <= (ncol(het_hieu_luc) - 2), ]
+con_hieu_luc <- con_hieu_luc[rowSums(is.na(con_hieu_luc)) <= (ncol(con_hieu_luc) - 2), ]
+cot= c(
+  "Nam_phat_sinh_doanh_thu",
+  "Thang_phat_sinh_doanh_thu",
+  
+  # Vietjet MỞ RỘNG (3)
+  "Vietjet_MO_RONG_Phi_bao_hiem_sau_dong_bao_hiem",
+  "Vietjet_MO_RONG_Phi_BH_tinh_tai",
+  "Vietjet_MO_RONG_Ty_le_tai_BH",
+  "Vietjet_MO_RONG_Phi_TBH",
+  "Vietjet_MO_RONG_Muc_trach_nhiem_BH",
+  "Vietjet_MO_RONG_Hach_toan_BV_Vung_tau_100pct",
+  
+  # Vietjet NỘI ĐỊA (4)
+  "Vietjet_NOI_DIA_Phi_bao_hiem_sau_dong_bao_hiem",
+  "Vietjet_NOI_DIA_Ty_le_tai_BH",
+  "Vietjet_NOI_DIA_Phi_TBH",
+  "Vietjet_NOI_DIA_Muc_trach_nhiem_BH",
+  "Vietjet_NOI_DIA_Hach_toan_BV_Phu_My_100pct",
+  
+  # Vietjet Staff (5)
+  "Vietjet_Staff_Phi_bao_hiem_sau_dong_bao_hiem",
+  "Vietjet_Staff_Ty_le_tai_BH",
+  "Vietjet_Staff_Phi_TBH",
+  "Vietjet_Staff_Muc_trach_nhiem_BH",
+  
+  # Vietjet Travel Safe (6)
+  "Vietjet_Travel_Safe_Phi_bao_hiem_sau_dong_bao_hiem",
+  "Vietjet_Travel_Safe_Phi_BH_tinh_tai",
+  "Vietjet_Travel_Safe_Ty_le_tai_BH",
+  "Vietjet_Travel_Safe_Phi_TBH",
+  "Vietjet_Travel_Safe_Muc_trach_nhiem_BH",
+  "Vietjet_Travel_Safe_Hach_toan_BV_Phu_My_20pct"
+)
+  
+colnames(het_hieu_luc) = cot
+colnames(con_hieu_luc) = cot
+```
+
+# Xử lý file Long term
+
+```{r}
+df= Eng_LT
+```
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02A_DonNganDai_TinhToan/DaiKy/01. Long_term_Eng_Q2.2025_ver11072025.xlsm", 
+    sheet = "Term1")
+```
+
+```{r}
+library(openxlsx2)
+
+# Dữ liệu mẫu
+n <- 300000
+df <- data.frame(
+  A = 1:n,
+  B = (1:n) * 2,
+  C = NA
+)
+
+# Tạo workbook và ghi dữ liệu
+wb <- wb_workbook()
+wb$add_worksheet("Sheet1")
+wb$add_data_table(sheet = "Sheet1", x = df, start_row = 1, start_col = 1, table_style = "TableStyleMedium2")
+
+# Ghi 1 công thức ở dòng 2, cột C
+wb$add_formula(sheet = "Sheet1", x = "=A2+B2", start_row = 2, start_col = 3)
+
+# Thêm macro VBA để tự động sao chép công thức cho cột C
+vba_code <- '
+Sub AutoFillFormula()
+    Dim tbl As ListObject
+    Set tbl = Sheets("Sheet1").ListObjects(1)
+    tbl.ListColumns("C").DataBodyRange.FormulaR1C1 = "=RC[-2]+RC[-1]"
+End Sub
+
+Private Sub Workbook_Open()
+    AutoFillFormula
+End Sub
+'
+
+wb$add_vba_project(vba_code)
+
+# ✅ Lưu file .xlsm
+wb_save(wb, "with_formula_autofill.xlsm")
+
+```
+
+```{r}
+# Công thức Excel theo kiểu openxlsx (dùng R1C1 hoặc A1 style)
+      add_column_formulas <- function(wb1, sheet_name1, start_row1, ky1) {
+        #prefix <- paste0("Ky_phi_", ky1)
+        # Tạo tên cột đầy đủ theo kỳ
+        ghi_thang <- paste0("Ky_phi_", ky1, "_Ghi_Thang")
+        ghi_nam   <- paste0("Ky_phi_", ky1, "_Ghi_Nam")
+        den_ngay  <- paste0("Ky_phi_", ky1, "_Den_Ngay")
+        den_thang <- paste0("Ky_phi_", ky1, "_Den_Thang")
+        den_nam   <- paste0("Ky_phi_", ky1, "_Den_Nam")
+        
+        # Công thức theo kỳ
+        tryCatch({
+          #cat(sprintf('=IF([@[%s]]="";0;INT(([@[%s]]-1)/3)+1)', ghi_thang, ghi_thang))
+          writeFormula(wb1, sheet = sheet_name1,
+                                   x = sprintf('IF([@[%s]]="",0,INT(([@[%s]]-1)/3)+1)', ghi_thang, ghi_thang),
+                                   startCol = "Quy_ghi_nhan_doanh_thu",
+                                   startRow = start_row1
+          )
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức Quy_ghi_nhan_doanh_thu: ", e$message)
+        })
+        
+        tryCatch({
+          writeFormula(wb1, sheet = sheet_name1,
+                       x = sprintf('=IF(VALUE([@%s])=2024,[@Quy_ghi_nhan_doanh_thu],0)', ghi_nam),
+                       startCol = "Quy_ghi_nhan_doanh_thu_2024",
+                       startRow = start_row1
+          )
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức Quy_ghi_nhan_doanh_thu_2024: ", e$message)
+        })
+        
+        tryCatch({
+          writeFormula(wb1, sheet = sheet_name1,
+                       x = sprintf('=IF(VALUE([@%s])=2025,[@Quy_ghi_nhan_doanh_thu],0)', ghi_nam),
+                       startCol = "Quy_ghi_nhan_doanh_thu_2025",
+                       startRow = start_row1
+          )
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức Quy_ghi_nhan_doanh_thu_2025: ", e$message)
+        })
+        
+        tryCatch({
+          writeFormula(wb1, sheet = sheet_name1,
+                       x = '=CONCATENATE("Q",[@Quy_ghi_nhan_doanh_thu],"/",[@Quy_ghi_nhan_doanh_thu_2024]+[@Quy_ghi_nhan_doanh_thu_2025])',
+                       startCol = "Thoi_diem_ghi_nhan_doanh_thu",
+                       startRow = start_row1
+          )
+          
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức:Thoi_diem_ghi_nhan_doanh_thu ", e$message)
+        })
+        tryCatch({
+          writeFormula(wb1, sheet = sheet_name1,
+                       x = sprintf(
+                         '=IFERROR(IF(DATE([@Thoi_diem_tinh_DPNV_Nam],[@Thoi_diem_tinh_DPNV_Thang],[@Thoi_diem_tinh_DPNV_Ngay])-DATE([@%s],[@%s],[@%s])>=0;0;1);0)',
+                         den_nam, den_thang, den_ngay
+                       ),
+                       startCol = "Check_01",
+                       startRow = start_row1
+          )
+          
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức: check1", e$message)
+        })
+        tryCatch({
+          writeFormula(wb1, sheet = sheet_name1,
+                       x = '=IF(OR([@Thoi_han_bao_hiem_Tu_Ngay]="",[@Thoi_han_bao_hiem_Tu_Thang]="",[@Thoi_han_bao_hiem_Tu_Nam]="",[@Thoi_han_bao_hiem_Den_Ngay]="",[@Thoi_han_bao_hiem_Den_Thang]="",[@Thoi_han_bao_hiem_Den_Nam]=""),0,IF(DATE([@Thoi_han_bao_hiem_Den_Nam],[@Thoi_han_bao_hiem_Den_Thang],[@Thoi_han_bao_hiem_Den_Ngay])-DATE([@Thoi_han_bao_hiem_Tu_Nam],[@Thoi_han_bao_hiem_Tu_Thang],[@Thoi_han_bao_hiem_Tu_Ngay])<365,0,1))',
+                       startCol = "Check_02",
+                       startRow = start_row1
+          )
+          
+        }, error = function(e) {
+          message("⚠️ Lỗi tại công thức: check2 ", e$message)
+        })
+        
+      }
+```
+
+```{r}
+library(openxlsx2)
+
+file.copy("template_with_macro.xlsm", "test_macro.xlsm", overwrite = TRUE)
+
+df <- data.frame(
+  A = 1:5,
+  B = 6:10,
+  Sum = c("=A2+B2", "=A3+B3", "=A4+B4", "=A5+B5", "=A6+B6")
+)
+
+wb <- wb_load("test_macro.xlsm")
+wb$add_data(sheet = "Sheet1", x = df, formula_as_formula = TRUE)
+wb$save("test_macro.xlsm")
+
+```
+
+```{r}
+library(readxl)
+df <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_TaiNanConNguoi/20250708 NNTX TBH 17h54/NTX_364_202507_TBH.xlsx")
+```
+
+```{r}
+library(readxl)
+xcg <- read_excel("Z:/Actuary/2025/Q2.2025/02_DonNganDai_QLNV/BH_XeCoGioi/20250708 TBH 18h33/XCG_364_2025507_TBH.xlsx")
+```
+
+```{r}
+library(openxlsx)
+
+# Đường dẫn tới thư mục chứa file Excel
+folder_path <- "www/output_excel"
+
+# Lấy danh sách file Excel
+files <- list.files(folder_path, pattern = "\\.xlsx$", full.names = TRUE)
+
+# Tạo workbook mới
+wb_new <- createWorkbook()
+
+for (file in files) {
+  # Lấy tên file không có đuôi
+  file_name <- tools::file_path_sans_ext(basename(file))
+  
+  # Đọc sheet "Result"
+  df <- read.xlsx(file, sheet = "Result")
+  
+  # Thêm sheet mới với tên file
+  addWorksheet(wb_new, sheetName = file_name)
+  
+  # Ghi dữ liệu vào sheet mới
+  writeData(wb_new, sheet = file_name, x = df)
+}
+
+
+
+# Lưu file ghép
+saveWorkbook(wb_new, file = "tong_hop_Result.xlsx", overwrite = TRUE)
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+library(openxlsx)
+library(dplyr)
+library(stringr)
+
+folder_path <- "www/output_excel"
+
+# Lấy danh sách file Excel
+files <- list.files(folder_path, pattern = "\\.xlsx$", full.names = TRUE)
+
+# Tạo list chứa các nhóm dữ liệu
+group_data <- list(
+  LT = list(),
+  Travel = list(),
+  TTTBVV = list(),
+  ShortTerm = list()
+)
+
+for (file in files) {
+  file_name <- tools::file_path_sans_ext(basename(file))
+  
+  # Đọc sheet "Result"
+  df_raw <- read.xlsx(file, sheet = "Result", colNames = FALSE)
+  
+  if (nrow(df_raw) < 2) next
+  
+  # Bỏ dòng đầu tiên, dòng thứ 2 làm colnames
+  colnames(df_raw) <- as.character(unlist(df_raw[2, ]))
+  df <- df_raw[-c(1, 2), , drop = FALSE]
+  
+  # Xác định nhóm
+  if (str_detect(tolower(file_name), "lt")) {
+    group_data$LT[[file_name]] <- df
+  } else if (str_detect(tolower(file_name), "travel|vietjet")) {
+    group_data$Travel[[file_name]] <- df
+  } else if (str_detect(tolower(file_name), "tttbvv")) {
+    group_data$TTTBVV[[file_name]] <- df
+  } else {
+    group_data$ShortTerm[[file_name]] <- df
+  }
+}
+
+# Bộ cột riêng cho từng nhóm
+sum_cols_LT <- c(
+  # "Phi_bao_hiem_sau_dong",
+  # "Phi_bao_hiem_giu_lai",
+  # "Phi_tai_bao_hiem",
+  # "Phi_bao_hiem_giu_lai_duoc_huong",
+  # "Phi_tai_bao_hiem_duoc_huong",
+  "Phi_bao_hiem_giu_lai_chua_huong",
+  "Phi_tai_bao_hiem_chua_huong"
+)
+
+sum_cols_TS <- c(
+  # "Phi_bao_hiem_goc",
+  # "Phi_bao_hiem_giu_lai",
+  "Giam_phi_bao_hiem_goc",
+  # "Giam_phi_bao_hiem_giu_lai",
+  "Giam_phi_bao_hiem_tai"
+)
+
+sum_cols_TTTBVV <- c(
+  # "Phi_bao_hiem_goc",
+  # "Phi_bao_hiem_giu_lai",
+  #"Du_phong_bao_hiem_goc",
+  "Du_phong_bao_hiem_giu_lai",
+  "Du_phong_bao_hiem_tai"
+)
+
+# Tạo workbook mới
+wb_new <- createWorkbook()
+
+# ----- LT -----
+result_LT <- data.frame()
+if (length(group_data$LT) > 0) {
+  merged_df_LT <- bind_rows(group_data$LT, .id = "SourceFile")
+  addWorksheet(wb_new, "LT")
+  writeData(wb_new, "LT", merged_df_LT, withFilter = TRUE)
+  
+  result_LT <- merged_df_LT %>%
+    filter(Quy == "Số dùng để tính") %>%
+    group_by(SourceFile) %>%
+    summarise(across(all_of(sum_cols_LT), ~ sum(as.numeric(.), na.rm = TRUE)), .groups = "drop") %>%
+    mutate(Ky_phi = NA, Quy = "Tổng cộng") %>%
+    select(SourceFile, Ky_phi, Quy, all_of(sum_cols_LT))
+}
+
+# ----- Travel + ShortTerm -----
+result_TS <- data.frame()
+if (length(group_data$Travel) > 0 || length(group_data$ShortTerm) > 0) {
+  merged_df_travel <- bind_rows(group_data$Travel, .id = "SourceFile")
+  merged_df_shortterm <- bind_rows(group_data$ShortTerm, .id = "SourceFile")
+  merged_df_TS <- bind_rows(merged_df_travel, merged_df_shortterm)
+  
+  addWorksheet(wb_new, "Travel_ShortTerm")
+  writeData(wb_new, "Travel_ShortTerm", merged_df_TS, withFilter = TRUE)
+  
+  result_TS <- merged_df_TS %>%
+    filter(Quy == "Q2/2025") %>%
+    group_by(SourceFile) %>%
+    summarise(across(all_of(sum_cols_TS), ~ sum(as.numeric(.), na.rm = TRUE)), .groups = "drop") %>%
+    mutate(Ky_phi = NA, Quy = "Tổng cộng") %>%
+    select(SourceFile, Ky_phi, Quy, all_of(sum_cols_TS))
+}
+
+# ----- TTTBVV -----
+result_TTTBVV <- data.frame()
+if (length(group_data$TTTBVV) > 0) {
+  for (nm in names(group_data$TTTBVV)) {
+    addWorksheet(wb_new, nm)
+    writeData(wb_new, nm, group_data$TTTBVV[[nm]], withFilter = TRUE)
+  }
+  
+  merged_df_TTTBVV <- bind_rows(group_data$TTTBVV, .id = "SourceFile")
+  result_TTTBVV <- merged_df_TTTBVV %>%
+    summarise(across(all_of(sum_cols_TTTBVV), ~ sum(as.numeric(.), na.rm = TRUE)), .groups = "drop") %>%
+    mutate(SourceFile = "TTTBVV Tổng", Ky_phi = NA, Quy = "Tổng cộng") %>%
+    select(SourceFile, Ky_phi, Quy, all_of(sum_cols_TTTBVV))
+}
+
+# ----- Ghi vào sheet "Result" ở 3 vị trí -----
+addWorksheet(wb_new, "Result")
+
+# LT
+writeData(wb_new, "Result", "LT", startRow = 1, startCol = 1)
+writeData(wb_new, "Result", result_LT, startRow = 2, startCol = 1, withFilter = TRUE)
+
+# Travel + ShortTerm
+start_row_TS <- nrow(result_LT) + 4
+writeData(wb_new, "Result", "Travel & ShortTerm", startRow = start_row_TS, startCol = 1)
+writeData(wb_new, "Result", result_TS, startRow = start_row_TS + 1, startCol = 1, withFilter = TRUE)
+
+# TTTBVV
+start_row_TTTBVV <- start_row_TS + nrow(result_TS) + 4
+writeData(wb_new, "Result", "TTTBVV", startRow = start_row_TTTBVV, startCol = 1)
+writeData(wb_new, "Result", result_TTTBVV, startRow = start_row_TTTBVV + 1, startCol = 1, withFilter = TRUE)
+
+# ----- Lưu file -----
+saveWorkbook(wb_new, file = "tong_hop_Result.xlsx", overwrite = TRUE)
+
+
+```
+
+```{r}
+library(openxlsx)
+library(dplyr)
+library(stringr)
+
+folder_path <- "www/output_excel"
+
+# Lấy danh sách file Excel
+files <- list.files(folder_path, pattern = "\\.xlsx$", full.names = TRUE)
+
+# Tạo list chứa các nhóm dữ liệu
+group_data <- list(
+  LT = list(),
+  Travel = list(),
+  TTTBVV = list(),
+  ShortTerm = list()
+)
+
+for (file in files) {
+  file_name <- tools::file_path_sans_ext(basename(file))
+  
+  # Đọc sheet "Result"
+  df_raw <- read.xlsx(file, sheet = "Result", colNames = FALSE)
+  
+  if (nrow(df_raw) < 2) next  # Bỏ qua nếu sheet quá ngắn
+  
+  # Bỏ dòng đầu tiên, dòng thứ 2 làm colnames
+  colnames(df_raw) <- as.character(unlist(df_raw[2, ]))
+  df <- df_raw[-c(1, 2), , drop = FALSE]
+  
+  
+    # Ép kiểu số cho các cột cần tính
+  df <- df %>% mutate(across(-Quy, ~ suppressWarnings(as.numeric(.))))
+
+  # Summarise tất cả các cột trừ cột Quy
+  df <- df %>%
+    group_by(Quy) %>%
+    summarise(across(where(is.numeric), sum, na.rm = TRUE), .groups = "drop")
+  
+  
+  
+  
+  # Xác định nhóm
+  if (str_detect(tolower(file_name), "lt")) {
+    group_data$LT[[file_name]] <- df
+  } else if (str_detect(tolower(file_name), "travel|vietjet")) {
+    group_data$Travel[[file_name]] <- df
+  } else if (str_detect(tolower(file_name), "tttbvv")) {
+    group_data$TTTBVV[[file_name]] <- df
+  } else {
+    group_data$ShortTerm[[file_name]] <- df
+  }
+}
+
+# Tạo workbook mới
+wb_new <- createWorkbook()
+style_acc <- createStyle(numFmt = "_(* #,##0_);_(* (#,##0);_(* \"-\"??_);_(@_)")
+
+# Ghép dữ liệu cho nhóm LT, Travel, ShortTerm
+for (grp in c("LT", "Travel", "ShortTerm")) {
+  if (length(group_data[[grp]]) > 0) {
+    merged_df <- bind_rows(group_data[[grp]], .id = "SourceFile")
+    merged_df <- merged_df %>% select(-Ky_phi)
+    addWorksheet(wb_new, grp)
+    # Áp dụng định dạng accounting
+    numeric_cols <- which(sapply(merged_df, is.numeric))
+    if (length(numeric_cols) > 0) {
+      addStyle(wb_new, sheet = grp, style = style_acc,
+         rows = 2:(nrow(merged_df)+1),
+         cols = which(sapply(merged_df, is.numeric)),
+         gridExpand = TRUE)
+      setColWidths(
+    wb_new,
+    sheet = grp,
+    cols = 1:ncol(merged_df),
+    widths = "auto"
+  )
+    }
+    
+    writeData(wb_new, grp, merged_df,withFilter = TRUE)
+  }
+}
+
+# Thêm TTTBVV từng file riêng
+if (length(group_data$TTTBVV) > 0) {
+  for (nm in names(group_data$TTTBVV)) {
+    addWorksheet(wb_new, nm)
+    merged_df <- group_data$TTTBVV[[nm]]
+    merged_df <- merged_df %>% select(-Ky_phi)
+    writeData(wb_new, nm, merged_df,withFilter = TRUE)
+    # Áp dụng định dạng accounting
+    numeric_cols <- which(sapply(merged_df, is.numeric))
+    if (length(numeric_cols) > 0) {
+      addStyle(wb_new, sheet = grp, style = style_acc,
+         rows = 2:(nrow(merged_df)+1),
+         cols = which(sapply(merged_df, is.numeric)),
+         gridExpand = TRUE)
+      setColWidths(
+    wb_new,
+    sheet = grp,
+    cols = 1:ncol(merged_df),
+    widths = "auto"
+  )
+      }
+  }
+}
+
+# Lưu file
+saveWorkbook(wb_new, file = "tong_hop_Result.xlsx", overwrite = TRUE)
+```

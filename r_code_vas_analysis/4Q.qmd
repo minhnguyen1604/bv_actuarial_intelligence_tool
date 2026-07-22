@@ -1,0 +1,62 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+data <- readRDS("D:/R_Project/ALCO/data.rds")
+
+library(dplyr)
+library(stringr)
+library(slider)
+
+```
+
+```{r}
+data_4q <- data %>%
+  filter(`Quý/Lũy kế` == "Theo quý") %>%
+  mutate(
+    year = as.numeric(str_sub(Năm, 1, 4)),
+    quarter = as.numeric(str_sub(Năm, 6, 6))
+  ) %>%
+  arrange(Line, Type, year, quarter) %>%
+  group_by(Line, Type) %>%
+  mutate(
+    # 1. Flow (sum 4Q)
+    Paid_4Q = slide_dbl(Paid, sum, .before = 3, .complete = TRUE),
+    Written_4Q = slide_dbl(Written, sum, .before = 3, .complete = TRUE),
+
+    # 2. Stock delta (t - t-4)
+    OsC_4Q = `@OsC` - lag(`@OsC`, 4),
+    UPR_4Q = `@UPR` - lag(`@UPR`, 4),
+
+    `Quý/Lũy kế` = "4Q"
+  ) %>%
+  ungroup()
+```
+
+```{r}
+he= data_4q
+he$Paid = he$Paid_4Q
+he$Written = he$Written_4Q
+he$OsC = he$OsC_4Q
+he$UPR = he$UPR_4Q
+
+
+he$`Sub total(incurred)` = he$Paid + he$OsC
+he$`Sub total(earned)` = he$Written - he$UPR
+he$`Paid/Written` <- ifelse(he$Written == 0, 0, he$Paid / he$Written)
+he$`Incurred/Earned` <- ifelse(he$`Sub total(earned)` == 0, 0,
+                                 he$`Sub total(incurred)` / he$`Sub total(earned)`)
+
+he = he %>% select(-c( "Paid_4Q","Written_4Q"  ,"OsC_4Q","UPR_4Q","year",     "quarter"  ))
+```
+
+```{r}
+data_final <- bind_rows(data, he)
+```
+
+```{r}
+
+```

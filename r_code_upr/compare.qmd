@@ -1,0 +1,203 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(writexl)
+library(tidyr)
+library(dplyr)
+library(lubridate)
+
+pre_data = readRDS("D:/R_Project/DPNV/www/cur_data_Q3_2025/Marine_LT.rds")
+cur_data = readRDS("D:/R_Project/DPNV/www/cur_data_Q4_2025/Marine_LT.rds")
+```
+
+```{r}
+  # ngay_input = make_date(
+  #     year  = as.integer(input$dpnv_nam),
+  #     month = as.integer(input$dpnv_thang),
+  #     day   = as.integer(input$dpnv_ngay)
+  #   )
+  ngay_input = make_date(
+      year  = 2025,
+      month = 12,
+      day   = 31
+    )
+  
+```
+
+```{r}
+
+cols_cmp <- names(pre_data)[13:ncol(pre_data)]
+keys <- c("So_don_Ma_hop_dong_Ma_SDBS", "So_don_Nhom_nganh_nghe_kinh_doanh","So_don_Nhom_rui_ro", "So_InsureJ")
+library(dplyr)
+
+pre2 <- pre_data %>%
+  mutate(
+    source = "pre",
+    across(all_of(cols_cmp), as.character)
+  ) %>% 
+  mutate(
+    ngay_ket_thuc = make_date(
+      year  = as.integer(Thoi_han_bao_hiem_Den_Nam),
+      month = as.integer(Thoi_han_bao_hiem_Den_Thang),
+      day   = as.integer(Thoi_han_bao_hiem_Den_Ngay)
+    ) )%>% 
+  # mutate(
+  #   ngay_ky_phi1_den = make_date(
+  #     year  = as.integer(Ky_phi_1_Den_Nam),
+  #     month = as.integer(Ky_phi_1_Den_Thang),
+  #     day   = as.integer(Ky_phi_1_Den_Ngay)
+  #   ) )%>% 
+  filter(ngay_ket_thuc > ngay_input ) 
+  # filter(
+  #   ngay_ket_thuc > ngay_input & ngay_ky_phi1_den > ngay_input
+  # )
+
+cur2 <- cur_data %>%
+  mutate(
+    source = "cur",
+    across(all_of(cols_cmp), as.character)
+  ) %>% 
+  mutate(
+    ngay_ket_thuc = make_date(
+      year  = as.integer(Thoi_han_bao_hiem_Den_Nam),
+      month = as.integer(Thoi_han_bao_hiem_Den_Thang),
+      day   = as.integer(Thoi_han_bao_hiem_Den_Ngay)
+    ) ) %>% 
+   filter(ngay_ket_thuc > ngay_input ) #%>% filter(grepl("3.*2025", Quy, ignore.case = TRUE ))
+
+
+# %>% mutate(
+#     ngay_ky_phi1_den = make_date(
+#       year  = as.integer(Ky_phi_1_Den_Nam),
+#       month = as.integer(Ky_phi_1_Den_Thang),
+#       day   = as.integer(Ky_phi_1_Den_Ngay)
+#     ) )%>% 
+#   filter(
+#     ngay_ket_thuc > ngay_input & ngay_ky_phi1_den > ngay_input
+#   ) %>% filter(grepl("3.*2025", Quy, ignore.case = TRUE ))
+
+```
+
+```{r}
+all_data <- bind_rows(pre2, cur2)
+```
+
+## 1. Đơn
+
+```{r}
+# diff_rows <- all_data %>%
+#   group_by(across(all_of(keys))) %>%
+#   filter(
+#     n_distinct(source) == 2 &
+#     if_any(
+#       all_of(cols_cmp),
+#       ~ n_distinct(.) > 1
+#     )
+#   ) %>%
+#   ungroup()
+# summary_diff <- all_data %>%
+#   group_by(across(all_of(keys))) %>%
+#   summarise(
+#     Cac_cot_khac = paste(
+#       names(which(sapply(across(all_of(cols_cmp)), n_distinct) > 1)),
+#       collapse = ", "
+#     ),
+#     .groups = "drop"
+#   ) %>%
+#   filter(Cac_cot_khac != "")
+# library(writexl)
+# write_xlsx(diff_rows,"C:\\Users\\tts.tranthidiemquynh\\OneDrive\\Desktop\\test.xlsx" )
+```
+
+## 2. Đơn mới cập nhật Q3
+
+```{r}
+dong_moi <- cur2 %>%
+      anti_join(pre2, by = keys) %>%
+      mutate(
+        Loai_dong = "Mới hoàn toàn",
+        Cac_cot_thay_doi = NA_character_
+      )
+
+```
+
+```{r}
+# dong_thay_doi <- all_data %>%
+#   group_by(across(all_of(keys))) %>%
+#   filter(n_distinct(source) == 2) %>%
+#   mutate(
+#     Cac_cot_thay_doi = {
+#       tmp <- pick(all_of(cols_cmp))
+#       paste(
+#         names(tmp)[
+#           sapply(tmp, function(col) n_distinct(col) > 1)
+#         ],
+#         collapse = ", "
+#       )
+#     }
+#   ) %>%
+#   filter(Cac_cot_thay_doi != "") %>%
+#   #filter(source == "cur") %>%
+#   ungroup() %>%
+#   mutate(Loai_dong = "Thay đổi")
+
+dong_thay_doi <- all_data %>%
+      group_by(across(all_of(keys))) %>%
+      filter(n_distinct(source) >= 2) %>%
+      mutate(
+        # Các cột thay đổi
+        Cac_cot_thay_doi = {
+          tmp <- pick(all_of(cols_cmp))
+          paste(
+            names(tmp)[
+              sapply(tmp, function(col) n_distinct(col, na.rm = TRUE) > 1)
+            ],
+            collapse = ", "
+          )
+        },
+        
+        # Có dòng rỗng hay không
+        co_dong_rong = any(is.na(as.matrix(pick(all_of(cols_cmp)))))
+      ) %>%
+      filter(Cac_cot_thay_doi != "") %>%
+      ungroup() %>%
+      mutate(
+        Loai_dong = if_else(
+          co_dong_rong,
+          "Thêm thông tin",
+          "Thay đổi"
+        )
+      )
+```
+
+```{r}
+ dong_trung <-  all_data %>%
+      group_by(across(all_of(c(keys, cols_cmp)))) %>%
+      filter(
+        n() > 1
+      ) %>% mutate(
+        Loai_dong = "Trùng",
+        Cac_cot_thay_doi = NA_character_
+      )
+```
+
+```{r}
+dong_bi_bo <- pre2 %>%
+      anti_join(cur2, by = keys) %>%
+      mutate(
+        Loai_dong = "Bị bỏ",
+        Cac_cot_thay_doi = NA_character_
+      )
+```
+
+```{r}
+ketqua = rbind(dong_moi, dong_thay_doi, dong_trung, dong_bi_bo)
+```
+
+```{r}
+
+```

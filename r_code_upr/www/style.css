@@ -1,0 +1,259 @@
+/* www/style.css */
+
+body {
+  margin-bottom: 70px;
+}
+
+.main-container {
+  margin-left: 50px;
+  margin-right: 50px;
+  #max-width: 1200px;
+}
+
+.footer {
+  background-color: #f0f0f0;
+  text-align: center;
+  padding: 5px;
+  font-size: 13px;
+  color: #666;
+  border-top: 1px solid #ddd;
+
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+/* === TAB PANEL STYLE === */
+
+/* Tất cả tiêu đề tab */
+.navbar-nav > li > a {
+  font-weight: bold;
+  font-size: 16px;
+  color: #2c3e50;
+  padding: 12px 20px;
+  transition: all 0.2s ease;
+}
+
+/* Hover: gạch chân và đổi màu */
+.navbar-nav > li > a:hover {
+  text-decoration: underline;
+  color: #0000FF;
+}
+
+/* Tab đang active */
+.navbar-nav > .active > a,
+.navbar-nav > .active > a:focus,
+.navbar-nav > .active > a:hover {
+  background-color: #eaeaea;
+  color: #0000FF ;
+  /*text-decoration: underline;*/
+  border-bottom: 2px solid #0000FF;
+}
+
+/* Làm tròn góc dưới cho tab 
+.navbar-nav > li > a {
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}*/
+/*  _______________________________________________table box */
+.table-box {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+/*  _______________________________________________Action box */
+ .action-box {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    .action-box .btn {
+      width: 100%;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .action-box h4 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+/*  _______________________________________________đường kẻ  
+    .vertical-divider {
+    border-left: 2px solid #ccc;
+    min-height: 100%;
+    }*/   
+    
+    
+    .vertical-divider {
+  border-left: 1px solid #999;
+  height: 700px;
+}
+
+/* _______________________________________________________well panel */ 
+
+.well {
+  background-color: #fefefe;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.equal-height-table {
+  min-height: 300px;  /* hoặc 400px tùy bạn */
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.well {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+
+.btn-xs {
+      padding: 3px 8px;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+    
+ #cal, #summarize_result {
+      background-color: #ffffff;
+      color: blue;
+      font-weight: bold;
+      border-radius: 8px;
+      border: 2px solid blue
+      padding: 10px 20px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+ #summarize_result:hover {
+      background-color: blue;
+      color: white;
+      border-color: green;
+      transform: scale(1.05);
+    }
+    
+     #cal:hover {
+      background-color: blue;
+      color: white;
+      border-color: green;
+      transform: scale(1.05);
+    }
+
+
+/* ___________________________________thoi diem tinh du phong */
+.center-box {
+  position: fixed; /* giữ giữa ngay cả khi cuộn */
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  
+  width: 1500px;         /* tăng độ rộng box */
+  max-width: 95%;       /* tránh tràn màn hình */
+}
+
+.center-box .well {
+  margin-bottom: 0; /* bỏ khoảng trắng dưới wellPanel */
+}
+
+
+/* nút quay lại */
+
+
+.btn-back {
+  background-color: #5a7d9a; /* xám xanh */
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-back:hover {
+  background-color: #486680; /* màu đậm hơn khi hover */
+}
+
+/* _________________________________________________ upr,  osc, khac */
+.btn-module {
+  font-size: 30px;
+  font-weight: bold;
+  padding: 20px 80px;
+  border: none;
+  border-radius: 12px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.btn-module:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* Màu riêng cho từng nút */
+.btn-module.upr {
+  
+  background-color: #0056b3;
+}
+
+.btn-module.upr:hover {
+  background-color: #007BFF; /* Xanh dương */
+  color: white;
+}
+
+.btn-module.osc {
+  /* background-color: #28a745;  Xanh lá */
+   /* Xanh dương */
+  background-color: #0056b3;
+}
+
+.btn-module.osc:hover {
+  background-color: #007BFF;
+  /*  background-color: #1e7e34; */
+  color: white;
+}
+
+.btn-module.khac {
+  /*  background-color: #ffc107;  Vàng */
+  
+  background-color: #0056b3;
+  color: white;
+}
+
+.btn-module.khac:hover {
+  /*  background-color: #e0a800; */
+  background-color: #007BFF; /* Xanh dương */
+  color: white;
+}
+
+/*________________________________ tỷ giá */
+
+  /* Bold header hàng đầu tiên */
+    #ty_gia_table .ht_clone_top thead th {
+      font-weight: 700 !important;
+    }
+
+    /* Bold cột đầu tiên (row header hoặc col 0) */
+    #ty_gia_table .ht_master tbody tr td:nth-child(1) {
+      font-weight: 700 !important;
+    }
+
+    /* Nếu có row header thì bold luôn */
+    #ty_gia_table .ht_clone_left thead th,
+    #ty_gia_table .ht_clone_left tbody th {
+      font-weight: 700 !important;
+    }
