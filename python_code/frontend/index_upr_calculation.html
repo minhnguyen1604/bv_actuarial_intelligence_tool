@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="BVH.VN-4893b119.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- SheetJS for local Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Plotly.js for charts -->
@@ -25,11 +25,11 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         h1, h2, h3, h4, h5, h6, .panel-title, .nav-text, .nav-label, .pa-date-pill-bar-label {
-            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         body {
@@ -198,12 +198,12 @@
         }
 
         .nav-label {
-            font-size: 11px;
+            font-size: 10.5px;
             text-transform: uppercase;
-            color: var(--text-secondary);
+            color: #475569;
             font-weight: 700;
-            letter-spacing: 0.1em;
-            margin: 20px 0 10px 8px;
+            letter-spacing: 0.08em;
+            margin: 18px 0 6px 10px;
             transition: opacity 0.3s, height 0.3s, margin 0.3s;
             opacity: 1;
             overflow: hidden;
@@ -219,14 +219,15 @@
         .nav-item {
             display: flex;
             align-items: center;
-            padding: 12px 14px;
-            margin-bottom: 6px;
-            border-radius: 10px;
+            padding: 9px 12px;
+            margin-bottom: 3px;
+            border-radius: 8px;
             cursor: pointer;
-            color: var(--text-primary);
-            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            font-weight: 500;
-            font-size: 14px;
+            color: #1e293b;
+            transition: all 0.15s ease;
+            font-weight: 600;
+            font-size: 13.5px;
+            letter-spacing: -0.01em;
             white-space: nowrap;
             overflow: hidden;
         }
@@ -270,11 +271,13 @@
         }
 
         .nav-item.active {
-            background: rgba(255, 255, 255, 0.9);
-            color: var(--bv-blue);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 1);
-            font-weight: 600;
+            background: rgba(255, 255, 255, 0.95);
+            color: #0056A3;
+            box-shadow: 0 2px 8px rgba(0, 86, 163, 0.08);
+            border: 1px solid rgba(0, 86, 163, 0.12);
+            border-left: 3px solid #0056A3;
+            border-radius: 3px 8px 8px 3px;
+            font-weight: 700;
         }
         
         .sidebar.collapsed .nav-item.active {
@@ -547,27 +550,28 @@
         }
 
         .panel-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.025em;
             display: flex;
             align-items: center;
             gap: 8px;
-            border-left: 3px solid var(--bv-blue);
+            border-left: 3px solid #0056A3;
             border-radius: 2px;
-            padding-left: 12px;
-            line-height: 1;
+            padding-left: 10px;
+            line-height: 1.2;
         }
 
         /* Controls */
         .form-label {
             display: block;
-            font-size: 11px;
+            font-size: 10.5px;
             text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
+            color: #475569;
+            margin-bottom: 6px;
             font-weight: 700;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.04em;
         }
 
         .section-label {
@@ -1378,7 +1382,7 @@
             align-items: center;
             justify-content: center;
             gap: 0;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: clamp(2.4rem, 5vw, 4.2rem);
             font-weight: 800;
             letter-spacing: 0.15em;
@@ -1596,7 +1600,7 @@
             border-spacing: 0 !important;
         }
         .pa-table th {
-            font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-size: 10.5px !important;
             font-weight: 700 !important;
             text-transform: uppercase !important;
@@ -1614,7 +1618,7 @@
             box-shadow: inset 0 -2px 0 rgba(0, 86, 163, 0.12) !important; /* Use inset shadow instead of border-bottom for separate border model */
         }
         .pa-table td {
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             padding: 12px 10px !important;
             font-size: 13px !important;
             border-bottom: 1px solid rgba(0, 86, 163, 0.06) !important;
